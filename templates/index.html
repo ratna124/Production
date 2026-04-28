@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Input Output Produksi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+/* ── SIDEBAR ────────────────────────────────────────── */
+.sidebar {
+  background: #1a1a1a;
+  border-right: 1px solid #2e2e2e;
+  padding: 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* TITLE */
+.sidebar-section {
+  font-family: monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #777;
+  padding: 16px 20px 6px;
+}
+
+/* ITEM */
+.sidebar-item {
+  display: flex;              /* 🔥 biar rapi horizontal icon + text */
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+
+  text-decoration: none;      /* 🔥 HILANGIN GARIS BAWAH */
+  color: #aaa;
+
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+/* DOT */
+.sidebar-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3e3e3e;
+}
+
+/* HOVER */
+.sidebar-item:hover {
+  background: #2c2c2c;
+  color: white;
+}
+
+/* ACTIVE */
+.sidebar-item.active {
+  background: rgba(232, 66, 10, 0.12);
+  color: white;
+  border-left: 3px solid #e8420a;
+}
+
+/* DOT ACTIVE */
+.sidebar-item.active .sidebar-dot {
+  background: #e8420a;
+}
+
+    
+
+    :root {
+      --black: #0a0a0a;
+      --white: #f5f4f0;
+      --accent: #e8420a;
+      --accent2: #f5a623;
+      --gray1: #1a1a1a;
+      --gray2: #2c2c2c;
+      --gray3: #3e3e3e;
+      --gray4: #777;
+      --gray5: #aaa;
+      --success: #22c55e;
+      --border: #2e2e2e;
+      --label-h: 11px;
+      --input-h: 44px;
+      --radius: 4px;
+      --font-sans: 'IBM Plex Sans', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* ── LAYOUT ────────────────────────────────────────── */
+    .shell {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      grid-template-rows: 56px 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── TOPBAR ────────────────────────────────────────── */
+    .topbar {
+      grid-column: 1 / -1;
+      background: var(--gray1);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-logo {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .topbar-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    .topbar-title {
+      font-size: 13px;
+      color: var(--gray5);
+      font-weight: 300;
+    }
+
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-ghost {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--gray5);
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--gray5);
+      color: var(--white);
+    }
+
+    /* ── SIDEBAR ────────────────────────────────────────── */
+    .sidebar {
+      background: var(--gray1);
+      border-right: 1px solid var(--border);
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gray4);
+      padding: 16px 20px 6px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      cursor: pointer;
+      border-left: 2px solid transparent;
+      transition: background .12s, border-color .12s;
+      font-size: 13px;
+      color: var(--gray5);
+    }
+
+    .sidebar-item:hover {
+      background: var(--gray2);
+      color: var(--white);
+    }
+
+    .sidebar-item.active {
+      border-left-color: var(--accent);
+      color: var(--white);
+      background: rgba(232, 66, 10, 0.08);
+    }
+
+    .sidebar-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gray3);
+    }
+
+    .sidebar-item.active .sidebar-dot {
+      background: var(--accent);
+    }
+
+    .sidebar-stats {
+      margin-top: auto;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--gray4);
+      font-family: var(--font-mono);
+    }
+
+    .stat-val {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--white);
+      font-family: var(--font-mono);
+    }
+
+    /* ── MAIN CONTENT ───────────────────────────────────── */
+    .main {
+      overflow-y: auto;
+      padding: 32px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .page-title {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--white);
+    }
+
+    .page-sub {
+      font-size: 12px;
+      color: var(--gray4);
+    }
+
+    /* ── FORM CARD ───────────────────────────────────────── */
+    .card {
+      background: var(--gray1);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--gray2);
+    }
+
+    .card-header-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: var(--accent);
+      color: white;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      font-weight: 500;
+    }
+
+    .card-header-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--white);
+    }
+
+    .card-body {
+      padding: 20px;
+    }
+
+    /* ── GRID / FIELDS ───────────────────────────────────── */
+    .form-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .cols-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .cols-3 {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .cols-4 {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+    }
+
+    .col-span-2 {
+      grid-column: span 2;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .field-label {
+      font-family: var(--font-mono);
+      font-size: var(--label-h);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gray4);
+    }
+
+    .field-label .req {
+      color: var(--accent);
+      margin-left: 2px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      height: var(--input-h);
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      padding: 0 12px;
+      outline: none;
+      transition: border-color .15s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      background: #222;
+    }
+
+    input::placeholder {
+      color: var(--gray4);
+    }
+
+    textarea {
+      height: 72px;
+      padding: 10px 12px;
+      resize: none;
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23777' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+
+    select option {
+      background: var(--gray2);
+    }
+
+    /* ── SHIFT SELECTOR (toggle pills) ───────────────────── */
+    .shift-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .shift-opt {
+      display: none;
+    }
+
+    .shift-lbl {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--gray5);
+      cursor: pointer;
+      transition: all .15s;
+      user-select: none;
+    }
+
+    .shift-opt:checked+.shift-lbl {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(232, 66, 10, 0.1);
+    }
+
+    /* ── SUBMIT BUTTON ────────────────────────────────────── */
+    .btn-submit {
+      width: 100%;
+      height: 52px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .btn-submit:hover {
+      background: #c9360a;
+    }
+
+    .btn-submit:active {
+      transform: scale(0.99);
+    }
+
+    .btn-submit:disabled {
+      background: var(--gray3);
+      cursor: not-allowed;
+    }
+
+    /* ── RESULT PANEL ─────────────────────────────────────── */
+    .result-panel {
+      display: none;
+      background: var(--gray1);
+      border: 1px solid var(--success);
+      border-radius: 6px;
+      overflow: hidden;
+      animation: slideIn .3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    .result-panel.show {
+      display: block;
+    }
+
+    .result-header {
+      background: rgba(34, 197, 94, 0.1);
+      border-bottom: 1px solid rgba(34, 197, 94, 0.2);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .result-icon {
+      color: var(--success);
+      font-size: 16px;
+    }
+
+    .result-order-id {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--white);
+      letter-spacing: 0.04em;
+    }
+
+    .result-body {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 20px;
+      padding: 20px;
+      align-items: start;
+    }
+
+    .label-preview {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .label-preview img {
+      display: block;
+      max-width: 320px;
+    }
+
+    .result-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-action {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .15s;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      background: var(--gray2);
+      color: var(--white);
+    }
+
+    .btn-action:hover {
+      border-color: var(--gray5);
+      background: var(--gray3);
+    }
+
+    .btn-action.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .btn-action.primary:hover {
+      background: #c9360a;
+      border-color: #c9360a;
+    }
+
+    .btn-action-icon {
+      font-size: 16px;
+    }
+
+    .btn-new {
+      margin-top: 8px;
+    }
+
+    /* ── RECENT TABLE ─────────────────────────────────────── */
+    .table-wrap {
+      max-height: 320px;
+      /* tinggi scroll */
+      overflow-y: auto;
+      /* scroll vertikal */
+      overflow-x: auto;
+      /* scroll horizontal tetap ada */
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gray4);
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(46, 46, 46, 0.5);
+      color: var(--gray5);
+      white-space: nowrap;
+    }
+
+    td.mono {
+      font-family: var(--font-mono);
+      color: var(--white);
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      background: rgba(232, 66, 10, 0.15);
+      color: var(--accent2);
+      border: 1px solid rgba(232, 66, 10, 0.2);
+    }
+
+    /* ── LOADING SPINNER ──────────────────────────────────── */
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ── ERROR MSG ────────────────────────────────────────── */
+    .error-msg {
+      display: none;
+      color: #f87171;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      margin-top: 8px;
+    }
+
+    .error-msg.show {
+      display: block;
+    }
+
+    /* ── RESPONSIVE ───────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .main {
+        padding: 20px 16px;
+      }
+
+      .cols-2,
+      .cols-3,
+      .cols-4 {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .result-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+
+      .cols-2,
+      .cols-3,
+      .cols-4 {
+        grid-template-columns: 1fr;
+      }
+
+      .col-span-2 {
+        grid-column: span 1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="shell">
+
+    <!-- ── TOPBAR ── -->
+    <header class="topbar">
+      <span class="topbar-logo">&#9632; Garindra Plastik</span>
+      <span class="topbar-sep"></span>
+      <span class="topbar-title">Sistem Label & Output Produksi</span>
+      <div class="topbar-right">
+        <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
+        <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a>
+      </div>
+    </header>
+
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar">
+      <div class="sidebar-section">Divisi</div>
+      <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Mixing
+      </a>
+      <a href="/hd" class="sidebar-item {% if active_page == 'hd' %}active{% endif %}">
+        <span class="sidebar-dot"></span>HD
+      </a>
+      <a href="/potong" class="sidebar-item {% if active_page == 'potong' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Potong
+      </a>
+      <a href="/packing" class="sidebar-item {% if active_page == 'packing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Packing
+      </a>
+      <a href="/sisa_pack" class="sidebar-item {% if active_page == 'sisa_pack' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Sisa Pack
+      </a>
+
+      <div class="sidebar-section">Aval</div>
+      <a href="/aval_mixing" class="sidebar-item {% if active_page == 'aval_mixing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval Mixing
+      </a>
+      <a href="/aval_hd" class="sidebar-item {% if active_page == 'aval_hd' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval HD
+      </a>
+      <a href="/aval_potong" class="sidebar-item {% if active_page == 'aval_potong' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval Potong
+      </a>
+      <a href="/aval_packing" class="sidebar-item {% if active_page == 'aval_packing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval Packing
+      </a>
+      <a href="/aval_qc" class="sidebar-item {% if active_page == 'aval_qc' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval QC
+      </a>
+    </aside>
+
+    <!-- ── MAIN ── -->
+    <main class="main">
+      <div class="page-header">
+        <h1 class="page-title">Mixing</h1>
+        <span class="page-sub" id="current-date"></span>
+      </div>
+
+      <!-- RESULT PANEL (appears after submit) -->
+      <div class="result-panel" id="result-panel">
+        <div class="result-header">
+          <span class="result-icon">&#10003;</span>
+          <span style="font-size:13px;color:var(--success);font-family:var(--font-mono)">ORDER TERSIMPAN</span>
+          <span class="result-order-id" id="result-order-id"></span>
+        </div>
+        <div class="result-body">
+          <div class="label-preview">
+            <img id="label-img" src="" alt="Label Preview">
+          </div>
+          <div class="result-actions">
+            <div style="font-size:11px;color:var(--gray4);font-family:var(--font-mono);margin-bottom:4px">AKSI LABEL
+            </div>
+            <a class="btn-action primary" id="btn-print" href="#" target="_blank">
+              <span class="btn-action-icon">&#9113;</span>
+              <span>Cetak Label</span>
+            </a>
+            <!-- <a class="btn-action" id="btn-download" href="#">
+            <span class="btn-action-icon">&#8595;</span>
+            <span>Download PNG</span>
+          </a>
+          <div style="font-size:11px;color:var(--gray4);font-family:var(--font-mono);margin:8px 0 4px">STATUS</div>
+          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; Tersimpan ke database</div>
+          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; Dicatat ke CSV</div>
+          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; QR Code generated</div> -->
+            <button class="btn-action btn-new" onclick="resetForm()">
+              <span class="btn-action-icon">+</span>
+              <span>Input baru</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 1: Identitas Order -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-num">1</span>
+          <span class="card-header-title">Identitas Order Produksi</span>
+        </div>
+        <div class="card-body">
+          <div class="form-grid cols-4">
+            <div class="field">
+              <label class="field-label">Tanggal </label>
+              <input type="datetime-local" id="tanggal" readonly>
+            </div>
+            <div class="field">
+              <label class="field-label">Shift</label>
+              <input type="text" id="shift" readonly>
+            </div>
+            <div class="field">
+              <label class="field-label">Operator Mix <span class="req">*</span></label>
+              <select id="operator_mix" required>
+                <option value="">-- Pilih Operator Mix --</option>
+                <option value="RATNA">RATNA</option>
+                <option value="TEST">TEST</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label">Checker<span class="req">*</span></label>
+              <select id="checker" required>
+                <option value="">-- Pilih Checker --</option>
+                <option value="PRI">PRI</option>
+                <option value="SAN">SAN</option>
+                <option value="ZAK">ZAK</option>
+                <option value="TEST">TEST</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label">Divisi</label>
+              <input type="text" id="divisi" value="Mixing" readonly>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: Produk -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-num">2</span>
+          <span class="card-header-title">Produk</span>
+        </div>
+        <div class="card-body">
+          <div class="form-grid cols-2">
+
+            <!-- SPK -->
+            <div class="field">
+              <label class="field-label">No. SPK <span class="req">*</span></label>
+              <input type="text" id="spk" placeholder="Masukkan No SPK">
+            </div>
+
+            <!-- CUSTOMER -->
+            <div class="field">
+              <label class="field-label">Customer</label>
+              <input type="text" id="customer" readonly>
+            </div>
+
+            <!-- PRODUCT -->
+            <div class="field">
+              <label class="field-label">Produk</label>
+              <input type="text" id="product" readonly>
+            </div>
+
+            <!-- UK -->
+            <div class="field">
+              <label class="field-label">UKURAN</label>
+              <input type="text" id="uk" readonly>
+            </div>
+
+            <!-- Berat Total (kg) -->
+            <div class="field">
+              <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
+              <input type="number" id="berat_bersih" required>
+            </div>
+
+            <!-- Berat Karung -->
+            <div class="field">
+              <label class="field-label">Berat Karung (kg)</label>
+              <input type="text" id="karung" value="0.09" readonly>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SUBMIT -->
+        <div>
+          <button class="btn-submit" id="btn-submit" onclick="submitForm()">
+            <span id="btn-text">&#9632; SIMPAN & CETAK LABEL</span>
+            <div class="spinner" id="spinner"></div>
+          </button>
+          <div class="error-msg" id="error-msg"></div>
+        </div>
+
+        <!-- RECENT ENTRIES -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-header-num" style="background:var(--gray3)">&#9776;</span>
+            <span class="card-header-title">Output Terbaru</span>
+          </div>
+
+          <div class="card-body" style="padding:0">
+
+            <!-- SEARCH 2 KOLOM -->
+            <div style="display:flex; gap:10px; padding:10px; background:#111; border-bottom:1px solid #222;">
+              <!-- TANGGAL -->
+              <input id="search-date" type="date"
+                style="flex:1; padding:8px; font-size:12px; background:#1a1a1a; color:#fff; border:1px solid #333; border-radius:6px;">
+              <!-- SPK -->
+              <input id="search-spk" type="text" placeholder="Cari SPK..."
+                style="flex:1; padding:8px; font-size:12px; background:#1a1a1a; color:#fff; border:1px solid #333; border-radius:6px;">
+            </div>
+
+            <!-- TABLE -->
+            <div class="table-wrap">
+              <table id="recent-table">
+                <thead>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>No SPK</th>
+                    <th>Produk</th>
+                    <th>Customer</th>
+                    <th>Berat (kg)</th>
+                    <th>Divisi</th>
+                    <th>Shift</th>
+                    <th>Operator</th>
+                    <th>Checker</th>
+                    <th>Code</th>
+                  </tr>
+                </thead>
+
+                <tbody id="recent-body">
+                  <tr>
+                    <td colspan="9" style="text-align:center;color:var(--gray4);padding:24px">
+                      Loading...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <script>
+          let allData = [];
+          let searchTimeout;
+
+          // INIT
+          document.addEventListener("DOMContentLoaded", function () {
+            updateTime();
+            setInterval(updateTime, 1000);
+
+            loadRecent();
+
+            // SEARCH
+            document.getElementById("search-date").addEventListener("input", autoFilter);
+            document.getElementById("search-spk").addEventListener("input", autoFilter);
+
+            // SPK AUTOFILL
+            const spkInput = document.getElementById("spk");
+            spkInput.addEventListener("input", debounce(handleSpkInput, 300));
+          });
+
+          // DEBOUNCE
+          function debounce(func, delay) {
+            let timer;
+            return function (...args) {
+              clearTimeout(timer);
+              timer = setTimeout(() => func.apply(this, args), delay);
+            };
+          }
+
+          // SPK AUTOFILL
+          async function handleSpkInput(e) {
+            const spk = e.target.value.trim();
+
+            if (!spk || spk.length < 2) {
+              clearAutoFill();
+              return;
+            }
+
+            try {
+              const res = await fetch(`/api/spk/${spk}`);
+              const data = await res.json();
+
+              if (!data || Object.keys(data).length === 0) {
+                clearAutoFill();
+                return;
+              }
+
+              document.getElementById("customer").value = data.customer || "";
+              document.getElementById("product").value = data.product || "";
+              document.getElementById("uk").value = data.uk || "";
+
+            } catch (err) {
+              console.log("SPK error:", err);
+            }
+          }
+
+          // CLEAR FIELD
+          function clearAutoFill() {
+            document.getElementById("customer").value = "";
+            document.getElementById("product").value = "";
+            document.getElementById("uk").value = "";
+          }
+
+          // TIME + SHIFT
+          function updateTime() {
+            let now = new Date();
+
+            let hour = now.getHours();
+
+            // SHIFT
+            let shift = (hour >= 7 && hour < 19) ? "P" : "M";
+            document.getElementById("shift").value = shift;
+
+            // TANGGAL PRODUKSI
+            let prodDate = new Date(now);
+
+            // 🔥 kalau jam 00:00 - 06:59 → mundur 1 hari
+            if (hour < 7) {
+              prodDate.setDate(prodDate.getDate() - 1);
+            }
+
+            // FORMAT datetime-local
+            let formatted =
+              prodDate.getFullYear() + "-" +
+              String(prodDate.getMonth() + 1).padStart(2, '0') + "-" +
+              String(prodDate.getDate()).padStart(2, '0') + "T" +
+              String(now.getHours()).padStart(2, '0') + ":" +
+              String(now.getMinutes()).padStart(2, '0');
+
+            document.getElementById("tanggal").value = formatted;
+          }
+
+          // LOAD DATA
+          async function loadRecent() {
+            try {
+              const res = await fetch('/api/recent/mixing');
+              const rows = await res.json();
+
+              console.log(rows);
+
+              allData = rows || [];
+              renderTable(allData);
+
+            } catch (e) {
+              console.error("Load error:", e);
+            }
+          }
+
+          // RENDER TABLE
+          function renderTable(data) {
+            console.log(data);
+            const tbody = document.getElementById("recent-body");
+
+            if (!data.length) {
+              tbody.innerHTML = `
+            <tr>
+                <td colspan="10" style="text-align:center;color:#777;padding:20px">
+                    Tidak ada data
+                </td>
+            </tr>`;
+              return;
+            }
+
+            tbody.innerHTML = data.map(r => `
+        <tr>
+            <td>${(r.tanggal || "").replace("T", " ")}</td>
+            <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
+            <td>${r.produk || ""}</td>
+            <td>${r.customer || ""}</td>
+            <td>${r.berat_bersih || ""}</td>
+            <td>${r.divisi || ""}</td>
+            <td>${r.shift || ""}</td>
+            <td>${r.operator_mix || ""}</td>
+            <td>${r.checker || ""}</td>
+            <td>${r.code || ""}</td>
+        </tr>
+    `).join('');
+          }
+
+          // FILTER TABLE
+          function filterTable() {
+            const date = document.getElementById("search-date").value;
+            const spk = document.getElementById("search-spk").value.toLowerCase();
+
+            let filtered = allData;
+
+            // SPK FILTER
+            if (spk) {
+              filtered = filtered.filter(r => {
+                let val = (r.spk || r.SPK || r.no_spk || "").toString().toLowerCase();
+                return val.includes(spk);
+              });
+            }
+
+            // DATE FILTER (DD-MM-YYYY)
+            if (date) {
+              const [d, m, y] = date.split("-");
+              const target = `${d}-${m}-${y}`;
+
+              filtered = filtered.filter(r =>
+                (r.tanggal || "").trim() === target
+              );
+            }
+
+            renderTable(filtered);
+          }
+
+          // AUTO FILTER
+          function autoFilter() {
+            clearTimeout(searchTimeout);
+
+            searchTimeout = setTimeout(() => {
+              filterTable();
+            }, 150);
+          }
+
+          // DIVISI
+          function filterDivision(div, el) {
+            document.querySelectorAll('.sidebar-item')
+              .forEach(i => i.classList.remove('active'));
+
+            el.classList.add('active');
+            document.getElementById('divisi').value = div;
+          }
+        </script>
+        <script>
+          let timeout = null;
+
+          document.getElementById("spk").addEventListener("input", function () {
+            clearTimeout(timeout);
+
+            const spk = this.value.trim();
+
+            timeout = setTimeout(async () => {
+              if (!spk) return;
+
+              try {
+                const res = await fetch(`/get-spk/${spk}`);
+                const data = await res.json();
+
+                if (data && Object.keys(data).length > 0) {
+                  document.getElementById("customer").value = data.customer || "";
+                  document.getElementById("product").value = data.product || "";
+                  document.getElementById("uk").value = data.uk || "";
+                } else {
+                  document.getElementById("customer").value = "";
+                  document.getElementById("product").value = "";
+                  document.getElementById("uk").value = "";
+                }
+              } catch (err) {
+                console.error("Error SPK:", err);
+              }
+            }, 100); // delay biar tidak spam request
+          });
+        </script>
+        <script>
+          async function submitForm() {
+            const btn = document.getElementById("btn-submit");
+            const spinner = document.getElementById("spinner");
+            const errorMsg = document.getElementById("error-msg");
+
+            // VALIDASI WAJIB
+            const requiredFields = [
+              { id: "operator_mix", name: "Operator Mix" },
+              { id: "checker", name: "Checker" },
+              { id: "spk", name: "No. SPK" },
+              { id: "berat_bersih", name: "Berat (kg)" }
+            ];
+
+            for (let f of requiredFields) {
+              const el = document.getElementById(f.id);
+              const val = (el.value || "").toString().trim();
+
+              if (!val) {
+                errorMsg.innerText = `${f.name} wajib diisi`;
+                errorMsg.classList.add("show");
+
+                el.focus(); // fokus ke field yang kosong
+                return; // ❗ STOP submit
+              }
+            }
+
+            errorMsg.classList.remove("show");
+            btn.disabled = true;
+            spinner.style.display = "block";
+
+            const data = {
+              tanggal: document.getElementById("tanggal").value,
+              shift: document.getElementById("shift").value,
+              operator_mix: document.getElementById("operator_mix").value,
+              checker: document.getElementById("checker").value,
+              divisi: document.getElementById("divisi").value,
+              spk: document.getElementById("spk").value,
+              customer: document.getElementById("customer").value,
+              produk: document.getElementById("product").value,
+              uk: document.getElementById("uk").value,
+              berat_bersih: document.getElementById("berat_bersih").value,
+              karung: document.getElementById("karung").value
+            };
+
+            try {
+              const res = await fetch("/api/submit", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+              });
+
+              const result = await res.json();
+
+              if (!result.success) throw new Error(result.message);
+
+              document.getElementById("result-panel").classList.add("show");
+              document.getElementById("result-order-id").innerText = result.order_id;
+
+              document.getElementById("label-img").src = result.label_url;
+              document.getElementById("btn-print").href = result.print_url;
+
+              loadRecent();
+
+            } catch (err) {
+              errorMsg.innerText = err.message;
+              errorMsg.classList.add("show");
+            }
+
+            btn.disabled = false;
+            spinner.style.display = "none";
+          }
+
+          // ── RESET ────────────────────────────────────────────────
+          function resetForm() {
+            document.getElementById('result-panel').classList.remove('show');
+            ['operator_mix','checker','spk', 'berat_bersih']
+              .forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+              });
+            updateProducts();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        </script>
+</body>
+
+</html>

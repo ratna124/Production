@@ -1,0 +1,2 @@
+cd C:\Coba
+py app.py

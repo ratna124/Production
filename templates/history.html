@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Riwayat Output Produksi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --black:#0a0a0a; --white:#f5f4f0; --accent:#e8420a; --accent2:#f5a623;
+    --gray1:#1a1a1a; --gray2:#2c2c2c; --gray3:#3e3e3e; --gray4:#777; --gray5:#aaa;
+    --success:#22c55e; --border:#2e2e2e;
+    --font-sans:'IBM Plex Sans',sans-serif; --font-mono:'IBM Plex Mono',monospace;
+  }
+  body { background:var(--black); color:var(--white); font-family:var(--font-sans); font-size:14px; min-height:100vh; }
+
+  .topbar {
+    background:var(--gray1); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; padding:0 24px; gap:16px; height:56px;
+    position:sticky; top:0; z-index:100;
+  }
+  .topbar-logo { font-family:var(--font-mono); font-size:13px; font-weight:500; color:var(--accent); letter-spacing:.05em; text-transform:uppercase; }
+  .topbar-sep { width:1px; height:20px; background:var(--border); }
+  .topbar-title { font-size:13px; color:var(--gray5); font-weight:300; }
+  .topbar-right { margin-left:auto; display:flex; gap:8px; }
+  .btn-ghost { background:none; border:1px solid var(--border); color:var(--gray5); padding:6px 14px; border-radius:4px; font-family:var(--font-mono); font-size:11px; cursor:pointer; text-decoration:none; transition:all .15s; }
+  .btn-ghost:hover { border-color:var(--gray5); color:var(--white); }
+
+  .main { padding:32px 40px; display:flex; flex-direction:column; gap:24px; }
+  .page-title { font-family:var(--font-mono); font-size:20px; font-weight:500; }
+
+  .filters {
+    display:flex; gap:12px; flex-wrap:wrap; align-items:center;
+    background:var(--gray1); border:1px solid var(--border); border-radius:6px; padding:16px;
+  }
+  .filters input, .filters select {
+    background:var(--gray2); border:1px solid var(--border); border-radius:4px;
+    color:var(--white); font-family:var(--font-sans); font-size:13px;
+    padding:8px 12px; outline:none; height:38px;
+  }
+  .filters input:focus, .filters select:focus { border-color:var(--accent); }
+  .filters select { appearance:none; -webkit-appearance:none; padding-right:30px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23777' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 10px center; }
+  .filter-label { font-family:var(--font-mono); font-size:10px; color:var(--gray4); text-transform:uppercase; letter-spacing:.08em; }
+
+  .summary-bar {
+    display:grid; grid-template-columns:repeat(4,1fr); gap:12px;
+  }
+  .summary-card {
+    background:var(--gray1); border:1px solid var(--border); border-radius:6px; padding:16px;
+  }
+  .summary-card-label { font-family:var(--font-mono); font-size:10px; color:var(--gray4); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; }
+  .summary-card-val { font-family:var(--font-mono); font-size:24px; font-weight:500; color:var(--white); }
+  .summary-card-sub { font-size:11px; color:var(--gray4); margin-top:4px; }
+
+  .card { background:var(--gray1); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  .card-header { display:flex; align-items:center; gap:10px; padding:14px 20px; border-bottom:1px solid var(--border); background:var(--gray2); }
+  .card-header-title { font-size:13px; font-weight:500; }
+
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { font-family:var(--font-mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--gray4); padding:10px 14px; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; cursor:pointer; user-select:none; }
+  th:hover { color:var(--white); }
+  td { padding:10px 14px; border-bottom:1px solid rgba(46,46,46,.5); color:var(--gray5); white-space:nowrap; }
+  td.mono { font-family:var(--font-mono); color:var(--white); }
+  tr:hover td { background:rgba(255,255,255,.02); }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-family:var(--font-mono); font-size:10px; background:rgba(232,66,10,.15); color:var(--accent2); border:1px solid rgba(232,66,10,.2); }
+  .btn-icon { background:none; border:1px solid var(--border); color:var(--gray5); padding:4px 10px; border-radius:3px; font-size:11px; cursor:pointer; font-family:var(--font-mono); transition:all .12s; text-decoration:none; }
+  .btn-icon:hover { border-color:var(--gray5); color:var(--white); }
+
+  .pagination { display:flex; gap:6px; align-items:center; justify-content:flex-end; padding:12px 16px; border-top:1px solid var(--border); }
+  .page-btn { background:var(--gray2); border:1px solid var(--border); color:var(--gray5); padding:5px 10px; border-radius:3px; font-family:var(--font-mono); font-size:11px; cursor:pointer; }
+  .page-btn.active { background:var(--accent); border-color:var(--accent); color:white; }
+  .page-btn:hover:not(.active) { border-color:var(--gray5); }
+
+  @media(max-width:900px) { .main { padding:20px 16px; } .summary-bar { grid-template-columns:1fr 1fr; } }
+  @media(max-width:560px) { .summary-bar { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <span class="topbar-logo">&#9632; FactoryOS</span>
+  <span class="topbar-sep"></span>
+  <span class="topbar-title">Riwayat Output Produksi</span>
+  <div class="topbar-right">
+    <a href="/" class="btn-ghost">&#8592; Input Baru</a>
+    <a href="/api/download_csv" class="btn-ghost">&#8595; Export CSV</a>
+  </div>
+</header>
+
+<main class="main">
+  <h1 class="page-title">Riwayat Output</h1>
+
+  <div class="summary-bar">
+    <div class="summary-card">
+      <div class="summary-card-label">Total Orders</div>
+      <div class="summary-card-val" id="s-orders">–</div>
+      <div class="summary-card-sub">semua waktu</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Total Roll</div>
+      <div class="summary-card-val" id="s-rolls">–</div>
+      <div class="summary-card-sub">unit</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Total Berat</div>
+      <div class="summary-card-val" id="s-kg">–</div>
+      <div class="summary-card-sub">kilogram</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Avg Berat/Roll</div>
+      <div class="summary-card-val" id="s-avg">–</div>
+      <div class="summary-card-sub">kg per roll</div>
+    </div>
+  </div>
+
+  <div class="filters">
+    <div>
+      <div class="filter-label">Dari tanggal</div>
+      <input type="date" id="f-from">
+    </div>
+    <div>
+      <div class="filter-label">Sampai tanggal</div>
+      <input type="date" id="f-to">
+    </div>
+    <div>
+      <div class="filter-label">Divisi</div>
+      <select id="f-div">
+        <option value="">Semua divisi</option>
+        <option>HDPE Kantong</option><option>HDPE Rol</option>
+        <option>PP Woven</option><option>PET Sheet</option>
+        <option>LDPE Film</option><option>LLDPE Stretch</option>
+      </select>
+    </div>
+    <div>
+      <div class="filter-label">Shift</div>
+      <select id="f-shift">
+        <option value="">Semua shift</option>
+        <option>Shift 1</option><option>Shift 2</option><option>Shift 3</option>
+      </select>
+    </div>
+    <div>
+      <div class="filter-label">Cari</div>
+      <input type="text" id="f-search" placeholder="Order ID / operator / mesin..." style="width:220px">
+    </div>
+    <button class="btn-ghost" onclick="applyFilters()" style="margin-top:auto">Terapkan</button>
+    <button class="btn-ghost" onclick="clearFilters()" style="margin-top:auto">Reset</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-header-title">Data Output</span>
+      <span id="row-count" style="font-size:11px;color:var(--gray4);font-family:var(--font-mono);margin-left:auto"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortBy('order_id')">Order ID &#8645;</th>
+            <th onclick="sortBy('tanggal')">Tanggal &#8645;</th>
+            <th onclick="sortBy('shift')">Shift &#8645;</th>
+            <th onclick="sortBy('divisi')">Divisi &#8645;</th>
+            <th onclick="sortBy('produk')">Produk &#8645;</th>
+            <th onclick="sortBy('no_mesin')">Mesin &#8645;</th>
+            <th onclick="sortBy('operator')">Operator &#8645;</th>
+            <th onclick="sortBy('jumlah_roll')">Roll &#8645;</th>
+            <th onclick="sortBy('berat_kg')">Berat (kg) &#8645;</th>
+            <th>Label</th>
+          </tr>
+        </thead>
+        <tbody id="hist-body">
+          <tr><td colspan="10" style="text-align:center;padding:32px;color:var(--gray4)">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</main>
+
+<script>
+let allRows = [], filtered = [], sortCol = 'created_at', sortDir = -1, page = 1;
+const PAGE_SIZE = 25;
+
+async function init() {
+  try {
+    const res = await fetch('/api/recent');
+    allRows = await res.json();
+    filtered = [...allRows];
+    render();
+    updateSummary(allRows);
+  } catch(e) { console.error(e); }
+}
+
+function updateSummary(rows) {
+  const totalRolls = rows.reduce((s,r) => s + r.jumlah_roll, 0);
+  const totalKg    = rows.reduce((s,r) => s + r.berat_kg, 0);
+  document.getElementById('s-orders').textContent = rows.length;
+  document.getElementById('s-rolls').textContent  = totalRolls.toLocaleString('id-ID');
+  document.getElementById('s-kg').textContent     = totalKg.toFixed(0);
+  document.getElementById('s-avg').textContent    = totalRolls > 0 ? (totalKg/totalRolls).toFixed(1) : '–';
+}
+
+function applyFilters() {
+  const from   = document.getElementById('f-from').value;
+  const to     = document.getElementById('f-to').value;
+  const div    = document.getElementById('f-div').value.toLowerCase();
+  const shift  = document.getElementById('f-shift').value.toLowerCase();
+  const search = document.getElementById('f-search').value.toLowerCase();
+
+  filtered = allRows.filter(r => {
+    if (from   && r.tanggal < from) return false;
+    if (to     && r.tanggal > to)   return false;
+    if (div    && !r.divisi.toLowerCase().includes(div))   return false;
+    if (shift  && !r.shift.toLowerCase().includes(shift))  return false;
+    if (search && ![r.order_id, r.operator, r.no_mesin, r.produk]
+                    .some(v => v.toLowerCase().includes(search))) return false;
+    return true;
+  });
+  page = 1;
+  render();
+  updateSummary(filtered);
+}
+
+function clearFilters() {
+  ['f-from','f-to','f-search'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-div').value = '';
+  document.getElementById('f-shift').value = '';
+  filtered = [...allRows];
+  page = 1;
+  render();
+  updateSummary(allRows);
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = 1; }
+  filtered.sort((a, b) => {
+    const va = a[col] ?? '', vb = b[col] ?? '';
+    return (va < vb ? -1 : va > vb ? 1 : 0) * sortDir;
+  });
+  render();
+}
+
+function render() {
+  const start = (page - 1) * PAGE_SIZE;
+  const rows  = filtered.slice(start, start + PAGE_SIZE);
+  document.getElementById('row-count').textContent = `${filtered.length} records`;
+
+  document.getElementById('hist-body').innerHTML = rows.length ? rows.map(r => `
+    <tr>
+      <td class="mono">${r.order_id}</td>
+      <td>${r.tanggal}</td>
+      <td><span class="badge">${r.shift.split(' ')[0]} ${r.shift.split(' ')[1]}</span></td>
+      <td>${r.divisi}</td>
+      <td>${r.produk}</td>
+      <td class="mono">${r.no_mesin}</td>
+      <td>${r.operator}</td>
+      <td class="mono">${r.jumlah_roll}</td>
+      <td class="mono">${r.berat_kg}</td>
+      <td><a class="btn-icon" href="/api/download_label/${r.order_id}" target="_blank">&#8595;</a></td>
+    </tr>
+  `).join('') : `<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--gray4)">Tidak ada data</td></tr>`;
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const pag = document.getElementById('pagination');
+  if (totalPages <= 1) { pag.innerHTML = ''; return; }
+  let html = '';
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button class="page-btn ${i === page ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  pag.innerHTML = html;
+}
+
+function goPage(p) { page = p; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+init();
+</script>
+</body>
+</html>

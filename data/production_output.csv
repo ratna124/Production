@@ -1,0 +1,3 @@
+order_id,tanggal,shift,divisi,produk,no_mesin,operator,jumlah_roll,berat_kg,panjang_m,lebar_cm,tebal_micron,warna,keterangan,created_at
+HK-20260423-F7FB,2026-04-23,Shift 1 (06:00-14:00),HDPE Kantong,Kantong 40x60,1,RATNA,1,20.5,60.0,40.0,1.0,Natural,ini coba,2026-04-23T14:50:52.307423
+HK-20260423-59E6,2026-04-23,Shift 2 (14:00-22:00),HDPE Kantong,Kantong 30x50,5,Ratna,1,24.0,30.0,50.0,2.0,Hitam,,2026-04-23T16:20:29.828990
