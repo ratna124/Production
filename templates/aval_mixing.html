@@ -772,7 +772,7 @@
     <!-- ── MAIN ── -->
     <main class="main">
       <div class="page-header">
-        <h1 class="page-title">Potong</h1>
+        <h1 class="page-title">Aval Mixing</h1>
         <span class="page-sub" id="current-date"></span>
       </div>
 
@@ -827,9 +827,9 @@
               <input type="text" id="shift" readonly>
             </div>
             <div class="field">
-              <label class="field-label">Operator Potong <span class="req">*</span></label>
-              <select id="operator_cu" required>
-                <option value="">-- Pilih Operator Potong --</option>
+              <label class="field-label">Operator Mix <span class="req">*</span></label>
+              <select id="operator_amix" required>
+                <option value="">-- Pilih Operator Mix --</option>
                 <option value="RATNA">RATNA</option>
                 <option value="TEST">TEST</option>
               </select>
@@ -846,7 +846,7 @@
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
-              <input type="text" id="divisi" value="Potong" readonly>
+              <input type="text" id="divisi" value="Aval_Mixing" readonly>
             </div>
           </div>
         </div>
@@ -860,45 +860,26 @@
         </div>
         <div class="card-body">
           <div class="form-grid cols-2">
+
             <!-- SPK -->
             <div class="field">
               <label class="field-label">No. SPK <span class="req">*</span></label>
-              <input type="text" id="spk" placeholder="Masukkan No SPK">
-            </div>
-            <!-- CUSTOMER -->
-            <div class="field">
-              <label class="field-label">Customer</label>
-              <input type="text" id="customer" readonly>
-            </div>
-            <!-- PRODUCT -->
-            <div class="field">
-              <label class="field-label">Produk</label>
-              <input type="text" id="product" readonly>
-            </div>
-            <!-- UK -->
-            <div class="field">
-              <label class="field-label">UKURAN</label>
-              <input type="text" id="uk" readonly>
+              <input type="text" id="spk" value="0" readonly>
             </div>
             <!-- Mesin -->
             <div class="field">
-              <label class="field-label">Mesin<span class="req">*</span></label>
-              <input type="number" id="mesin" min="1" max="9" required>
+              <label class="field-label">Mesin <span class="req">*</span></label>
+              <input type="text" id="mesin" value="0" readonly>
             </div>
-            <!-- Berat Total -->
+            <!-- Jenis Aval -->
+            <div class="field">
+              <label class="field-label">Jenis Aval</label>
+              <input type="text" id="jenis" value="Sapuan" readonly>
+            </div>
+            <!-- Berat Total (kg) -->
             <div class="field">
               <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_kg" required>
-            </div>
-            <!-- Berat Keranjang -->
-            <div class="field">
-              <label class="field-label">Berat Keranjang (kg)<span class="req">*</span></label>
-              <input type="text" id="keranjang" required>
-            </div>
-            <!-- Berat Bersih -->
-            <div class="field">
-              <label class="field-label">Berat Bersih (kg)</label>
-              <input type="text" id="berat_bersih" readonly>
+              <input type="text" id="berat_bersih" required>
             </div>
           </div>
         </div>
@@ -938,10 +919,8 @@
                   <tr>
                     <th>Tanggal</th>
                     <th>No SPK</th>
-                    <th>Produk</th>
-                    <th>Customer</th>
                     <th>Mesin</th>
-                    <th>Berat Total (kg)</th>
+                    <th>Jenis Aval</th>
                     <th>Berat Bersih (kg)</th>
                     <th>Divisi</th>
                     <th>Shift</th>
@@ -993,49 +972,20 @@
             };
           }
 
-          // SPK AUTOFILL
-          async function handleSpkInput(e) {
-            const spk = e.target.value.trim();
-
-            if (!spk || spk.length < 2) {
-              clearAutoFill();
-              return;
-            }
-
-            try {
-              const res = await fetch(`/api/spk/${spk}`);
-              const data = await res.json();
-
-              if (!data || Object.keys(data).length === 0) {
-                clearAutoFill();
-                return;
-              }
-
-              document.getElementById("customer").value = data.customer || "";
-              document.getElementById("product").value = data.product || "";
-              document.getElementById("uk").value = data.uk || "";
-
-            } catch (err) {
-              console.log("SPK error:", err);
-            }
-          }
-
-          // CLEAR FIELD
-          function clearAutoFill() {
-            document.getElementById("customer").value = "";
-            document.getElementById("product").value = "";
-            document.getElementById("uk").value = "";
-          }
 
           // TIME + SHIFT
           function updateTime() {
             let now = new Date();
+
             let hour = now.getHours();
+
             // SHIFT
             let shift = (hour >= 7 && hour < 19) ? "P" : "M";
             document.getElementById("shift").value = shift;
+
             // TANGGAL PRODUKSI
             let prodDate = new Date(now);
+
             // 🔥 kalau jam 00:00 - 06:59 → mundur 1 hari
             if (hour < 7) {
               prodDate.setDate(prodDate.getDate() - 1);
@@ -1055,7 +1005,7 @@
           // LOAD DATA
           async function loadRecent() {
             try {
-              const res = await fetch('/api/recent/potong');
+              const res = await fetch('/api/recent/aval_mixing');
               const rows = await res.json();
 
               console.log(rows);
@@ -1076,7 +1026,7 @@
             if (!data.length) {
               tbody.innerHTML = `
             <tr>
-                <td colspan="12" style="text-align:center;color:#777;padding:20px">
+                <td colspan="10" style="text-align:center;color:#777;padding:20px">
                     Tidak ada data
                 </td>
             </tr>`;
@@ -1087,14 +1037,12 @@
         <tr>
             <td>${(r.tanggal || "").replace("T", " ")}</td>
             <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
-            <td>${r.produk || ""}</td>
-            <td>${r.customer || ""}</td>
             <td>${r.mesin || ""}</td>
-            <td>${r.berat_kg || ""}</td>
+            <td>${r.jenis || ""}</td>
             <td>${r.berat_bersih || ""}</td>
             <td>${r.divisi || ""}</td>
             <td>${r.shift || ""}</td>
-            <td>${r.operator_cu || ""}</td>
+            <td>${r.operator_amix || ""}</td>
             <td>${r.checker || ""}</td>
             <td>${r.code || ""}</td>
         </tr>
@@ -1118,8 +1066,8 @@
 
             // DATE FILTER (DD-MM-YYYY)
             if (date) {
-              const [y, m, d] = date.split("-");
-              const target = `${y}-${m}-${d}`;
+              const [d, m, y] = date.split("-");
+              const target = `${d}-${m}-${y}`;
 
               filtered = filtered.filter(r =>
                 (r.tanggal || "").trim() === target
@@ -1148,36 +1096,6 @@
           }
         </script>
         <script>
-          let timeout = null;
-
-          document.getElementById("spk").addEventListener("input", function () {
-            clearTimeout(timeout);
-
-            const spk = this.value.trim();
-
-            timeout = setTimeout(async () => {
-              if (!spk) return;
-
-              try {
-                const res = await fetch(`/get-spk/${spk}`);
-                const data = await res.json();
-
-                if (data && Object.keys(data).length > 0) {
-                  document.getElementById("customer").value = data.customer || "";
-                  document.getElementById("product").value = data.product || "";
-                  document.getElementById("uk").value = data.uk || "";
-                } else {
-                  document.getElementById("customer").value = "";
-                  document.getElementById("product").value = "";
-                  document.getElementById("uk").value = "";
-                }
-              } catch (err) {
-                console.error("Error SPK:", err);
-              }
-            }, 70); // delay biar tidak spam request
-          });
-        </script>
-        <script>
           async function submitForm() {
             const btn = document.getElementById("btn-submit");
             const spinner = document.getElementById("spinner");
@@ -1185,12 +1103,10 @@
 
             // VALIDASI WAJIB
             const requiredFields = [
-              { id: "operator_cu", name: "Operator Potong" },
+              { id: "operator_amix", name: "Operator Mix" },
               { id: "checker", name: "Checker" },
               { id: "spk", name: "No. SPK" },
-              { id: "mesin", name: "Mesin" },
-              { id: "berat_kg", name: "Berat (kg)" },
-              { id: "keranjang", name: "Berat Keranjang (kg)" }
+              { id: "berat_bersih", name: "Berat (kg)" }
             ];
 
             for (let f of requiredFields) {
@@ -1205,13 +1121,6 @@
                 return; // ❗ STOP submit
               }
             }
-            if (parseFloat(document.getElementById("berat_kg").value) <
-              parseFloat(document.getElementById("keranjang").value)) {
-
-              errorMsg.innerText = "Berat tidak boleh lebih kecil dari keranjang";
-              errorMsg.classList.add("show");
-              return;
-            }
 
             errorMsg.classList.remove("show");
             btn.disabled = true;
@@ -1220,17 +1129,13 @@
             const data = {
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
-              operator_cu: document.getElementById("operator_cu").value,
+              operator_amix: document.getElementById("operator_amix").value,
               checker: document.getElementById("checker").value,
               divisi: document.getElementById("divisi").value,
               spk: document.getElementById("spk").value,
-              customer: document.getElementById("customer").value,
-              produk: document.getElementById("product").value,
-              uk: document.getElementById("uk").value,
               mesin: document.getElementById("mesin").value,
-              berat_kg: document.getElementById("berat_kg").value,
-              keranjang: document.getElementById("keranjang").value,
-              berat_bersih: document.getElementById("berat_bersih").value,
+              jenis: document.getElementById("jenis").value,
+              berat_bersih: document.getElementById("berat_bersih").value
             };
 
             try {
@@ -1264,7 +1169,7 @@
           // ── RESET ────────────────────────────────────────────────
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
-            ['operator_cu', 'checker', 'spk', 'customer', 'product', 'uk', 'mesin', 'berat_kg', 'keranjang', 'berat_bersih']
+            ['operator_amix', 'checker', 'spk', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
@@ -1273,23 +1178,5 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }
         </script>
-        <script>
-          function hitungBersih() {
-            const berat = parseFloat(document.getElementById("berat_kg").value) || 0;
-            const keranjang = parseFloat(document.getElementById("keranjang").value) || 0;
-
-            let hasil = berat - keranjang;
-
-            // biar tidak minus
-            if (hasil < 0) hasil = 0;
-
-            document.getElementById("berat_bersih").value = hasil.toFixed(2);
-          }
-
-          // trigger saat input berubah
-          document.getElementById("berat_kg").addEventListener("input", hitungBersih);
-          document.getElementById("keranjang").addEventListener("input", hitungBersih);
-        </script>
 </body>
-
 </html>

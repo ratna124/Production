@@ -772,7 +772,7 @@
     <!-- ── MAIN ── -->
     <main class="main">
       <div class="page-header">
-        <h1 class="page-title">Potong</h1>
+        <h1 class="page-title">Aval HD</h1>
         <span class="page-sub" id="current-date"></span>
       </div>
 
@@ -827,9 +827,9 @@
               <input type="text" id="shift" readonly>
             </div>
             <div class="field">
-              <label class="field-label">Operator Potong <span class="req">*</span></label>
-              <select id="operator_cu" required>
-                <option value="">-- Pilih Operator Potong --</option>
+              <label class="field-label">Operator HD <span class="req">*</span></label>
+              <select id="operator_hd" required>
+                <option value="">-- Pilih Operator HD --</option>
                 <option value="RATNA">RATNA</option>
                 <option value="TEST">TEST</option>
               </select>
@@ -846,7 +846,7 @@
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
-              <input type="text" id="divisi" value="Potong" readonly>
+              <input type="text" id="divisi" value="HD" readonly>
             </div>
           </div>
         </div>
@@ -883,17 +883,17 @@
             <!-- Mesin -->
             <div class="field">
               <label class="field-label">Mesin<span class="req">*</span></label>
-              <input type="number" id="mesin" min="1" max="9" required>
+              <input type="number" id="mesin" min="1" max="12" required>
             </div>
-            <!-- Berat Total -->
+            <!-- Jenis Aval -->
             <div class="field">
-              <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
+              <label class="field-label">Jenis Aval<span class="req">*</span></label>
               <input type="text" id="berat_kg" required>
             </div>
-            <!-- Berat Keranjang -->
+            <!-- Berat Bobin -->
             <div class="field">
-              <label class="field-label">Berat Keranjang (kg)<span class="req">*</span></label>
-              <input type="text" id="keranjang" required>
+              <label class="field-label">Berat Bobin (kg)<span class="req">*</span></label>
+              <input type="text" id="bobin" required>
             </div>
             <!-- Berat Bersih -->
             <div class="field">
@@ -1055,7 +1055,7 @@
           // LOAD DATA
           async function loadRecent() {
             try {
-              const res = await fetch('/api/recent/potong');
+              const res = await fetch('/api/recent/hd');
               const rows = await res.json();
 
               console.log(rows);
@@ -1094,7 +1094,7 @@
             <td>${r.berat_bersih || ""}</td>
             <td>${r.divisi || ""}</td>
             <td>${r.shift || ""}</td>
-            <td>${r.operator_cu || ""}</td>
+            <td>${r.operator_hd || ""}</td>
             <td>${r.checker || ""}</td>
             <td>${r.code || ""}</td>
         </tr>
@@ -1185,12 +1185,12 @@
 
             // VALIDASI WAJIB
             const requiredFields = [
-              { id: "operator_cu", name: "Operator Potong" },
+              { id: "operator_hd", name: "Operator HD" },
               { id: "checker", name: "Checker" },
               { id: "spk", name: "No. SPK" },
               { id: "mesin", name: "Mesin" },
               { id: "berat_kg", name: "Berat (kg)" },
-              { id: "keranjang", name: "Berat Keranjang (kg)" }
+              { id: "bobin", name: "Berat Bobin (kg)" }
             ];
 
             for (let f of requiredFields) {
@@ -1206,9 +1206,9 @@
               }
             }
             if (parseFloat(document.getElementById("berat_kg").value) <
-              parseFloat(document.getElementById("keranjang").value)) {
+              parseFloat(document.getElementById("bobin").value)) {
 
-              errorMsg.innerText = "Berat tidak boleh lebih kecil dari keranjang";
+              errorMsg.innerText = "Berat tidak boleh lebih kecil dari bobin";
               errorMsg.classList.add("show");
               return;
             }
@@ -1220,7 +1220,7 @@
             const data = {
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
-              operator_cu: document.getElementById("operator_cu").value,
+              operator_hd: document.getElementById("operator_hd").value,
               checker: document.getElementById("checker").value,
               divisi: document.getElementById("divisi").value,
               spk: document.getElementById("spk").value,
@@ -1229,7 +1229,7 @@
               uk: document.getElementById("uk").value,
               mesin: document.getElementById("mesin").value,
               berat_kg: document.getElementById("berat_kg").value,
-              keranjang: document.getElementById("keranjang").value,
+              bobin: document.getElementById("bobin").value,
               berat_bersih: document.getElementById("berat_bersih").value,
             };
 
@@ -1264,7 +1264,7 @@
           // ── RESET ────────────────────────────────────────────────
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
-            ['operator_cu', 'checker', 'spk', 'customer', 'product', 'uk', 'mesin', 'berat_kg', 'keranjang', 'berat_bersih']
+            ['operator_hd', 'checker', 'spk', 'customer', 'product', 'uk', 'mesin', 'berat_kg', 'bobin', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
@@ -1276,9 +1276,9 @@
         <script>
           function hitungBersih() {
             const berat = parseFloat(document.getElementById("berat_kg").value) || 0;
-            const keranjang = parseFloat(document.getElementById("keranjang").value) || 0;
+            const bobin = parseFloat(document.getElementById("bobin").value) || 0;
 
-            let hasil = berat - keranjang;
+            let hasil = berat - bobin;
 
             // biar tidak minus
             if (hasil < 0) hasil = 0;
@@ -1288,7 +1288,7 @@
 
           // trigger saat input berubah
           document.getElementById("berat_kg").addEventListener("input", hitungBersih);
-          document.getElementById("keranjang").addEventListener("input", hitungBersih);
+          document.getElementById("bobin").addEventListener("input", hitungBersih);
         </script>
 </body>
 

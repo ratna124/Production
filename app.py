@@ -14,6 +14,7 @@ CSV_HD   = r"Z:\Checker\Production\kataloghd.csv"
 CSV_POTONG   = r"Z:\Checker\Production\katalogpotong.csv"
 CSV_PACKING   = r"Z:\Checker\Production\katalogpacking.csv"
 CSV_SISA_PACK   = r"Z:\Checker\Production\katalogsisapack.csv"
+CSV_AVAL_MIXING   = r"Z:\Checker\Production\katalogavalmixing.csv"
 LABELS_DIR = r"Z:\Checker\Production\labels_output"
 
 LABEL_W = 560
@@ -147,6 +148,25 @@ def init_db():
     )
     """)
 
+    # AVAL MIXING
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS katalogavalmixing (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id TEXT,
+        tanggal TEXT,
+        shift TEXT,
+        divisi TEXT,
+        spk TEXT,
+        operator_amix TEXT,
+        checker TEXT,
+        mesin REAL,
+        berat_bersih REAL,
+        jenis REAL,
+        created_at TEXT,
+        code TEXT
+    )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -275,6 +295,26 @@ def save_record(data):
         """, data)
 
         csv_path = CSV_MIXING
+    
+    # ================= AVAL MIXING =================
+    if div == "AVAL_MIXING":
+        c.execute("""
+        INSERT INTO katalogavalmixing (
+            tanggal, shift, divisi,
+            spk,
+            operator_amix, checker,
+            mesin, berat_bersih, jenis,
+            created_at, code
+        ) VALUES (
+            :tanggal, :shift, :divisi,
+            :spk,
+            :operator_amix, :checker,
+            :mesin, :berat_bersih, :jenis,
+            :created_at, :code
+        )
+        """, data)
+
+        csv_path = CSV_AVAL_MIXING
 
     else:
         conn.close()
@@ -319,6 +359,15 @@ def save_record(data):
             "mesin","berat_bersih", "sisa",
             "created_at","code"
         ]
+    
+    elif div == "AVAL_MIXING":
+        headers = [
+            "tanggal","shift","divisi",
+            "spk",
+            "operator_amix","checker",
+            "mesin","berat_bersih", "jenis",
+            "created_at","code"
+        ]
 
     else:  # MIXING
         headers = [
@@ -350,7 +399,8 @@ def generate_code(data):
         "HD": "HD",
         "POTONG": "CU",
         "PACKING": "PA",
-        "SISA_PACK": "PS"
+        "SISA_PACK": "PS",
+        "AVAL_MIXING": "AMS"
     }
 
     div = div_map.get(div_raw, "XX")
@@ -399,7 +449,7 @@ def generate_label_image(order_id, data):
         data.get("spk"),
         data.get("produk"),
         data.get("uk"),
-        data.get("operator_mix") or data.get("operator_hd") or data.get("operator_cu")or data.get("operator_pa")or data.get("operator_sp"),
+        data.get("operator_mix") or data.get("operator_hd") or data.get("operator_cu")or data.get("operator_pa")or data.get("operator_sp")or data.get("operator_amix"),
         f"{data.get('berat_bersih')} kg",
         f"{data.get('karung')} kg",
         data.get("divisi"),
@@ -439,6 +489,14 @@ def packing():
 @app.route("/sisa_pack")
 def sisa_pack():
     return render_template("sisa_pack.html", active_page="sisa_pack")
+
+@app.route("/aval_mixing")
+def saval_mixing():
+    return render_template("aval_mixing.html", active_page="aval_mixing")
+
+@app.route("/aval_hd")
+def saval_hd():
+    return render_template("aval_hd.html", active_page="aval_hd")
 
 
 @app.route("/get-spk/<spk>")
@@ -547,6 +605,22 @@ def submit():
                 "code": code
             }
 
+        elif div == "Aval_Mixing":
+            record = {
+                "order_id": order_id,
+                "tanggal": d.get("tanggal", "").split("T")[0],
+                "shift": d.get("shift"),
+                "divisi": div,
+                "spk": d.get("spk"),
+                "operator_amix": d.get("operator_amix"),
+                "checker": d.get("checker"),
+                "mesin": d.get("mesin"),
+                "berat_bersih": float(d.get("berat_bersih") or 0),
+                "jenis": d.get("jenis"),
+                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
+                "code": code
+            }
+
         # ================= MIXING =================
         elif div == "Mixing":
             record = {
@@ -611,6 +685,8 @@ def recent(divisi):
             path = CSV_PACKING
         elif divisi == "sisa_pack":
             path = CSV_SISA_PACK
+        elif divisi == "aval_mixing":
+            path = CSV_AVAL_MIXING
         elif divisi == "mixing":
             path = CSV_MIXING
         else:
@@ -644,6 +720,7 @@ if __name__ == "__main__":
     init_csv(CSV_POTONG)
     init_csv(CSV_PACKING)
     init_csv(CSV_SISA_PACK)
+    init_csv(CSV_AVAL_MIXING)
     print("=" * 55)
     print("  Factory Label System running at http://localhost:5000")
     print("=" * 55)

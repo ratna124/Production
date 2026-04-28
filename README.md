@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Factory Label System
 **Sistem Input Output Produksi + QR Label Printer**
 
@@ -192,3 +193,6 @@ HDKA-20250412-A3B2
 **Metabase tidak bisa baca SQLite?**
 - Pastikan path file absolute dan bisa dibaca oleh user yang menjalankan Metabase
 - Alternatif: gunakan CSV import di Metabase (upload `production_output.csv`)
+=======
+# Production
+>>>>>>> 509c1150366980d151ea0116a25ad3b7865ccf73
