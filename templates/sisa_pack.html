@@ -767,6 +767,10 @@
       <a href="/aval_qc" class="sidebar-item {% if active_page == 'aval_qc' %}active{% endif %}">
         <span class="sidebar-dot"></span>Aval QC
       </a>
+      <div class="sidebar-section">Scan</div>
+      <a href="/scan_salah" class="sidebar-item {% if active_page == 'scan_salah' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Scan Salah
+      </a>
     </aside>
 
     <!-- ── MAIN ── -->
@@ -1185,7 +1189,7 @@
               { id: "mesin", name: "Mesin" },
               { id: "berat_bersih", name: "Berat Bersih (kg)" },
               { id: "sisa", name: "Hasil Pack (Pack / Ikat)" }
-             
+
             ];
 
             for (let f of requiredFields) {
@@ -1251,7 +1255,7 @@
           // ── RESET ────────────────────────────────────────────────
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
-            ['operator_sp','checker','spk', 'customer', 'product', 'uk', 'mesin', 'berat_bersih', 'sisa']
+            ['operator_sp', 'checker', 'spk', 'customer', 'product', 'uk', 'mesin', 'berat_bersih', 'sisa']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';

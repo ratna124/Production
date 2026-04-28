@@ -17,68 +17,71 @@
       margin: 0;
       padding: 0;
     }
-/* ── SIDEBAR ────────────────────────────────────────── */
-.sidebar {
-  background: #1a1a1a;
-  border-right: 1px solid #2e2e2e;
-  padding: 24px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
 
-/* TITLE */
-.sidebar-section {
-  font-family: monospace;
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #777;
-  padding: 16px 20px 6px;
-}
+    /* ── SIDEBAR ────────────────────────────────────────── */
+    .sidebar {
+      background: #1a1a1a;
+      border-right: 1px solid #2e2e2e;
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
 
-/* ITEM */
-.sidebar-item {
-  display: flex;              /* 🔥 biar rapi horizontal icon + text */
-  align-items: center;
-  gap: 10px;
-  padding: 10px 20px;
-  cursor: pointer;
+    /* TITLE */
+    .sidebar-section {
+      font-family: monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #777;
+      padding: 16px 20px 6px;
+    }
 
-  text-decoration: none;      /* 🔥 HILANGIN GARIS BAWAH */
-  color: #aaa;
+    /* ITEM */
+    .sidebar-item {
+      display: flex;
+      /* 🔥 biar rapi horizontal icon + text */
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
 
-  border-left: 3px solid transparent;
-  transition: all 0.2s ease;
-}
+      text-decoration: none;
+      /* 🔥 HILANGIN GARIS BAWAH */
+      color: #aaa;
 
-/* DOT */
-.sidebar-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #3e3e3e;
-}
+      border-left: 3px solid transparent;
+      transition: all 0.2s ease;
+    }
 
-/* HOVER */
-.sidebar-item:hover {
-  background: #2c2c2c;
-  color: white;
-}
+    /* DOT */
+    .sidebar-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #3e3e3e;
+    }
 
-/* ACTIVE */
-.sidebar-item.active {
-  background: rgba(232, 66, 10, 0.12);
-  color: white;
-  border-left: 3px solid #e8420a;
-}
+    /* HOVER */
+    .sidebar-item:hover {
+      background: #2c2c2c;
+      color: white;
+    }
 
-/* DOT ACTIVE */
-.sidebar-item.active .sidebar-dot {
-  background: #e8420a;
-}
+    /* ACTIVE */
+    .sidebar-item.active {
+      background: rgba(232, 66, 10, 0.12);
+      color: white;
+      border-left: 3px solid #e8420a;
+    }
 
-    
+    /* DOT ACTIVE */
+    .sidebar-item.active .sidebar-dot {
+      background: #e8420a;
+    }
+
+
 
     :root {
       --black: #0a0a0a;
@@ -764,6 +767,10 @@
       <a href="/aval_qc" class="sidebar-item {% if active_page == 'aval_qc' %}active{% endif %}">
         <span class="sidebar-dot"></span>Aval QC
       </a>
+      <div class="sidebar-section">Scan</div>
+      <a href="/scan_salah" class="sidebar-item {% if active_page == 'scan_salah' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Scan Salah
+      </a>
     </aside>
 
     <!-- ── MAIN ── -->
@@ -1247,7 +1254,7 @@
           // ── RESET ────────────────────────────────────────────────
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
-            ['operator_mix','checker','spk', 'customer', 'product', 'uk', 'berat_bersih']
+            ['operator_mix', 'checker', 'spk', 'customer', 'product', 'uk', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';

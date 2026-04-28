@@ -4,8 +4,58 @@ from PIL import Image, ImageDraw, ImageFont
 import csv, os, sqlite3, json, io, base64, uuid
 from datetime import datetime
 import pandas as pd
+from pathlib import Path
 
 app = Flask(__name__)
+
+BASE_DIR = Path(r"Z:\Checker\Production\scan_salah")
+
+CSV_FILES = {
+    "Mixing":  BASE_DIR / "scansalahmixing.csv",
+    "HD":      BASE_DIR / "scansalahhd.csv",
+    "Potong": BASE_DIR / "scansalahpotong.csv",
+    "Packing": BASE_DIR / "scansalahpacking.csv",
+    "SisaPack": BASE_DIR / "scansalahsisapack.csv",
+}
+
+CSV_COLUMNS = ["create_at", "divisi", "code"]
+
+def ensure_csv(path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.exists():
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS)
+            writer.writeheader()
+
+
+@app.route("/save_csv", methods=["POST"])
+def save_csv():
+    data = request.get_json()
+
+    divisi = data.get("divisi")
+    codes = data.get("codes")
+
+    if divisi not in CSV_FILES:
+        return jsonify(success=False, error="Divisi tidak valid")
+
+    path = CSV_FILES[divisi]
+    ensure_csv(path)
+
+    try:
+        with open(path, "a", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS)
+
+            for code in codes:
+                writer.writerow({
+                    "create_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "divisi": divisi,
+                    "code": code
+                })
+
+        return jsonify(success=True)
+
+    except Exception as e:
+        return jsonify(success=False, error=str(e))
 
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 DB_PATH    = os.path.join(BASE_DIR, "data", "production.db")
@@ -491,13 +541,16 @@ def sisa_pack():
     return render_template("sisa_pack.html", active_page="sisa_pack")
 
 @app.route("/aval_mixing")
-def saval_mixing():
+def aval_mixing():
     return render_template("aval_mixing.html", active_page="aval_mixing")
 
 @app.route("/aval_hd")
-def saval_hd():
+def aval_hd():
     return render_template("aval_hd.html", active_page="aval_hd")
 
+@app.route("/scan_salah")
+def scan_salah():
+    return render_template("scan_salah.html", active_page="scan_salah")
 
 @app.route("/get-spk/<spk>")
 def get_spk(spk):
