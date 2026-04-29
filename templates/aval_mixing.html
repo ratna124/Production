@@ -840,14 +840,8 @@
               </select>
             </div>
             <div class="field">
-              <label class="field-label">Checker<span class="req">*</span></label>
-              <select id="checker" required>
-                <option value="">-- Pilih Checker --</option>
-                <option value="PRI">PRI</option>
-                <option value="SAN">SAN</option>
-                <option value="ZAK">ZAK</option>
-                <option value="TEST">TEST</option>
-              </select>
+              <label class="field-label">Checker<span class="req"></span></label>
+               <input type="text" id="checker" value="{{ current_user }}" readonly>
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>

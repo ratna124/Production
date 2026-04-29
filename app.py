@@ -636,42 +636,42 @@ def check_session():
 @app.route("/mixing")
 @login_required
 def mixing():
-    return render_template("index.html", active_page="mixing")
+    return render_template("index.html", active_page="mixing", current_user=session.get("name"))
 
 @app.route("/hd")
 @login_required
 def hd():
-    return render_template("hd.html", active_page="hd")
+    return render_template("hd.html", active_page="hd", current_user=session.get("name"))
 
 @app.route("/potong")
 @login_required
 def potong():
-    return render_template("potong.html", active_page="potong")
+    return render_template("potong.html", active_page="potong", current_user=session.get("name"))
 
 @app.route("/packing")
 @login_required
 def packing():
-    return render_template("packing.html", active_page="packing")
+    return render_template("packing.html", active_page="packing", current_user=session.get("name"))
 
 @app.route("/sisa_pack")
 @login_required
 def sisa_pack():
-    return render_template("sisa_pack.html", active_page="sisa_pack")
+    return render_template("sisa_pack.html", active_page="sisa_pack", current_user=session.get("name"))
 
 @app.route("/aval_mixing")
 @login_required
 def aval_mixing():
-    return render_template("aval_mixing.html", active_page="aval_mixing")
+    return render_template("aval_mixing.html", active_page="aval_mixing", current_user=session.get("name"))
 
 @app.route("/aval_hd")
 @login_required
 def aval_hd():
-    return render_template("aval_hd.html", active_page="aval_hd")
+    return render_template("aval_hd.html", active_page="aval_hd", current_user=session.get("name"))
 
 @app.route("/scan_salah")
 @admin_required
 def scan_salah():
-    return render_template("scan_salah.html", active_page="scan_salah")
+    return render_template("scan_salah.html", active_page="scan_salah", current_user=session.get("name"))
 
 @app.route("/get-spk/<spk>")
 def get_spk(spk):
