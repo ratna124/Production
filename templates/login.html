@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Garindra Plastik</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --black: #0a0a0a;
+      --white: #f5f4f0;
+      --accent: #e8420a;
+      --accent2: #f5a623;
+      --gray1: #1a1a1a;
+      --gray2: #2c2c2c;
+      --gray3: #3e3e3e;
+      --gray4: #777;
+      --gray5: #aaa;
+      --success: #22c55e;
+      --border: #2e2e2e;
+      --radius: 4px;
+      --font-sans: 'IBM Plex Sans', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.5;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* subtle grid bg */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(46, 46, 46, 0.25) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(46, 46, 46, 0.25) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: var(--gray1);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+      z-index: 100;
+    }
+
+    .topbar-logo {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .topbar-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    .topbar-title {
+      font-size: 13px;
+      color: var(--gray5);
+      font-weight: 300;
+    }
+
+    /* ── LOGIN CARD ── */
+    .login-wrap {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 400px;
+      padding: 24px;
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .login-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(232, 66, 10, 0.12);
+      border: 1px solid rgba(232, 66, 10, 0.3);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 22px;
+    }
+
+    .login-title {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--white);
+      letter-spacing: 0.04em;
+    }
+
+    .login-sub {
+      font-size: 12px;
+      color: var(--gray4);
+      margin-top: 4px;
+    }
+
+    .card {
+      background: var(--gray1);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .card-body {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .field-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gray4);
+    }
+
+    input {
+      width: 100%;
+      height: 44px;
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      padding: 0 12px;
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      background: #222;
+    }
+
+    input::placeholder {
+      color: var(--gray4);
+    }
+
+    .btn-submit {
+      width: 100%;
+      height: 52px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .btn-submit:hover {
+      background: #c9360a;
+    }
+
+    .btn-submit:active {
+      transform: scale(0.99);
+    }
+
+    .btn-submit:disabled {
+      background: var(--gray3);
+      cursor: not-allowed;
+    }
+
+    /* spinner */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* error / info */
+    .alert {
+      display: none;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+
+    .alert.error {
+      background: rgba(248, 113, 113, 0.08);
+      border: 1px solid rgba(248, 113, 113, 0.25);
+      color: #f87171;
+    }
+
+    .alert.show {
+      display: block;
+    }
+
+    /* footer note */
+    .login-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 11px;
+      color: var(--gray4);
+      font-family: var(--font-mono);
+    }
+
+    @media (max-width: 480px) {
+      .login-wrap {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <span class="topbar-logo">&#9632; Garindra Plastik</span>
+    <span class="topbar-sep"></span>
+    <span class="topbar-title">Production</span>
+  </header>
+
+  <!-- LOGIN CARD -->
+  <div class="login-wrap">
+    <div class="login-header">
+      <div class="login-icon">&#128274;</div>
+      <div class="login-title">LOGIN</div>
+      <div class="login-sub">Masukkan username dan password untuk masuk</div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+
+        <div class="alert error" id="alert-error"></div>
+
+        <div class="field">
+          <label class="field-label">Username</label>
+          <input type="text" id="username" placeholder="Masukkan username" autocomplete="off" autofocus>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Password</label>
+          <input type="password" id="password" placeholder="Masukkan password" autocomplete="off">
+        </div>
+
+        <button class="btn-submit" id="btn-login" onclick="doLogin()">
+          <span id="btn-text">&#9654; MASUK</span>
+          <div class="spinner" id="spinner"></div>
+        </button>
+
+      </div>
+    </div>
+
+    <div class="login-footer">
+      &#169; Garindra Plastik &mdash; Sistem Produksi Internal
+    </div>
+  </div>
+
+  <script>
+    // Allow Enter key to submit
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') doLogin();
+    });
+
+    async function doLogin() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('btn-login');
+      const spinner = document.getElementById('spinner');
+      const btnText = document.getElementById('btn-text');
+      const alert = document.getElementById('alert-error');
+
+      // Basic client-side check
+      if (!username || !password) {
+        showError('Username dan password wajib diisi.');
+        return;
+      }
+
+      // Show loading state
+      btn.disabled = true;
+      spinner.style.display = 'block';
+      btnText.style.display = 'none';
+      alert.classList.remove('show');
+
+      try {
+        const res = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          // Redirect to main app
+          window.location.href = data.redirect || '/';
+        } else {
+          showError(data.message || 'Username atau password salah.');
+        }
+      } catch (err) {
+        showError('Tidak dapat terhubung ke server. Coba lagi.');
+      }
+
+      btn.disabled = false;
+      spinner.style.display = 'none';
+      btnText.style.display = 'inline';
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('alert-error');
+      el.innerText = '✕  ' + msg;
+      el.classList.add('show');
+    }
+  </script>
+  <script>
+    // Cek setiap 30 detik apakah session masih aktif
+    setInterval(async () => {
+      try {
+        const res = await fetch("/check_session");
+        const data = await res.json();
+        if (!data.active) {
+          window.location.href = "/login";
+        }
+      } catch (e) { }
+    }, 30000);
+  </script>
+</body>
+
+</html>

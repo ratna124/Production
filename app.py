@@ -5,8 +5,67 @@ import csv, os, sqlite3, json, io, base64, uuid
 from datetime import datetime
 import pandas as pd
 from pathlib import Path
+from datetime import timedelta
+from flask import g
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
+
+app.secret_key = "GarindraPlastik@2026#Produksi!"
+app.permanent_session_lifetime = timedelta(minutes=5)
+
+USER_EXCEL = r"Z:\Checker\Production\other\other.xlsx"
+USER_SHEET = "User"   # nama sheet
+
+import functools
+from flask import session
+
+@app.before_request
+def check_session_timeout():
+    # Lewati route login/logout
+    if request.endpoint in ("login_page", "login_post", "logout"):
+        return
+
+    # Kalau belum login, biarkan login_required yang handle
+    if not session.get("logged_in"):
+        return
+
+    # Cek waktu terakhir aktif
+    last_active = session.get("last_active")
+    now = datetime.now()
+
+    if last_active:
+        last_active = datetime.fromisoformat(last_active)
+        if now - last_active > timedelta(minutes=5):
+            session.clear()
+            return jsonify(success=False, message="SESSION_EXPIRED") \
+                if request.is_json else redirect("/login")
+
+    # Update waktu aktif
+    session["last_active"] = now.isoformat()
+
+def load_users():
+    """Baca kolom name, username, password dari sheet User di other.xlsx."""
+    df = pd.read_excel(USER_EXCEL, sheet_name=USER_SHEET, engine="openpyxl")
+    df.columns = df.columns.str.strip()          # hapus spasi di header
+    df = df.dropna(subset=["username", "password"])
+    df["username"] = df["username"].astype(str).str.strip()
+    df["password"] = df["password"].astype(str).str.strip()
+    return df
+
+
+def login_required(f):
+    """Decorator — redirect ke /login kalau belum login."""
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect("/login")
+        return f(*args, **kwargs)
+    return decorated
+
+
+# ─── LOGIN PAGE ──────────────────────────────────────────────
+
 
 BASE_DIR = Path(r"Z:\Checker\Production\scan_salah")
 
@@ -514,41 +573,103 @@ def generate_label_image(order_id, data):
 
     return img
 
+def admin_required(f):
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect("/login")
+        if session.get("role") != "administrator":
+            return redirect("/mixing")
+        return f(*args, **kwargs)
+    return decorated
 
 # ─── ROUTES ─────────────────
 @app.route("/")
 def home():
-    return redirect("/mixing")
+    return redirect("/login")
+
+@app.route("/login", methods=["GET"])
+def login_page():
+    if session.get("logged_in"):
+        return redirect("/mixing")
+    return render_template("login.html")
+
+@app.route("/login", methods=["POST"])
+def login_post():
+    data     = request.get_json()
+    username = (data.get("username") or "").strip()
+    password = (data.get("password") or "").strip()
+
+    try:
+        users = load_users()
+        match = users[
+            (users["username"] == username) &
+            (users["password"] == password)
+        ]
+
+        if not match.empty:
+            session.permanent = True
+            session["logged_in"] = True
+            session["username"]  = username
+            session["name"]      = str(match.iloc[0].get("name", username))
+            session["role"]      = str(match.iloc[0].get("role", "user"))
+            return jsonify(success=True, redirect="/mixing") 
+        else:
+            return jsonify(success=False, message="Username atau password salah.")
+
+    except FileNotFoundError:
+        return jsonify(success=False, message="File data user tidak ditemukan.")
+    except Exception as e:
+        return jsonify(success=False, message=f"Error: {str(e)}")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
+@app.route("/check_session")
+def check_session():
+    if session.get("logged_in"):
+        return jsonify(active=True)
+    return jsonify(active=False)
 
 @app.route("/mixing")
+@login_required
 def mixing():
     return render_template("index.html", active_page="mixing")
 
 @app.route("/hd")
+@login_required
 def hd():
     return render_template("hd.html", active_page="hd")
 
 @app.route("/potong")
+@login_required
 def potong():
     return render_template("potong.html", active_page="potong")
 
 @app.route("/packing")
+@login_required
 def packing():
     return render_template("packing.html", active_page="packing")
 
 @app.route("/sisa_pack")
+@login_required
 def sisa_pack():
     return render_template("sisa_pack.html", active_page="sisa_pack")
 
 @app.route("/aval_mixing")
+@login_required
 def aval_mixing():
     return render_template("aval_mixing.html", active_page="aval_mixing")
 
 @app.route("/aval_hd")
+@login_required
 def aval_hd():
     return render_template("aval_hd.html", active_page="aval_hd")
 
 @app.route("/scan_salah")
+@admin_required
 def scan_salah():
     return render_template("scan_salah.html", active_page="scan_salah")
 

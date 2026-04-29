@@ -727,13 +727,15 @@
       <span class="topbar-sep"></span>
       <span class="topbar-title">Sistem Label & Output Produksi</span>
       <div class="topbar-right">
-        <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
-        <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a>
+        <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
+    <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
+        <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a> -->
       </div>
     </header>
 
     <!-- ── SIDEBAR ── -->
     <aside class="sidebar">
+      
       <div class="sidebar-section">Divisi</div>
       <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
         <span class="sidebar-dot"></span>Mixing
@@ -767,10 +769,12 @@
       <a href="/aval_qc" class="sidebar-item {% if active_page == 'aval_qc' %}active{% endif %}">
         <span class="sidebar-dot"></span>Aval QC
       </a>
+      {% if session.get('role') == 'administrator' %}
       <div class="sidebar-section">Scan</div>
       <a href="/scan_salah" class="sidebar-item {% if active_page == 'scan_salah' %}active{% endif %}">
         <span class="sidebar-dot"></span>Scan Salah
       </a>
+      {% endif %}
     </aside>
 
     <!-- ── MAIN ── -->

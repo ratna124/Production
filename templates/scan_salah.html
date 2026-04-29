@@ -263,6 +263,24 @@
       flex-shrink: 0;
     }
 
+        .btn-ghost {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--gray5);
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--gray5);
+      color: var(--white);
+    }
+
     .card-header-title {
       font-size: 13px;
       font-weight: 500;
@@ -653,6 +671,7 @@
       <span class="topbar-title">Input Kode Salah</span>
       <div class="topbar-right">
         <span class="clock" id="clock"></span>
+        <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
       </div>
     </header>
 
