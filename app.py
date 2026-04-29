@@ -11,11 +11,11 @@ app = Flask(__name__)
 BASE_DIR = Path(r"Z:\Checker\Production\scan_salah")
 
 CSV_FILES = {
-    "Mixing":  BASE_DIR / "scansalahmixing.csv",
+    "MIXING":  BASE_DIR / "scansalahmixing.csv",
     "HD":      BASE_DIR / "scansalahhd.csv",
-    "Potong": BASE_DIR / "scansalahpotong.csv",
-    "Packing": BASE_DIR / "scansalahpacking.csv",
-    "SisaPack": BASE_DIR / "scansalahsisapack.csv",
+    "POTONG": BASE_DIR / "scansalahpotong.csv",
+    "PACKING": BASE_DIR / "scansalahpacking.csv",
+    "SISA_PACK": BASE_DIR / "scansalahsisapack.csv",
 }
 
 CSV_COLUMNS = ["create_at", "divisi", "code"]
@@ -32,7 +32,7 @@ def ensure_csv(path):
 def save_csv():
     data = request.get_json()
 
-    divisi = data.get("divisi")
+    divisi = (data.get("divisi") or "").strip().upper()
     codes = data.get("codes")
 
     if divisi not in CSV_FILES:
@@ -347,7 +347,7 @@ def save_record(data):
         csv_path = CSV_MIXING
     
     # ================= AVAL MIXING =================
-    if div == "AVAL_MIXING":
+    elif div == "AVAL_MIXING":
         c.execute("""
         INSERT INTO katalogavalmixing (
             tanggal, shift, divisi,
@@ -577,8 +577,7 @@ def submit():
         order_id = str(uuid.uuid4())[:8]
         code = generate_code(d)
 
-        div = d.get("divisi")
-
+        div = (d.get("divisi") or "").strip().upper()
         # ================= HD =================
         if div == "HD":
             record = {
@@ -601,7 +600,7 @@ def submit():
             }
 
         # ================= POTONG =================
-        elif div == "Potong":
+        elif div == "POTONG":
             record = {
                 "order_id": order_id,
                 "tanggal": d.get("tanggal", "").split("T")[0],
@@ -621,7 +620,7 @@ def submit():
                 "code": code
             }
 
-        elif div == "Packing":
+        elif div == "PACKING":
             record = {
                 "order_id": order_id,
                 "tanggal": d.get("tanggal", "").split("T")[0],
@@ -639,7 +638,7 @@ def submit():
                 "code": code
             }
 
-        elif div == "Sisa_Pack":
+        elif div == "SISA_PACK":
             record = {
                 "order_id": order_id,
                 "tanggal": d.get("tanggal", "").split("T")[0],
@@ -658,7 +657,7 @@ def submit():
                 "code": code
             }
 
-        elif div == "Aval_Mixing":
+        elif div == "AVAL_MIXING":
             record = {
                 "order_id": order_id,
                 "tanggal": d.get("tanggal", "").split("T")[0],
@@ -675,7 +674,7 @@ def submit():
             }
 
         # ================= MIXING =================
-        elif div == "Mixing":
+        elif div == "MIXING":
             record = {
                 "order_id": order_id,
                 "tanggal": d.get("tanggal", "").split("T")[0],
