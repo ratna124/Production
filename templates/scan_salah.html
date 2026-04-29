@@ -263,7 +263,7 @@
       flex-shrink: 0;
     }
 
-        .btn-ghost {
+    .btn-ghost {
       background: none;
       border: 1px solid var(--border);
       color: var(--gray5);
@@ -671,6 +671,9 @@
       <span class="topbar-title">Input Kode Salah</span>
       <div class="topbar-right">
         <span class="clock" id="clock"></span>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">
+          &#128100; {{ current_user }}
+        </span>
         <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
       </div>
     </header>
@@ -769,10 +772,14 @@
         </div>
 
         <!-- column header -->
-        <div class="col-header">
+        <div class="col-header" style="grid-template-columns:36px 1fr 1fr 1fr 1fr 1fr auto">
           <span>#</span>
           <span>Code</span>
-          <span>Hapus</span>
+          <span>SPK</span>
+          <span>Customer</span>
+          <span>Produk</span>
+          <span>Checker</span>
+          <span>Del</span>
         </div>
 
         <!-- scrollable list -->
@@ -800,11 +807,11 @@
     let divisi = "";
 
     const CSV_PATHS = {
-      Mixing: "Z:\\Checker\\Production\\scan_salah\\scansalahmixing.csv",
-      HD: "Z:\\Checker\\Production\\scan_salah\\scansalahhd.csv",
-      Potong: "Z:\\Checker\\Production\\scan_salah\\scansalahpotong.csv",
-      Packing: "Z:\\Checker\\Production\\scan_salah\\scansalahpacking.csv",
-      Sisa_Pack: "Z:\\Checker\\Production\\scan_salah\\scansalahsisapack.csv",
+      Mixing: "Z:\\Checker\\Production\\Database\\scan_salah\\scansalahmixing.csv",
+      HD: "Z:\\Checker\\Production\\Database\\scan_salah\\scansalahhd.csv",
+      Potong: "Z:\\Checker\\Production\\Database\\scan_salah\\scansalahpotong.csv",
+      Packing: "Z:\\Checker\\Production\\Database\\scan_salah\\scansalahpacking.csv",
+      Sisa_Pack: "Z:\\Checker\\Production\\Database\\scan_salah\\scansalahsisapack.csv",
     };
 
     // ── INIT ───────────────────────────────────────────────────────────────────
@@ -928,62 +935,62 @@
     }
 
     // ── SUBMIT ─────────────────────────────────────────────────────────────────
-async function submitCodes() {
-  if (!divisi) {
-    alert("Pilih divisi terlebih dahulu.");
-    return;
-  }
+    async function submitCodes() {
+      if (!divisi) {
+        alert("Pilih divisi terlebih dahulu.");
+        return;
+      }
 
-  if (!codes.length) {
-    alert("Belum ada kode.");
-    return;
-  }
+      if (!codes.length) {
+        alert("Belum ada kode.");
+        return;
+      }
 
-  const btn = document.getElementById("btn-submit");
-  const spinner = document.getElementById("spinner");
+      const btn = document.getElementById("btn-submit");
+      const spinner = document.getElementById("spinner");
 
-  btn.disabled = true;
-  spinner.style.display = "block";
+      btn.disabled = true;
+      spinner.style.display = "block";
 
-  try {
-    const res = await fetch("/save_csv", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        divisi: divisi,
-        codes: codes
-      })
-    });
+      try {
+        const res = await fetch("/save_csv", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            divisi: divisi,
+            codes: codes
+          })
+        });
 
-    // 🔥 AMANIN RESPONSE
-    const contentType = res.headers.get("content-type") || "";
+        // 🔥 AMANIN RESPONSE
+        const contentType = res.headers.get("content-type") || "";
 
-    if (!contentType.includes("application/json")) {
-      const text = await res.text();
-      throw new Error("Server bukan JSON:\n" + text.substring(0, 100));
+        if (!contentType.includes("application/json")) {
+          const text = await res.text();
+          throw new Error("Server bukan JSON:\n" + text.substring(0, 100));
+        }
+
+        const result = await res.json();
+
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+
+        alert("✅ Data Berhasil Disimpan");
+
+        codes = [];
+        renderList();
+        updateStats();
+
+      } catch (err) {
+        alert("❌ Gagal: " + err.message);
+      }
+
+      btn.disabled = false;
+      spinner.style.display = "none";
     }
-
-    const result = await res.json();
-
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-
-    alert("✅ Data Berhasil Disimpan");
-
-    codes = [];
-    renderList();
-    updateStats();
-
-  } catch (err) {
-    alert("❌ Gagal: " + err.message);
-  }
-
-  btn.disabled = false;
-  spinner.style.display = "none";
-}
 
     function csvFilename(div) {
       return "scansalah" + div.toLowerCase() + ".csv";

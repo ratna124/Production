@@ -19,6 +19,12 @@
     }
 
     /* ── SIDEBAR ────────────────────────────────────────── */
+    input[required],
+    select[required],
+    textarea[required] {
+      border-color: #e8420a;
+    }
+
     .sidebar {
       background: #1a1a1a;
       border-right: 1px solid #2e2e2e;
@@ -727,8 +733,11 @@
       <span class="topbar-sep"></span>
       <span class="topbar-title">Sistem Label & Output Produksi</span>
       <div class="topbar-right">
-       <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
-    <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">
+        &#128100; {{ current_user }}
+    </span>
+        <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
+        <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
         <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a> -->
       </div>
     </header>
@@ -832,16 +841,14 @@
               <input type="text" id="shift" readonly>
             </div>
             <div class="field">
-              <label class="field-label">Operator HD <span class="req">*</span></label>
+              <label class="field-label">Operator Mix <span class="req">*</span></label>
               <select id="operator_hd" required>
-                <option value="">-- Pilih Operator HD --</option>
-                <option value="RATNA">RATNA</option>
-                <option value="TEST">TEST</option>
+                <option value="">-- Loading... --</option>
               </select>
             </div>
             <div class="field">
               <label class="field-label">Checker<span class="req"></span></label>
-               <input type="text" id="checker" value="{{ current_user }}" readonly>
+              <input type="text" id="checker" value="{{ current_user }}" readonly>
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
@@ -887,17 +894,26 @@
             <!-- Jenis Aval -->
             <div class="field">
               <label class="field-label">Jenis Aval<span class="req">*</span></label>
-              <input type="text" id="berat_kg" required>
-            </div>
-            <!-- Berat Bobin -->
-            <div class="field">
-              <label class="field-label">Berat Bobin (kg)<span class="req">*</span></label>
-              <input type="text" id="bobin" required>
+              <select id="jenis_hd" required>
+                <option value="">-- Pilih Jenis Aval --</option>
+                <option value="Prong">Prong</option>
+                <option value="Daun">Daun</option>
+                <option value="Sapuan">Sapuan</option>
+              </select>
             </div>
             <!-- Berat Bersih -->
             <div class="field">
-              <label class="field-label">Berat Bersih (kg)</label>
-              <input type="text" id="berat_bersih" readonly>
+              <label class="field-label">Afal Qty (kg)</label>
+              <input type="text" id="berat_bersih" required>
+            </div>
+            <!-- Kategori Aval -->
+            <div class="field">
+              <label class="field-label">Kategori Aval</label>
+              <input type="text" id="kategori_hd">
+            </div>
+            <div class="field">
+              <label class="field-label">Tali Aval</label>
+              <input type="text" id="tali">
             </div>
           </div>
         </div>
@@ -1177,6 +1193,31 @@
           });
         </script>
         <script>
+          async function loadOperators() {
+            const divisi = document.getElementById("divisi").value; // "Mixing"
+
+            try {
+              const res = await fetch(`/api/operators/${divisi}`);
+              const operators = await res.json();
+
+              const select = document.getElementById("operator_hd");
+              select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
+
+              operators.forEach(op => {
+                select.innerHTML += `<option value="${op}">${op}</option>`;
+              });
+
+            } catch (e) {
+              console.error("Gagal load operator:", e);
+            }
+          }
+
+          // Panggil saat halaman siap
+          document.addEventListener("DOMContentLoaded", function () {
+            loadOperators();
+            // ... kode DOMContentLoaded lainnya yang sudah ada
+          });
+
           async function submitForm() {
             const btn = document.getElementById("btn-submit");
             const spinner = document.getElementById("spinner");

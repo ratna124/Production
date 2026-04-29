@@ -19,6 +19,12 @@
     }
 
     /* ── SIDEBAR ────────────────────────────────────────── */
+    input[required],
+    select[required],
+    textarea[required] {
+      border-color: #e8420a;
+    }
+
     .sidebar {
       background: #1a1a1a;
       border-right: 1px solid #2e2e2e;
@@ -727,6 +733,9 @@
       <span class="topbar-sep"></span>
       <span class="topbar-title">Sistem Label & Output Produksi</span>
       <div class="topbar-right">
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">
+        &#128100; {{ current_user }}
+    </span>
        <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
     <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
         <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a> -->
@@ -828,15 +837,17 @@
               <input type="datetime-local" id="tanggal" readonly>
             </div>
             <div class="field">
-              <label class="field-label">Shift</label>
-              <input type="text" id="shift" readonly>
+              <label class="field-label">Shift<span class="req">*</span></label>
+              <select id="shift" required>
+                <option value="">-- Pilih Shift --</option>
+                <option value="P">P</option>
+                <option value="M">M</option>
+              </select>
             </div>
             <div class="field">
               <label class="field-label">Operator Packing <span class="req">*</span></label>
               <select id="operator_pa" required>
-                <option value="">-- Pilih Operator Packing --</option>
-                <option value="RATNA">RATNA</option>
-                <option value="TEST">TEST</option>
+                <option value="">-- Loading... --</option>
               </select>
             </div>
             <div class="field">
@@ -862,7 +873,7 @@
             <!-- SPK -->
             <div class="field">
               <label class="field-label">No. SPK <span class="req">*</span></label>
-              <input type="text" id="spk" placeholder="Masukkan No SPK">
+              <input type="text" id="spk" placeholder="Masukkan No SPK" required>
             </div>
             <!-- CUSTOMER -->
             <div class="field">
@@ -881,13 +892,13 @@
             </div>
             <!-- Mesin -->
             <div class="field">
-              <label class="field-label">Mesin<span class="req">*</span></label>
+              <label class="field-label">Meja<span class="req">*</span></label>
               <input type="number" id="mesin" min="1" max="8" required>
             </div>
             <!-- Berat Bersih -->
             <div class="field">
               <label class="field-label">Berat Bersih (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_bersih">
+              <input type="text" id="berat_bersih" required>
             </div>
           </div>
         </div>
@@ -929,7 +940,7 @@
                     <th>No SPK</th>
                     <th>Produk</th>
                     <th>Customer</th>
-                    <th>Mesin</th>
+                    <th>Meja</th>
                     <th>Berat Bersih (kg)</th>
                     <th>Divisi</th>
                     <th>Shift</th>
@@ -1018,9 +1029,6 @@
           function updateTime() {
             let now = new Date();
             let hour = now.getHours();
-            // SHIFT
-            let shift = (hour >= 7 && hour < 19) ? "P" : "M";
-            document.getElementById("shift").value = shift;
             // TANGGAL PRODUKSI
             let prodDate = new Date(now);
             // 🔥 kalau jam 00:00 - 06:59 → mundur 1 hari
@@ -1164,6 +1172,31 @@
           });
         </script>
         <script>
+          async function loadOperators() {
+            const divisi = document.getElementById("divisi").value; // "Mixing"
+
+            try {
+              const res = await fetch(`/api/operators/${divisi}`);
+              const operators = await res.json();
+
+              const select = document.getElementById("operator_pa");
+              select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
+
+              operators.forEach(op => {
+                select.innerHTML += `<option value="${op}">${op}</option>`;
+              });
+
+            } catch (e) {
+              console.error("Gagal load operator:", e);
+            }
+          }
+
+          // Panggil saat halaman siap
+          document.addEventListener("DOMContentLoaded", function () {
+            loadOperators();
+            // ... kode DOMContentLoaded lainnya yang sudah ada
+          });
+
           async function submitForm() {
             const btn = document.getElementById("btn-submit");
             const spinner = document.getElementById("spinner");

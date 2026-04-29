@@ -19,6 +19,12 @@
     }
 
     /* ── SIDEBAR ────────────────────────────────────────── */
+    input[required],
+    select[required],
+    textarea[required] {
+      border-color: #e8420a;
+    }
+
     .sidebar {
       background: #1a1a1a;
       border-right: 1px solid #2e2e2e;
@@ -727,8 +733,11 @@
       <span class="topbar-sep"></span>
       <span class="topbar-title">Sistem Label & Output Produksi</span>
       <div class="topbar-right">
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">
+        &#128100; {{ current_user }}
+    </span>
         <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
-    <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
+        <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
         <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a> -->
       </div>
     </header>
@@ -834,18 +843,16 @@
             <div class="field">
               <label class="field-label">Operator Mix <span class="req">*</span></label>
               <select id="operator_amix" required>
-                <option value="">-- Pilih Operator Mix --</option>
-                <option value="RATNA">RATNA</option>
-                <option value="TEST">TEST</option>
+                <option value="">-- Loading... --</option>
               </select>
             </div>
             <div class="field">
               <label class="field-label">Checker<span class="req"></span></label>
-               <input type="text" id="checker" value="{{ current_user }}" readonly>
+              <input type="text" id="checker" value="{{ current_user }}" readonly>
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
-              <input type="text" id="divisi" value="Aval_Mixing" readonly>
+              <input type="text" id="divisi" value="Mixing" readonly>
             </div>
           </div>
         </div>
@@ -862,12 +869,12 @@
 
             <!-- SPK -->
             <div class="field">
-              <label class="field-label">No. SPK <span class="req">*</span></label>
+              <label class="field-label">No. SPK</label>
               <input type="text" id="spk" value="0" readonly>
             </div>
             <!-- Mesin -->
             <div class="field">
-              <label class="field-label">Mesin <span class="req">*</span></label>
+              <label class="field-label">Mesin</label>
               <input type="text" id="mesin" value="0" readonly>
             </div>
             <!-- Jenis Aval -->
@@ -877,7 +884,7 @@
             </div>
             <!-- Berat Total (kg) -->
             <div class="field">
-              <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
+              <label class="field-label">Aval Qty (kg)<span class="req">*</span></label>
               <input type="text" id="berat_bersih" required>
             </div>
           </div>
@@ -1095,6 +1102,32 @@
           }
         </script>
         <script>
+          async function loadOperators() {
+            const divisi = document.getElementById("divisi").value; // "Mixing"
+
+            try {
+              const res = await fetch(`/api/operators/${divisi}`);
+              const operators = await res.json();
+
+              const select = document.getElementById("operator_amix");
+              select.innerHTML = `<option value="">-- Pilih Operator Mixing --</option>`;
+
+              operators.forEach(op => {
+                select.innerHTML += `<option value="${op}">${op}</option>`;
+              });
+
+            } catch (e) {
+              console.error("Gagal load operator:", e);
+            }
+          }
+
+          // Panggil saat halaman siap
+          document.addEventListener("DOMContentLoaded", function () {
+            loadOperators();
+            // ... kode DOMContentLoaded lainnya yang sudah ada
+          });
+
+
           async function submitForm() {
             const btn = document.getElementById("btn-submit");
             const spinner = document.getElementById("spinner");

@@ -36,7 +36,7 @@ def check_session_timeout():
 
     if last_active:
         last_active = datetime.fromisoformat(last_active)
-        if now - last_active > timedelta(minutes=5):
+        if now - last_active > timedelta(minutes=45):
             session.clear()
             return jsonify(success=False, message="SESSION_EXPIRED") \
                 if request.is_json else redirect("/login")
@@ -65,9 +65,25 @@ def login_required(f):
 
 
 # ─── LOGIN PAGE ──────────────────────────────────────────────
+MAPPING_CSV = r"Z:\Checker\Production\Mapping.csv"
+
+@app.route("/api/operators/<divisi>")
+@login_required
+def get_operators(divisi):
+    try:
+        df = pd.read_csv(MAPPING_CSV, encoding="utf-8-sig")
+        df.columns = df.columns.str.strip()
+        df["divisi"] = df["divisi"].astype(str).str.strip().str.upper()
+        
+        filtered = df[df["divisi"] == divisi.strip().upper()]
+        operators = filtered["operator"].dropna().str.strip().tolist()
+        
+        return jsonify(operators)
+    except Exception as e:
+        return jsonify([])
 
 
-BASE_DIR = Path(r"Z:\Checker\Production\scan_salah")
+BASE_DIR = Path(r"Z:\Checker\Production\Database\scan_salah")
 
 CSV_FILES = {
     "MIXING":  BASE_DIR / "scansalahmixing.csv",
@@ -118,12 +134,12 @@ def save_csv():
 
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 DB_PATH    = os.path.join(BASE_DIR, "data", "production.db")
-CSV_MIXING   = r"Z:\Checker\Production\katalogmixing.csv"
-CSV_HD   = r"Z:\Checker\Production\kataloghd.csv"
-CSV_POTONG   = r"Z:\Checker\Production\katalogpotong.csv"
-CSV_PACKING   = r"Z:\Checker\Production\katalogpacking.csv"
-CSV_SISA_PACK   = r"Z:\Checker\Production\katalogsisapack.csv"
-CSV_AVAL_MIXING   = r"Z:\Checker\Production\katalogavalmixing.csv"
+CSV_MIXING   = r"Z:\Checker\Production\Database\katalogmixing.csv"
+CSV_HD   = r"Z:\Checker\Production\Database\kataloghd.csv"
+CSV_POTONG   = r"Z:\Checker\Production\Database\katalogpotong.csv"
+CSV_PACKING   = r"Z:\Checker\Production\Database\katalogpacking.csv"
+CSV_SISA_PACK   = r"Z:\Checker\Production\Database\katalogsisapack.csv"
+CSV_AVAL_MIXING   = r"Z:\Checker\Production\Database\katalogavalmixing.csv"
 LABELS_DIR = r"Z:\Checker\Production\labels_output"
 
 LABEL_W = 560

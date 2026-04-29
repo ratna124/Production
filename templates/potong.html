@@ -19,6 +19,12 @@
     }
 
     /* ── SIDEBAR ────────────────────────────────────────── */
+    input[required],
+    select[required],
+    textarea[required] {
+      border-color: #e8420a;
+    }
+
     .sidebar {
       background: #1a1a1a;
       border-right: 1px solid #2e2e2e;
@@ -727,8 +733,11 @@
       <span class="topbar-sep"></span>
       <span class="topbar-title">Sistem Label & Output Produksi</span>
       <div class="topbar-right">
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">
+        &#128100; {{ current_user }}
+    </span>
         <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
-    <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
+        <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
         <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a> -->
       </div>
     </header>
@@ -834,14 +843,12 @@
             <div class="field">
               <label class="field-label">Operator Potong <span class="req">*</span></label>
               <select id="operator_cu" required>
-                <option value="">-- Pilih Operator Potong --</option>
-                <option value="RATNA">RATNA</option>
-                <option value="TEST">TEST</option>
+                <option value="">-- Loading... --</option>
               </select>
             </div>
             <div class="field">
               <label class="field-label">Checker<span class="req"></span></label>
-               <input type="text" id="checker" value="{{ current_user }}" readonly>
+              <input type="text" id="checker" value="{{ current_user }}" readonly>
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
@@ -862,7 +869,7 @@
             <!-- SPK -->
             <div class="field">
               <label class="field-label">No. SPK <span class="req">*</span></label>
-              <input type="text" id="spk" placeholder="Masukkan No SPK">
+              <input type="text" id="spk" placeholder="Masukkan No SPK" required>
             </div>
             <!-- CUSTOMER -->
             <div class="field">
@@ -1177,6 +1184,31 @@
           });
         </script>
         <script>
+          async function loadOperators() {
+            const divisi = document.getElementById("divisi").value; // "Mixing"
+
+            try {
+              const res = await fetch(`/api/operators/${divisi}`);
+              const operators = await res.json();
+
+              const select = document.getElementById("operator_cu");
+              select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
+
+              operators.forEach(op => {
+                select.innerHTML += `<option value="${op}">${op}</option>`;
+              });
+
+            } catch (e) {
+              console.error("Gagal load operator:", e);
+            }
+          }
+
+          // Panggil saat halaman siap
+          document.addEventListener("DOMContentLoaded", function () {
+            loadOperators();
+            // ... kode DOMContentLoaded lainnya yang sudah ada
+          });
+
           async function submitForm() {
             const btn = document.getElementById("btn-submit");
             const spinner = document.getElementById("spinner");
