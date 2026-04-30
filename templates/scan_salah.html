@@ -6,137 +6,711 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Scan Salah — Checker Production</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
   <style>
-    *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --black: #0a0a0a; --white: #f5f4f0; --accent: #e8420a; --accent2: #f5a623;
-      --gray1: #1a1a1a; --gray2: #2c2c2c; --gray3: #3e3e3e; --gray4: #777; --gray5: #aaa;
-      --success: #22c55e; --danger: #ef4444; --border: #2e2e2e; --radius: 4px;
-      --input-h: 44px; --font-sans: 'IBM Plex Sans', sans-serif; --font-mono: 'IBM Plex Mono', monospace;
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    body { background: var(--black); color: var(--white); font-family: var(--font-sans); font-size: 14px; min-height: 100vh; line-height: 1.5; }
+    :root {
+      --black: #0a0a0a;
+      --white: #f5f4f0;
+      --accent: #e8420a;
+      --accent2: #f5a623;
+      --gray1: #1a1a1a;
+      --gray2: #2c2c2c;
+      --gray3: #3e3e3e;
+      --gray4: #777;
+      --gray5: #aaa;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --border: #2e2e2e;
+      --radius: 4px;
+      --input-h: 44px;
+      --font-sans: 'IBM Plex Sans', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
 
-    .shell { display: grid; grid-template-columns: 240px 1fr; grid-template-rows: 56px 1fr; min-height: 100vh; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      grid-template-rows: 56px 1fr;
+      min-height: 100vh;
+    }
 
     /* TOPBAR */
-    .topbar { grid-column: 1/-1; background: var(--gray1); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; gap: 16px; position: sticky; top: 0; z-index: 100; }
-    .topbar-logo { font-family: var(--font-mono); font-size: 13px; font-weight: 500; color: var(--accent); letter-spacing: .05em; text-transform: uppercase; }
-    .topbar-sep { width: 1px; height: 20px; background: var(--border); }
-    .topbar-title { font-size: 13px; color: var(--gray5); font-weight: 300; }
-    .topbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-    .clock { font-family: var(--font-mono); font-size: 11px; color: var(--gray4); }
+    .topbar {
+      grid-column: 1/-1;
+      background: var(--gray1);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
 
-    .btn-ghost { background: none; border: 1px solid var(--border); color: var(--gray5); padding: 6px 14px; border-radius: var(--radius); font-family: var(--font-mono); font-size: 11px; cursor: pointer; text-decoration: none; transition: border-color .15s, color .15s; }
-    .btn-ghost:hover { border-color: var(--gray5); color: var(--white); }
+    .topbar-logo {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .topbar-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    .topbar-title {
+      font-size: 13px;
+      color: var(--gray5);
+      font-weight: 300;
+    }
+
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .clock {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--gray4);
+    }
+
+    .btn-ghost {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--gray5);
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--gray5);
+      color: var(--white);
+    }
 
     /* SIDEBAR */
-    .sidebar { background: var(--gray1); border-right: 1px solid var(--border); padding: 24px 0; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
-    .sidebar-section { font-family: var(--font-mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--gray4); padding: 16px 20px 6px; }
-    .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; cursor: pointer; border-left: 2px solid transparent; transition: background .12s, border-color .12s; font-size: 13px; color: var(--gray5); user-select: none; text-decoration: none; }
-    .sidebar-item:hover { background: var(--gray2); color: var(--white); }
-    .sidebar-item.active { border-left-color: var(--accent); color: var(--white); background: rgba(232,66,10,.08); }
-    .sidebar-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray3); flex-shrink: 0; }
-    .sidebar-item.active .sidebar-dot { background: var(--accent); }
-    .sidebar-stats { margin-top: auto; padding: 16px 20px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
-    .stat-row { display: flex; justify-content: space-between; align-items: baseline; }
-    .stat-label { font-size: 11px; color: var(--gray4); font-family: var(--font-mono); }
-    .stat-val { font-size: 20px; font-weight: 500; color: var(--white); font-family: var(--font-mono); }
+    .sidebar {
+      background: var(--gray1);
+      border-right: 1px solid var(--border);
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--gray4);
+      padding: 16px 20px 6px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-left: 2px solid transparent;
+      transition: background .12s, border-color .12s;
+      font-size: 13px;
+      color: var(--gray5);
+      user-select: none;
+      text-decoration: none;
+    }
+
+    .sidebar-item:hover {
+      background: var(--gray2);
+      color: var(--white);
+    }
+
+    .sidebar-item.active {
+      border-left-color: var(--accent);
+      color: var(--white);
+      background: rgba(232, 66, 10, .08);
+    }
+
+    .sidebar-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gray3);
+      flex-shrink: 0;
+    }
+
+    .sidebar-item.active .sidebar-dot {
+      background: var(--accent);
+    }
+
+    .sidebar-stats {
+      margin-top: auto;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--gray4);
+      font-family: var(--font-mono);
+    }
+
+    .stat-val {
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--white);
+      font-family: var(--font-mono);
+    }
 
     /* MAIN */
-    .main { overflow-y: auto; padding: 32px 40px; display: flex; flex-direction: column; gap: 20px; }
-    .page-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .page-title { font-family: var(--font-mono); font-size: 20px; font-weight: 500; }
-    .divisi-badge { font-family: var(--font-mono); font-size: 11px; padding: 3px 12px; border-radius: 20px; background: var(--gray3); color: var(--gray5); transition: background .2s, color .2s; }
-    .divisi-badge.active-mixing { background: rgba(232,66,10,.2); color: var(--accent); border: 1px solid rgba(232,66,10,.4); }
-    .divisi-badge.active-hd { background: rgba(245,166,35,.2); color: var(--accent2); border: 1px solid rgba(245,166,35,.4); }
-    .divisi-badge.active-packing { background: rgba(34,197,94,.2); color: var(--success); border: 1px solid rgba(34,197,94,.4); }
+    .main {
+      overflow-y: auto;
+      padding: 32px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .page-title {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .divisi-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 12px;
+      border-radius: 20px;
+      background: var(--gray3);
+      color: var(--gray5);
+      transition: background .2s, color .2s;
+    }
+
+    .divisi-badge.active-mixing {
+      background: rgba(232, 66, 10, .2);
+      color: var(--accent);
+      border: 1px solid rgba(232, 66, 10, .4);
+    }
+
+    .divisi-badge.active-hd {
+      background: rgba(245, 166, 35, .2);
+      color: var(--accent2);
+      border: 1px solid rgba(245, 166, 35, .4);
+    }
+
+    .divisi-badge.active-packing {
+      background: rgba(34, 197, 94, .2);
+      color: var(--success);
+      border: 1px solid rgba(34, 197, 94, .4);
+    }
 
     /* CARD */
-    .card { background: var(--gray1); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-    .card-header { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--border); background: var(--gray2); }
-    .card-header-num { font-family: var(--font-mono); font-size: 11px; background: var(--accent); color: white; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 3px; font-weight: 500; flex-shrink: 0; }
-    .card-header-title { font-size: 13px; font-weight: 500; color: var(--white); }
-    .card-header-extra { margin-left: auto; }
-    .card-body { padding: 18px 20px; }
+    .card {
+      background: var(--gray1);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--gray2);
+    }
+
+    .card-header-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: var(--accent);
+      color: white;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .card-header-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--white);
+    }
+
+    .card-header-extra {
+      margin-left: auto;
+    }
+
+    .card-body {
+      padding: 18px 20px;
+    }
 
     /* SCAN INPUT */
-    .scan-wrap { display: flex; gap: 10px; align-items: stretch; }
-    .field-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--gray4); margin-bottom: 6px; }
-    .scan-input-wrap { flex: 1; }
-    input[type="text"] { width: 100%; height: var(--input-h); background: var(--gray2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--white); font-family: var(--font-mono); font-size: 14px; padding: 0 14px; outline: none; transition: border-color .15s, background .15s; }
-    input[type="text"]:focus { border-color: var(--accent); background: #222; }
-    input[type="text"]::placeholder { color: var(--gray4); }
-    .btn-add { height: var(--input-h); padding: 0 20px; background: var(--accent); color: white; border: none; border-radius: var(--radius); font-family: var(--font-mono); font-size: 12px; font-weight: 500; cursor: pointer; transition: background .15s; white-space: nowrap; align-self: flex-end; }
-    .btn-add:hover { background: #c9360a; }
-    .scan-hint { font-size: 11px; color: var(--gray4); margin-top: 7px; font-family: var(--font-mono); }
+    .scan-wrap {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .field-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--gray4);
+      margin-bottom: 6px;
+    }
+
+    .scan-input-wrap {
+      flex: 1;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      height: var(--input-h);
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--white);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      padding: 0 14px;
+      outline: none;
+      transition: border-color .15s, background .15s;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      background: #222;
+    }
+
+    input[type="text"]::placeholder {
+      color: var(--gray4);
+    }
+
+    .btn-add {
+      height: var(--input-h);
+      padding: 0 20px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+      align-self: flex-end;
+    }
+
+    .btn-add:hover {
+      background: #c9360a;
+    }
+
+    .scan-hint {
+      font-size: 11px;
+      color: var(--gray4);
+      margin-top: 7px;
+      font-family: var(--font-mono);
+    }
 
     /* TOAST */
-    .toast { font-family: var(--font-mono); font-size: 11px; margin-top: 8px; min-height: 16px; transition: opacity .3s; }
-    .toast.success { color: var(--success); }
-    .toast.warning { color: var(--accent2); }
-    .toast.error { color: var(--danger); }
-    .toast.hidden { opacity: 0; }
+    .toast {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      margin-top: 8px;
+      min-height: 16px;
+      transition: opacity .3s;
+    }
+
+    .toast.success {
+      color: var(--success);
+    }
+
+    .toast.warning {
+      color: var(--accent2);
+    }
+
+    .toast.error {
+      color: var(--danger);
+    }
+
+    .toast.hidden {
+      opacity: 0;
+    }
 
     /* TABLE */
-    .col-header { display: grid; grid-template-columns: 36px minmax(0,2fr) 70px minmax(0,1fr) minmax(0,2fr) 70px 40px; gap: 8px; padding: 6px 16px; background: var(--gray3); border-bottom: 1px solid var(--border); }
-    .col-header span { font-family: var(--font-mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--gray4); }
-    .code-list { max-height: 320px; overflow-y: auto; overflow-x: hidden; }
-    .code-list::-webkit-scrollbar { width: 6px; }
-    .code-list::-webkit-scrollbar-track { background: var(--gray1); }
-    .code-list::-webkit-scrollbar-thumb { background: var(--gray3); border-radius: 3px; }
-    .code-row { display: grid; grid-template-columns: 36px minmax(0,2fr) 70px minmax(0,1fr) minmax(0,2fr) 70px 40px; align-items: start; gap: 8px; padding: 8px 16px; border-bottom: 1px solid rgba(46,46,46,.5); transition: background .1s; animation: fadeRow .15s ease; }
-    @keyframes fadeRow { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
-    .code-row:nth-child(odd) { background: rgba(255,255,255,.01); }
-    .code-row:nth-child(even) { background: rgba(0,0,0,.15); }
-    .code-row:hover { background: rgba(255,255,255,.03); }
+    .col-header {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 2fr) 70px minmax(0, 1fr) minmax(0, 2fr) 70px 40px;
+      gap: 8px;
+      padding: 6px 16px;
+      background: var(--gray3);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .col-header span {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--gray4);
+    }
+
+    .code-list {
+      max-height: 320px;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .code-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .code-list::-webkit-scrollbar-track {
+      background: var(--gray1);
+    }
+
+    .code-list::-webkit-scrollbar-thumb {
+      background: var(--gray3);
+      border-radius: 3px;
+    }
+
+    .code-row {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 2fr) 70px minmax(0, 1fr) minmax(0, 2fr) 70px 40px;
+      align-items: start;
+      gap: 8px;
+      padding: 8px 16px;
+      border-bottom: 1px solid rgba(46, 46, 46, .5);
+      transition: background .1s;
+      animation: fadeRow .15s ease;
+    }
+
+    @keyframes fadeRow {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .code-row:nth-child(odd) {
+      background: rgba(255, 255, 255, .01);
+    }
+
+    .code-row:nth-child(even) {
+      background: rgba(0, 0, 0, .15);
+    }
+
+    .code-row:hover {
+      background: rgba(255, 255, 255, .03);
+    }
 
     /* INVALID ROW */
-    .code-row.invalid { background: rgba(239,68,68,.08) !important; border-left: 3px solid var(--danger); padding-left: 13px; }
+    .code-row.invalid {
+      background: rgba(239, 68, 68, .08) !important;
+      border-left: 3px solid var(--danger);
+      padding-left: 13px;
+    }
 
-    .code-text { font-family: var(--font-mono); font-size: 12px; color: var(--white); word-break: break-all; overflow: hidden; white-space: normal; }
-    .code-text.missing { color: var(--danger) !important; font-style: italic; }
-    .code-idx { font-family: var(--font-mono); font-size: 10px; color: var(--gray4); }
-    .btn-del { background: none; border: none; color: var(--danger); font-size: 13px; cursor: pointer; padding: 4px 8px; border-radius: var(--radius); transition: background .1s; font-family: var(--font-mono); line-height: 1; }
-    .btn-del:hover { background: rgba(239,68,68,.15); }
-    .list-empty { padding: 32px 16px; text-align: center; color: var(--gray4); font-size: 12px; font-family: var(--font-mono); }
+    .code-text {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--white);
+      word-break: break-all;
+      overflow: hidden;
+      white-space: normal;
+    }
+
+    .code-text.missing {
+      color: var(--danger) !important;
+      font-style: italic;
+    }
+
+    .code-idx {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--gray4);
+    }
+
+    .btn-del {
+      background: none;
+      border: none;
+      color: var(--danger);
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: var(--radius);
+      transition: background .1s;
+      font-family: var(--font-mono);
+      line-height: 1;
+    }
+
+    .btn-del:hover {
+      background: rgba(239, 68, 68, .15);
+    }
+
+    .list-empty {
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--gray4);
+      font-size: 12px;
+      font-family: var(--font-mono);
+    }
 
     /* VALIDATION BANNER */
-    .validate-banner { display: none; background: rgba(239,68,68,.1); border-top: 1px solid rgba(239,68,68,.3); border-bottom: 1px solid rgba(239,68,68,.3); padding: 12px 18px; font-family: var(--font-mono); font-size: 11px; color: var(--danger); line-height: 1.7; }
-    .validate-banner.show { display: block; }
+    .validate-banner {
+      display: none;
+      background: rgba(239, 68, 68, .1);
+      border-top: 1px solid rgba(239, 68, 68, .3);
+      border-bottom: 1px solid rgba(239, 68, 68, .3);
+      padding: 12px 18px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--danger);
+      line-height: 1.7;
+    }
+
+    .validate-banner.show {
+      display: block;
+    }
 
     /* ACTION ROW */
-    .action-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 12px 16px; border-top: 1px solid var(--border); }
-    .btn-clear { height: 48px; padding: 0 20px; background: var(--gray2); border: 1px solid var(--border); color: var(--gray5); border-radius: var(--radius); font-family: var(--font-mono); font-size: 12px; cursor: pointer; transition: all .15s; }
-    .btn-clear:hover { border-color: var(--gray5); color: var(--white); background: var(--gray3); }
-    .btn-submit { height: 48px; padding: 0 28px; background: var(--accent); border: none; color: white; border-radius: var(--radius); font-family: var(--font-mono); font-size: 13px; font-weight: 500; letter-spacing: .04em; cursor: pointer; transition: background .15s, transform .1s; display: flex; align-items: center; gap: 8px; }
-    .btn-submit:hover { background: #c9360a; }
-    .btn-submit:active { transform: scale(.98); }
-    .btn-submit:disabled { background: var(--gray3); cursor: not-allowed; opacity: .6; }
-    .action-feedback { margin-left: auto; font-family: var(--font-mono); font-size: 11px; }
-    .action-feedback.ok { color: var(--success); }
-    .action-feedback.err { color: var(--danger); }
+    .action-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-clear {
+      height: 48px;
+      padding: 0 20px;
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      color: var(--gray5);
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .btn-clear:hover {
+      border-color: var(--gray5);
+      color: var(--white);
+      background: var(--gray3);
+    }
+
+    .btn-submit {
+      height: 48px;
+      padding: 0 28px;
+      background: var(--accent);
+      border: none;
+      color: white;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: .04em;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-submit:hover {
+      background: #c9360a;
+    }
+
+    .btn-submit:active {
+      transform: scale(.98);
+    }
+
+    .btn-submit:disabled {
+      background: var(--gray3);
+      cursor: not-allowed;
+      opacity: .6;
+    }
+
+    .action-feedback {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .action-feedback.ok {
+      color: var(--success);
+    }
+
+    .action-feedback.err {
+      color: var(--danger);
+    }
 
     /* SPINNER */
-    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; display: none; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, .3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
 
     /* RESULT PANEL */
-    .result-panel { display: none; background: var(--gray1); border: 1px solid var(--success); border-radius: 6px; overflow: hidden; animation: slideIn .3s ease; }
-    @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
-    .result-panel.show { display: block; }
-    .result-header { background: rgba(34,197,94,.08); border-bottom: 1px solid rgba(34,197,94,.2); padding: 12px 20px; display: flex; align-items: center; gap: 10px; }
-    .result-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
-    .result-line { font-family: var(--font-mono); font-size: 12px; color: var(--success); }
-    .btn-new { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px; background: var(--gray2); border: 1px solid var(--border); color: var(--white); border-radius: var(--radius); font-family: var(--font-mono); font-size: 11px; cursor: pointer; transition: all .15s; margin-top: 4px; width: fit-content; }
-    .btn-new:hover { border-color: var(--gray5); background: var(--gray3); }
+    .result-panel {
+      display: none;
+      background: var(--gray1);
+      border: 1px solid var(--success);
+      border-radius: 6px;
+      overflow: hidden;
+      animation: slideIn .3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .result-panel.show {
+      display: block;
+    }
+
+    .result-header {
+      background: rgba(34, 197, 94, .08);
+      border-bottom: 1px solid rgba(34, 197, 94, .2);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .result-body {
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .result-line {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--success);
+    }
+
+    .btn-new {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 38px;
+      padding: 0 16px;
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      color: var(--white);
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .15s;
+      margin-top: 4px;
+      width: fit-content;
+    }
+
+    .btn-new:hover {
+      border-color: var(--gray5);
+      background: var(--gray3);
+    }
 
     @media (max-width: 860px) {
-      .shell { grid-template-columns: 1fr; }
-      .sidebar { display: none; }
-      .main { padding: 20px 16px; }
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .main {
+        padding: 20px 16px;
+      }
     }
   </style>
 </head>
@@ -165,23 +739,6 @@
         <span class="sidebar-dot"></span>Production Input
       </a>
 
-      <div class="sidebar-section">Pilih Divisi</div>
-      <div class="sidebar-item" onclick="selectDivisi('Mixing', this)" id="item-Mixing">
-        <span class="sidebar-dot"></span>Mixing
-      </div>
-      <div class="sidebar-item" onclick="selectDivisi('HD', this)" id="item-HD">
-        <span class="sidebar-dot"></span>HD
-      </div>
-      <div class="sidebar-item" onclick="selectDivisi('Potong', this)" id="item-Potong">
-        <span class="sidebar-dot"></span>Potong
-      </div>
-      <div class="sidebar-item" onclick="selectDivisi('Packing', this)" id="item-Packing">
-        <span class="sidebar-dot"></span>Packing
-      </div>
-      <div class="sidebar-item" onclick="selectDivisi('Sisa_Pack', this)" id="item-Sisa_Pack">
-        <span class="sidebar-dot"></span>Sisa Pack
-      </div>
-
       <div class="sidebar-stats">
         <div class="stat-row">
           <span class="stat-label">Kode discan</span>
@@ -204,7 +761,8 @@
       <div class="page-header">
         <h1 class="page-title">SCAN KODE SALAH</h1>
         <span class="divisi-badge" id="divisi-badge">— pilih divisi</span>
-        <span style="margin-left:auto;font-size:11px;color:var(--gray4);font-family:var(--font-mono)" id="current-date"></span>
+        <span style="margin-left:auto;font-size:11px;color:var(--gray4);font-family:var(--font-mono)"
+          id="current-date"></span>
       </div>
 
       <!-- SUCCESS PANEL -->
@@ -212,7 +770,8 @@
         <div class="result-header">
           <span style="color:var(--success);font-size:16px">&#10003;</span>
           <span style="font-family:var(--font-mono);font-size:12px;color:var(--success)">DATA TERSIMPAN</span>
-          <span style="font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--white);margin-left:8px" id="result-title"></span>
+          <span style="font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--white);margin-left:8px"
+            id="result-title"></span>
         </div>
         <div class="result-body">
           <div class="result-line" id="result-line1"></div>
@@ -232,10 +791,8 @@
           <div class="field-label">Kode Barcode / QR</div>
           <div class="scan-wrap">
             <div class="scan-input-wrap">
-              <input type="text" id="scan-input"
-                placeholder="Scan atau ketik kode, lalu Enter…"
-                autocomplete="off" spellcheck="false"
-                onkeydown="if(event.key==='Enter') addCode()">
+              <input type="text" id="scan-input" placeholder="Scan atau ketik kode, lalu Enter…" autocomplete="off"
+                spellcheck="false" onkeydown="if(event.key==='Enter') addCode()">
             </div>
             <button class="btn-add" onclick="addCode()">&#43; Tambah</button>
           </div>
@@ -254,13 +811,15 @@
           </span>
         </div>
 
-        <div class="col-header">
+        <div class="col-header"
+          style="grid-template-columns: 30px minmax(0,2fr) 50px minmax(0,1fr) minmax(0,1.5fr) 65px minmax(0,1fr) 36px; gap:8px;">
           <span>#</span>
           <span>Code</span>
           <span>SPK</span>
           <span>Customer</span>
           <span>Produk</span>
           <span>Checker</span>
+          <span>Divisi</span>
           <span>Del</span>
         </div>
 
@@ -287,22 +846,41 @@
   <script>
     // ── STATE ──
     let codes = [];
-    let divisi = "";
 
-    // Field wajib — harus terisi dan bukan "-"
-    const REQUIRED_FIELDS = ['spk', 'customer', 'produk', 'checker'];
+    // Field wajib
+    const REQUIRED_FIELDS = ['spk', 'checker'];
+
+    // Mirror PREFIX_CONFIG dari backend (untuk deteksi lokal)
+    const PREFIX_LABEL = {
+      "HD": "HD", "AHP": "HD — Prong", "AHD": "HD — Daun", "AHS": "HD — Sapuan",
+      "MI": "Mixing", "AMS": "Aval Mixing",
+      "CU": "Potong", "ACP": "Aval Potong — Plong", "ACM": "Aval Potong — Mesin",
+      "ACS": "Aval Potong — Silet", "ACH": "Aval Potong — Mutasi", "ACR": "Aval Potong — Reject",
+      "PA": "Packing", "PS": "Sisa Pack",
+      "APP": "Aval Packing — Plastik", "APR": "Aval Packing — Rafia",
+      "APB": "Aval Packing — Blongsong", "APC": "Aval Packing — Mutasi",
+      "AQC": "QC",
+    };
+
+    function getPrefixFromCode(code) {
+      const m = code.toUpperCase().match(/^([A-Z]+)/);
+      if (!m) return "";
+      const raw = m[1];
+      if (PREFIX_LABEL[raw.slice(0, 3)] !== undefined) return raw.slice(0, 3);
+      if (PREFIX_LABEL[raw.slice(0, 2)] !== undefined) return raw.slice(0, 2);
+      return "";
+    }
 
     // ── HELPERS ──
     function isFieldMissing(val) {
       return !val || String(val).trim() === '' || String(val).trim() === '-';
     }
-
+    // Hanya 3 field ini yang wajib — code, checker, prefix (divisi)
     function isCodeValid(c) {
-      return REQUIRED_FIELDS.every(f => !isFieldMissing(c[f]));
+      return !isFieldMissing(c.code) && !isFieldMissing(c.checker) && !isFieldMissing(c.prefix);
     }
-
     function escHtml(s) {
-      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
     // ── INIT ──
@@ -310,7 +888,7 @@
       updateClock();
       setInterval(updateClock, 1000);
       document.getElementById("current-date").textContent =
-        new Date().toLocaleDateString("id-ID", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+        new Date().toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
       document.getElementById("scan-input").focus();
     });
 
@@ -321,22 +899,8 @@
         `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
     }
 
-    // ── DIVISI ──
-    function selectDivisi(d, el) {
-      divisi = d;
-      document.querySelectorAll(".sidebar-item").forEach(i => i.classList.remove("active"));
-      el.classList.add("active");
-      const badge = document.getElementById("divisi-badge");
-      badge.textContent = d;
-      badge.className = "divisi-badge active-" + d.toLowerCase();
-      document.getElementById("stat-divisi").textContent = d;
-      document.getElementById("scan-input").focus();
-    }
-
-    // ── ADD CODE ──
+    // ── ADD CODE — tanpa perlu pilih divisi ──
     async function addCode() {
-      if (!divisi) { showToast("⚠ Pilih divisi dulu.", "warning"); return; }
-
       const input = document.getElementById("scan-input");
       const val = input.value.trim();
       input.value = "";
@@ -348,33 +912,57 @@
         return;
       }
 
+      // Cek prefix lokal dulu sebelum hit server
+      const localPrefix = getPrefixFromCode(val);
+      if (!localPrefix) {
+        showToast("⛔ Prefix kode tidak dikenal: " + val, "error");
+        return;
+      }
+
       showToast("⏳ Mencari kode...", "success");
 
       try {
         const res = await fetch("/api/lookup_code", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: val, divisi: divisi })
+          body: JSON.stringify({ code: val })
         });
         const data = await res.json();
 
+        const prefix = data.prefix || localPrefix;
+        const divisiLabel = data.divisi_label || PREFIX_LABEL[prefix] || "?";
+        const csvFile = data.csv_file || null;
+
+        if (!csvFile) {
+          showToast("⛔ Prefix tidak dikenal di server: " + val, "error");
+          return;
+        }
+
         if (data.found) {
           codes.push({
-            code: val,
-            spk: data.spk,
-            customer: data.customer,
-            produk: data.produk,
-            uk: data.uk,
-            checker: data.checker,
+            code: val, prefix, divisi_label: divisiLabel, csv_file: csvFile,
+            spk: data.spk, customer: data.customer,
+            produk: data.produk, uk: data.uk, checker: data.checker,
             found: true
           });
-          showToast("✔ Ditemukan: " + val, "success");
+          showToast(`✔ [${prefix}] ${divisiLabel} — ${val}`, "success");
         } else {
-          codes.push({ code: val, spk: "-", customer: "-", produk: "-", uk: "-", checker: "-", found: false });
-          showToast("⚠ Kode tidak ditemukan di katalog: " + val, "warning");
+          codes.push({
+            code: val, prefix, divisi_label: divisiLabel, csv_file: csvFile,
+            spk: "-", customer: "-", produk: "-", uk: "-", checker: "-",
+            found: false
+          });
+          showToast(`⚠ [${prefix}] Kode tidak ditemukan di katalog: ${val}`, "warning");
         }
+
       } catch (e) {
-        codes.push({ code: val, spk: "-", customer: "-", produk: "-", uk: "-", checker: "-", found: false });
+        codes.push({
+          code: val, prefix: localPrefix,
+          divisi_label: PREFIX_LABEL[localPrefix] || "?",
+          csv_file: null,
+          spk: "-", customer: "-", produk: "-", uk: "-", checker: "-",
+          found: false
+        });
         showToast("⚠ Gagal lookup: " + val, "warning");
       }
 
@@ -401,24 +989,25 @@
         const valid = isCodeValid(c);
         const row = document.createElement("div");
         row.className = "code-row" + (valid ? "" : " invalid");
+        row.style.gridTemplateColumns = "30px minmax(0,2fr) 50px minmax(0,1fr) minmax(0,1.5fr) 65px minmax(0,1fr) 36px";
 
         const cell = (val, baseColor) => {
           const missing = isFieldMissing(val);
           const cls = "code-text" + (missing ? " missing" : "");
           const color = missing ? "var(--danger)" : (baseColor || "var(--gray5)");
-          const display = missing ? "⚠ kosong" : escHtml(val);
-          return `<span class="${cls}" style="color:${color}">${display}</span>`;
+          return `<span class="${cls}" style="color:${color}">${missing ? "⚠ kosong" : escHtml(val)}</span>`;
         };
 
         row.innerHTML = `
-          <span class="code-idx">${i + 1}</span>
-          ${cell(c.code, valid ? 'var(--white)' : 'var(--accent2)')}
-          ${cell(c.spk)}
-          ${cell(c.customer)}
-          ${cell(c.produk)}
-          ${cell(c.checker)}
-          <button class="btn-del" onclick="deleteCode(${i})">✕</button>
-        `;
+  <span class="code-idx">${i + 1}</span>
+  ${cell(c.code, 'var(--white)')}
+  ${cell(c.spk)}
+  ${cell(c.customer)}
+  ${cell(c.produk)}
+  ${cell(c.checker)}
+  <span class="code-text" style="color:var(--accent2);font-size:10px;line-height:1.3">${escHtml(c.divisi_label || c.prefix || "?")}</span>
+  <button class="btn-del" onclick="deleteCode(${i})">✕</button>
+`;
         list.appendChild(row);
       });
 
@@ -430,30 +1019,30 @@
     function updateSubmitState() {
       const invalidRows = codes.filter(c => !isCodeValid(c));
       const banner = document.getElementById("validate-banner");
-      const btn    = document.getElementById("btn-submit");
-      const fb     = document.getElementById("action-feedback");
+      const btn = document.getElementById("btn-submit");
+      const fb = document.getElementById("action-feedback");
 
       if (invalidRows.length > 0) {
-        const lines = invalidRows.map(c => {
-          const badFields = REQUIRED_FIELDS.filter(f => isFieldMissing(c[f])).join(", ");
-          return `• ${escHtml(c.code)} &rarr; field kosong: ${badFields}`;
-        }).join("<br>");
+        const lines = invalidRows.map(c =>
+          `• ${escHtml(c.code || "?")} &rarr; checker atau divisi tidak terdeteksi`
+        ).join("<br>");
 
         banner.className = "validate-banner show";
         banner.innerHTML = `
-          <strong>⛔ ${invalidRows.length} data belum lengkap — tidak bisa disimpan</strong><br>
-          <span style="opacity:.75;font-size:10px;display:block;margin-top:4px">${lines}</span>
-          <span style="opacity:.55;font-size:10px">Hapus kode yang tidak valid atau pastikan semua field terisi.</span>
-        `;
-
+      <strong>⛔ ${invalidRows.length} kode tidak valid — tidak bisa disimpan</strong><br>
+      <span style="opacity:.75;font-size:10px;display:block;margin-top:4px">${lines}</span>
+    `;
         btn.disabled = true;
-        fb.textContent = `${invalidRows.length} data tidak valid`;
+        fb.textContent = `${invalidRows.length} kode tidak valid`;
         fb.className = "action-feedback err";
       } else {
         hideBanner();
         btn.disabled = (codes.length === 0);
         if (codes.length > 0) {
-          fb.textContent = `✔ Semua ${codes.length} data valid`;
+          const groups = {};
+          codes.forEach(c => { groups[c.divisi_label] = (groups[c.divisi_label] || 0) + 1; });
+          const summary = Object.entries(groups).map(([k, v]) => `${k}: ${v}`).join(" · ");
+          fb.textContent = `✔ ${codes.length} kode siap simpan — ${summary}`;
           fb.className = "action-feedback ok";
         } else {
           fb.textContent = "";
@@ -483,8 +1072,15 @@
 
     function updateStats() {
       document.getElementById("stat-count").textContent = codes.length;
+      // "tidak valid" sekarang hanya yg prefix/checker tidak terdeteksi
       const inv = codes.filter(c => !isCodeValid(c)).length;
       document.getElementById("stat-invalid").textContent = inv;
+
+      const groups = {};
+      codes.forEach(c => { groups[c.divisi_label || "?"] = (groups[c.divisi_label || "?"] || 0) + 1; });
+      const summary = Object.entries(groups).map(([k, v]) => `${k}: ${v}`).join(" · ");
+      const el = document.getElementById("stat-divisi");
+      if (el) el.textContent = summary || "—";
     }
 
     // ── TOAST ──
@@ -499,17 +1095,16 @@
 
     // ── SUBMIT ──
     async function submitCodes() {
-      if (!divisi) { alert("Pilih divisi terlebih dahulu."); return; }
       if (!codes.length) { alert("Belum ada kode."); return; }
 
-      // Safety net
+      // Hanya blokir jika ada kode yang prefix/checker-nya tidak terdeteksi
       const invalid = codes.filter(c => !isCodeValid(c));
       if (invalid.length > 0) {
-        alert(`⛔ Masih ada ${invalid.length} data tidak lengkap.\nPerbaiki atau hapus data tersebut terlebih dahulu.`);
+        alert(`⛔ Ada ${invalid.length} kode yang checker atau divisnya tidak terdeteksi.\nHapus kode tersebut terlebih dahulu.`);
         return;
       }
 
-      const btn     = document.getElementById("btn-submit");
+      const btn = document.getElementById("btn-submit");
       const spinner = document.getElementById("spinner");
       btn.disabled = true;
       spinner.style.display = "block";
@@ -518,7 +1113,7 @@
         const res = await fetch("/save_csv", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ divisi: divisi, records: codes })
+          body: JSON.stringify({ records: codes })
         });
 
         const ct = res.headers.get("content-type") || "";
@@ -551,4 +1146,5 @@
     }
   </script>
 </body>
+
 </html>

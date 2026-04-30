@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import pandas as pd
 from pathlib import Path
 
+
+
 app = Flask(__name__)
 
 # ─── CONFIG ─────────────────────────────────────────────────
@@ -50,18 +52,60 @@ CATALOG_MAP = {
 
 # CSV scan salah
 SCAN_DIR  = Path(r"Z:\Checker\Production\Database\scan_salah")
-CSV_FILES = {
-    "MIXING":    SCAN_DIR / "scansalahmixing.csv",
-    "HD":        SCAN_DIR / "scansalahhd.csv",
-    "POTONG":    SCAN_DIR / "scansalahpotong.csv",
-    "PACKING":   SCAN_DIR / "scansalahpacking.csv",
-    "SISA_PACK": SCAN_DIR / "scansalahsisapack.csv",
+CSV_SCAN_FILES = {
+    "scansalahhd.csv":      SCAN_DIR / "scansalahhd.csv",
+    "scansalahmixing.csv":  SCAN_DIR / "scansalahmixing.csv",
+    "scansalahpotong.csv":  SCAN_DIR / "scansalahpotong.csv",
+    "scansalahpacking.csv": SCAN_DIR / "scansalahpacking.csv",
+    "scansalahqc.csv":      SCAN_DIR / "scansalahqc.csv",
 }
 
-CSV_SCAN_COLUMNS = ["create_at", "divisi", "spk", "customer", "produk", "uk", "checker", "scanned_by", "code"]
+# Prefix kode → (file csv, catalog untuk lookup, label divisi)
+PREFIX_CONFIG = {
+    "HD":  ("scansalahhd.csv",      "HD",          "HD"),
+    "AHP": ("scansalahhd.csv",      "AVAL_HD",     "HD — Prong"),
+    "AHD": ("scansalahhd.csv",      "AVAL_HD",     "HD — Daun"),
+    "AHS": ("scansalahhd.csv",      "AVAL_HD",     "HD — Sapuan"),
+    "MI":  ("scansalahmixing.csv",  "MIXING",      "Mixing"),
+    "AMS": ("scansalahmixing.csv",  "AVAL_MIXING", "Aval Mixing"),
+    "CU":  ("scansalahpotong.csv",  "POTONG",      "Potong"),
+    "ACP": ("scansalahpotong.csv",  "AVAL_POTONG", "Aval Potong — Plong"),
+    "ACM": ("scansalahpotong.csv",  "AVAL_POTONG", "Aval Potong — Mesin"),
+    "ACS": ("scansalahpotong.csv",  "AVAL_POTONG", "Aval Potong — Silet/Sapuan"),
+    "ACH": ("scansalahpotong.csv",  "AVAL_POTONG", "Aval Potong — Mutasi"),
+    "ACR": ("scansalahpotong.csv",  "AVAL_POTONG", "Aval Potong — Reject"),
+    "PA":  ("scansalahpacking.csv", "PACKING",     "Packing"),
+    "PS":  ("scansalahpacking.csv", "SISA_PACK",   "Sisa Pack"),
+    "APP": ("scansalahpacking.csv", "AVAL_PACKING","Aval Packing — Plastik"),
+    "APR": ("scansalahpacking.csv", "AVAL_PACKING","Aval Packing — Rafia"),
+    "APB": ("scansalahpacking.csv", "AVAL_PACKING","Aval Packing — Blongsong"),
+    "APC": ("scansalahpacking.csv", "AVAL_PACKING","Aval Packing — Mutasi"),
+    "AQC": ("scansalahqc.csv",      "AVAL_QC",     "QC"),
+}
 
-LABEL_W = 560
-LABEL_H = 240
+CSV_SCAN_COLUMNS = ["create_at", "divisi", "prefix", "divisi_label", "spk", "customer", "produk", "uk", "checker", "scanned_by", "code"]
+
+import re
+
+def get_prefix_from_code(code: str):
+    """
+    Ekstrak prefix dari kode barcode.
+    Coba 3 karakter dulu, lalu 2 karakter.
+    Return (prefix, csv_filename, catalog_key, divisi_label) atau None.
+    """
+    code = code.strip().upper()
+    m = re.match(r'^([A-Z]+)', code)
+    if not m:
+        return None, None, None, None
+    raw = m.group(1)
+    # Coba 3 karakter dulu, lalu 2
+    for length in [3, 2]:
+        p = raw[:length]
+        if p in PREFIX_CONFIG:
+            csv_file, catalog_key, label = PREFIX_CONFIG[p]
+            return p, csv_file, catalog_key, label
+    return None, None, None, None
+
 
 
 # ─── SESSION TIMEOUT ────────────────────────────────────────
@@ -678,29 +722,60 @@ def get_spk(spk):
 @login_required
 def lookup_code():
     try:
-        data   = request.get_json()
-        code   = (data.get("code") or "").strip()
-        divisi = (data.get("divisi") or "").strip().upper()
+        data = request.get_json()
+        code = (data.get("code") or "").strip()
 
-        if not code or divisi not in CATALOG_MAP:
-            return jsonify(found=False)
+        if not code:
+            return jsonify(found=False, error="Kode kosong")
 
-        df = pd.read_csv(CATALOG_MAP[divisi], encoding="utf-8-sig")
+        # Auto-detect prefix
+        prefix, csv_file, catalog_key, divisi_label = get_prefix_from_code(code)
+
+        if not prefix or catalog_key not in CATALOG_MAP:
+            return jsonify(
+                found=False,
+                error=f"Prefix kode tidak dikenal",
+                prefix=prefix or "",
+                divisi_label="Unknown",
+                csv_file=None
+            )
+
+        # Lookup di katalog yang sesuai
+        catalog_path = CATALOG_MAP[catalog_key]
+        if not os.path.exists(catalog_path):
+            return jsonify(
+                found=False,
+                prefix=prefix,
+                divisi_label=divisi_label,
+                csv_file=csv_file,
+                error="File katalog tidak ditemukan"
+            )
+
+        df = pd.read_csv(catalog_path, encoding="utf-8-sig")
         df.columns = df.columns.str.strip()
         df["code"] = df["code"].astype(str).str.strip()
 
         match = df[df["code"] == code]
+
         if match.empty:
-            return jsonify(found=False)
+            return jsonify(
+                found=False,
+                prefix=prefix,
+                divisi_label=divisi_label,
+                csv_file=csv_file,
+            )
 
         r = match.iloc[0]
         return jsonify(
-            found    = True,
-            spk      = str(r.get("spk", "")),
-            customer = str(r.get("customer", "")),
-            produk   = str(r.get("produk", "")),
-            uk       = str(r.get("uk", "")),
-            checker  = str(r.get("checker", "")),
+            found        = True,
+            prefix       = prefix,
+            divisi_label = divisi_label,
+            csv_file     = csv_file,
+            spk          = str(r.get("spk", "")),
+            customer     = str(r.get("customer", "")),
+            produk       = str(r.get("produk", "")),
+            uk           = str(r.get("uk", "")),
+            checker      = str(r.get("checker", "")),
         )
     except Exception as e:
         return jsonify(found=False, error=str(e))
@@ -710,32 +785,56 @@ def lookup_code():
 @app.route("/save_csv", methods=["POST"])
 @login_required
 def save_csv():
-    data    = request.get_json()
-    divisi  = (data.get("divisi") or "").strip().upper()
-    records = data.get("records", [])
-
-    if divisi not in CSV_FILES:
-        return jsonify(success=False, error="Divisi tidak valid")
-
-    path = CSV_FILES[divisi]
-    ensure_csv_scan(path)
-
     try:
-        with open(path, "a", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_SCAN_COLUMNS)
-            for rec in records:
-                writer.writerow({
-                    "create_at":  datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "divisi":     divisi,
-                    "spk":        rec.get("spk", ""),
-                    "customer":   rec.get("customer", ""),
-                    "produk":     rec.get("produk", ""),
-                    "uk":         rec.get("uk", ""),
-                    "checker":    rec.get("checker", ""),
-                    "scanned_by": session.get("name", ""),
-                    "code":       rec.get("code", ""),
-                })
-        return jsonify(success=True)
+        data    = request.get_json()
+        records = data.get("records", [])
+
+        if not records:
+            return jsonify(success=False, error="Tidak ada data")
+
+        # Kelompokkan per file CSV tujuan
+        from collections import defaultdict
+        groups = defaultdict(list)
+
+        for rec in records:
+            csv_file = rec.get("csv_file")
+            if not csv_file or csv_file not in CSV_SCAN_FILES:
+                # Fallback: deteksi ulang dari kode
+                _, csv_file, _, _ = get_prefix_from_code(rec.get("code", ""))
+            if not csv_file or csv_file not in CSV_SCAN_FILES:
+                return jsonify(
+                    success=False,
+                    error=f"Kode '{rec.get('code')}' tidak bisa ditentukan CSV tujuannya"
+                )
+            groups[csv_file].append(rec)
+
+        # Simpan per grup
+        for csv_filename, recs in groups.items():
+            path = CSV_SCAN_FILES[csv_filename]
+            path.parent.mkdir(parents=True, exist_ok=True)
+            file_exists = path.exists()
+
+            with open(path, "a", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=CSV_SCAN_COLUMNS)
+                if not file_exists:
+                    writer.writeheader()
+                for rec in recs:
+                    writer.writerow({
+                        "create_at":    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "divisi":       rec.get("prefix", ""),
+                        "prefix":       rec.get("prefix", ""),
+                        "divisi_label": rec.get("divisi_label", ""),
+                        "spk":          rec.get("spk", ""),
+                        "customer":     rec.get("customer", ""),
+                        "produk":       rec.get("produk", ""),
+                        "uk":           rec.get("uk", ""),
+                        "checker":      rec.get("checker", ""),
+                        "scanned_by":   session.get("name", ""),
+                        "code":         rec.get("code", ""),
+                    })
+
+        return jsonify(success=True, saved=len(records))
+
     except Exception as e:
         return jsonify(success=False, error=str(e))
 
