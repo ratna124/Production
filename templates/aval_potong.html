@@ -734,8 +734,8 @@
       <span class="topbar-title">Sistem Label & Output Produksi</span>
       <div class="topbar-right">
         <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">
-        &#128100; {{ current_user }}
-    </span>
+          &#128100; {{ current_user }}
+        </span>
         <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
         <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
         <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a> -->
@@ -786,7 +786,7 @@
     <!-- ── MAIN ── -->
     <main class="main">
       <div class="page-header">
-        <h1 class="page-title">Aval Mixing</h1>
+        <h1 class="page-title">Aval Potong</h1>
         <span class="page-sub" id="current-date"></span>
       </div>
 
@@ -841,8 +841,8 @@
               <input type="text" id="shift" readonly>
             </div>
             <div class="field">
-              <label class="field-label">Operator Mix <span class="req">*</span></label>
-              <select id="operator_amix" required>
+              <label class="field-label">Operator Potong <span class="req">*</span></label>
+              <select id="operator_cu" required>
                 <option value="">-- Loading... --</option>
               </select>
             </div>
@@ -852,7 +852,7 @@
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
-              <input type="text" id="divisi" value="Aval_Mixing" readonly>
+              <input type="text" id="divisi" value="Aval_Potong" readonly>
             </div>
           </div>
         </div>
@@ -866,26 +866,70 @@
         </div>
         <div class="card-body">
           <div class="form-grid cols-2">
-
             <!-- SPK -->
             <div class="field">
-              <label class="field-label">No. SPK</label>
-              <input type="text" id="spk" value="0" readonly>
+              <label class="field-label">No. SPK <span class="req">*</span></label>
+              <input type="text" id="spk" placeholder="Masukkan No SPK">
+            </div>
+            <!-- CUSTOMER -->
+            <div class="field">
+              <label class="field-label">Customer</label>
+              <input type="text" id="customer" readonly>
+            </div>
+            <!-- PRODUCT -->
+            <div class="field">
+              <label class="field-label">Produk</label>
+              <input type="text" id="product" readonly>
+            </div>
+            <!-- UK -->
+            <div class="field">
+              <label class="field-label">UKURAN</label>
+              <input type="text" id="uk" readonly>
             </div>
             <!-- Mesin -->
             <div class="field">
-              <label class="field-label">Mesin</label>
-              <input type="text" id="mesin" value="0" readonly>
+              <label class="field-label">Mesin<span class="req">*</span></label>
+              <input type="number" id="mesin" min="1" max="12" required>
             </div>
             <!-- Jenis Aval -->
             <div class="field">
-              <label class="field-label">Jenis Aval</label>
-              <input type="text" id="jenis" value="Sapuan" readonly>
+              <label class="field-label">
+                Jenis Aval<span class="req">*</span>
+                <!-- kode tampil di sebelah label -->
+                <span id="jenis-kode-badge" style="
+                font-family: var(--font-mono);
+                font-size: 11px;
+                background: rgba(232,66,10,0.15);
+                color: var(--accent);
+                border: 1px solid rgba(232,66,10,0.4);
+                border-radius: 4px;
+                padding: 1px 8px;
+                margin-left: 8px;
+                display: none;"></span>
+              </label>
+              <select id="jenis_cu" required onchange="updateJenisBadge(this.value)">
+                <option value="">-- Pilih Jenis Aval --</option>
+                <option value="Plong">(P)long</option>
+                <option value="Mesin">(M)esin</option>
+                <option value="Silet">(S)ilet</option>
+                <option value="Mutasi">(HD) MUTASI</option>
+                <option value="Reject">(R) REJECT</option>
+                <option value="Sapuan">(SAP) SAPUAN</option>
+              </select>
             </div>
-            <!-- Berat Total (kg) -->
+            <!-- Berat Bersih -->
             <div class="field">
-              <label class="field-label">Aval Qty (kg)<span class="req">*</span></label>
+              <label class="field-label">Afal Qty (kg)<span class="req">*</span></label>
               <input type="text" id="berat_bersih" required>
+            </div>
+            <!-- Kategori Aval -->
+            <div class="field">
+              <label class="field-label">Kategori Aval</label>
+              <input type="text" id="kategori_cu" value="HD" readonly>
+            </div>
+            <div class="field">
+              <label class="field-label">Tali Aval</label>
+              <input type="text" id="tali" value="HD" readonly required>
             </div>
           </div>
         </div>
@@ -926,8 +970,9 @@
                     <th>Tanggal</th>
                     <th>No SPK</th>
                     <th>Mesin</th>
+                    <th>Kategori Aval</th>
                     <th>Jenis Aval</th>
-                    <th>Berat Bersih (kg)</th>
+                    <th>Aval Qty (kg)</th>
                     <th>Divisi</th>
                     <th>Shift</th>
                     <th>Operator</th>
@@ -978,20 +1023,49 @@
             };
           }
 
+          // SPK AUTOFILL
+          async function handleSpkInput(e) {
+            const spk = e.target.value.trim();
+
+            if (!spk || spk.length < 2) {
+              clearAutoFill();
+              return;
+            }
+
+            try {
+              const res = await fetch(`/api/spk/${spk}`);
+              const data = await res.json();
+
+              if (!data || Object.keys(data).length === 0) {
+                clearAutoFill();
+                return;
+              }
+
+              document.getElementById("customer").value = data.customer || "";
+              document.getElementById("product").value = data.product || "";
+              document.getElementById("uk").value = data.uk || "";
+
+            } catch (err) {
+              console.log("SPK error:", err);
+            }
+          }
+
+          // CLEAR FIELD
+          function clearAutoFill() {
+            document.getElementById("customer").value = "";
+            document.getElementById("product").value = "";
+            document.getElementById("uk").value = "";
+          }
 
           // TIME + SHIFT
           function updateTime() {
             let now = new Date();
-
             let hour = now.getHours();
-
             // SHIFT
             let shift = (hour >= 7 && hour < 19) ? "P" : "M";
             document.getElementById("shift").value = shift;
-
             // TANGGAL PRODUKSI
             let prodDate = new Date(now);
-
             // 🔥 kalau jam 00:00 - 06:59 → mundur 1 hari
             if (hour < 7) {
               prodDate.setDate(prodDate.getDate() - 1);
@@ -1011,7 +1085,7 @@
           // LOAD DATA
           async function loadRecent() {
             try {
-              const res = await fetch('/api/recent/aval_mixing');
+              const res = await fetch('/api/recent/aval_potong');
               const rows = await res.json();
 
               console.log(rows);
@@ -1032,7 +1106,7 @@
             if (!data.length) {
               tbody.innerHTML = `
             <tr>
-                <td colspan="10" style="text-align:center;color:#777;padding:20px">
+                <td colspan="12" style="text-align:center;color:#777;padding:20px">
                     Tidak ada data
                 </td>
             </tr>`;
@@ -1044,11 +1118,12 @@
             <td>${(r.tanggal || "").replace("T", " ")}</td>
             <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
             <td>${r.mesin || ""}</td>
-            <td>${r.jenis || ""}</td>
+            <td>${r.kategori_cu || ""}</td>
+            <td>${r.jenis_cu || ""}</td>
             <td>${r.berat_bersih || ""}</td>
             <td>${r.divisi || ""}</td>
             <td>${r.shift || ""}</td>
-            <td>${r.operator_amix || ""}</td>
+            <td>${r.operator_cu || ""}</td>
             <td>${r.checker || ""}</td>
             <td>${r.code || ""}</td>
         </tr>
@@ -1072,8 +1147,8 @@
 
             // DATE FILTER (DD-MM-YYYY)
             if (date) {
-              const [d, m, y] = date.split("-");
-              const target = `${d}-${m}-${y}`;
+              const [y, m, d] = date.split("-");
+              const target = `${y}-${m}-${d}`;
 
               filtered = filtered.filter(r =>
                 (r.tanggal || "").trim() === target
@@ -1102,6 +1177,56 @@
           }
         </script>
         <script>
+          const JENIS_KODE = {
+            "Plong": "ACP",
+            "Mesin": "ACM",
+            "Silet": "ACS",
+            "Mutasi": "ACH",
+            "Reject": "ACR",
+            "Sapuan": "ACS",
+          };
+
+          function updateJenisBadge(val) {
+            const badge = document.getElementById("jenis-kode-badge");
+            if (JENIS_KODE[val]) {
+              badge.textContent = JENIS_KODE[val];
+              badge.style.display = "inline";
+            } else {
+              badge.style.display = "none";
+            }
+          }
+
+
+          let timeout = null;
+
+          document.getElementById("spk").addEventListener("input", function () {
+            clearTimeout(timeout);
+
+            const spk = this.value.trim();
+
+            timeout = setTimeout(async () => {
+              if (!spk) return;
+
+              try {
+                const res = await fetch(`/get-spk/${spk}`);
+                const data = await res.json();
+
+                if (data && Object.keys(data).length > 0) {
+                  document.getElementById("customer").value = data.customer || "";
+                  document.getElementById("product").value = data.product || "";
+                  document.getElementById("uk").value = data.uk || "";
+                } else {
+                  document.getElementById("customer").value = "";
+                  document.getElementById("product").value = "";
+                  document.getElementById("uk").value = "";
+                }
+              } catch (err) {
+                console.error("Error SPK:", err);
+              }
+            }, 70); // delay biar tidak spam request
+          });
+        </script>
+        <script>
           async function loadOperators() {
             const divisi = document.getElementById("divisi").value; // "Mixing"
 
@@ -1109,8 +1234,8 @@
               const res = await fetch(`/api/operators/${divisi}`);
               const operators = await res.json();
 
-              const select = document.getElementById("operator_amix");
-              select.innerHTML = `<option value="">-- Pilih Operator Mixing --</option>`;
+              const select = document.getElementById("operator_cu");
+              select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
 
               operators.forEach(op => {
                 select.innerHTML += `<option value="${op}">${op}</option>`;
@@ -1127,7 +1252,6 @@
             // ... kode DOMContentLoaded lainnya yang sudah ada
           });
 
-
           async function submitForm() {
             const btn = document.getElementById("btn-submit");
             const spinner = document.getElementById("spinner");
@@ -1135,10 +1259,13 @@
 
             // VALIDASI WAJIB
             const requiredFields = [
-              { id: "operator_amix", name: "Operator Mix" },
+              { id: "operator_cu", name: "Operator HD" },
               { id: "checker", name: "Checker" },
               { id: "spk", name: "No. SPK" },
-              { id: "berat_bersih", name: "Berat (kg)" }
+              { id: "jenis_cu", name: "Jenis Aval" },
+              { id: "kategori_cu", name: "Kategori Aval" },
+              { id: "berat_bersih", name: "Aval Qty (kg)" },
+              { id: "mesin", name: "Mesin" }
             ];
 
             for (let f of requiredFields) {
@@ -1161,13 +1288,17 @@
             const data = {
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
-              operator_amix: document.getElementById("operator_amix").value,
+              operator_cu: document.getElementById("operator_cu").value,
               checker: document.getElementById("checker").value,
               divisi: document.getElementById("divisi").value,
               spk: document.getElementById("spk").value,
+              customer: document.getElementById("customer").value,
+              produk: document.getElementById("product").value,
+              uk: document.getElementById("uk").value,
               mesin: document.getElementById("mesin").value,
-              jenis: document.getElementById("jenis").value,
-              berat_bersih: document.getElementById("berat_bersih").value
+              jenis_cu: document.getElementById("jenis_cu").value,
+              kategori_cu: document.getElementById("kategori_cu").value,
+              berat_bersih: document.getElementById("berat_bersih").value,
             };
 
             try {
@@ -1201,7 +1332,7 @@
           // ── RESET ────────────────────────────────────────────────
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
-            ['operator_amix', 'spk', 'berat_bersih']
+            ['operator_cu', 'spk', 'customer', 'product', 'uk', 'mesin', 'jenis_cu', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';

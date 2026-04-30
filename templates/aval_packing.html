@@ -786,7 +786,7 @@
     <!-- ── MAIN ── -->
     <main class="main">
       <div class="page-header">
-        <h1 class="page-title">Aval HD</h1>
+        <h1 class="page-title">Aval Packing</h1>
         <span class="page-sub" id="current-date"></span>
       </div>
 
@@ -838,11 +838,15 @@
             </div>
             <div class="field">
               <label class="field-label">Shift</label>
-              <input type="text" id="shift" readonly>
+              <select id="shift" required>
+                <option value="">-- Pilih Shift --</option>
+                <option value="P">P</option>
+                <option value="M">M</option>
+              </select>
             </div>
             <div class="field">
-              <label class="field-label">Operator Mix <span class="req">*</span></label>
-              <select id="operator_hd" required>
+              <label class="field-label">Operator Packing <span class="req">*</span></label>
+              <select id="operator_pa" required>
                 <option value="">-- Loading... --</option>
               </select>
             </div>
@@ -852,7 +856,7 @@
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
-              <input type="text" id="divisi" value="Aval_HD" readonly>
+              <input type="text" id="divisi" value="Aval_Packing" readonly>
             </div>
           </div>
         </div>
@@ -897,22 +901,22 @@
                 Jenis Aval<span class="req">*</span>
                 <!-- kode tampil di sebelah label -->
                 <span id="jenis-kode-badge" style="
-      font-family: var(--font-mono);
-      font-size: 11px;
-      background: rgba(232,66,10,0.15);
-      color: var(--accent);
-      border: 1px solid rgba(232,66,10,0.4);
-      border-radius: 4px;
-      padding: 1px 8px;
-      margin-left: 8px;
-      display: none;
-    "></span>
+                font-family: var(--font-mono);
+                font-size: 11px;
+                background: rgba(232,66,10,0.15);
+                color: var(--accent);
+                border: 1px solid rgba(232,66,10,0.4);
+                border-radius: 4px;
+                padding: 1px 8px;
+                margin-left: 8px;
+                display: none;"></span>
               </label>
-              <select id="jenis_hd" required onchange="updateJenisBadge(this.value)">
+              <select id="jenis_pa" required onchange="updateJenisBadge(this.value)">
                 <option value="">-- Pilih Jenis Aval --</option>
-                <option value="Prong">Prong</option>
-                <option value="Daun">Daun</option>
-                <option value="Sapuan">Sapuan</option>
+                <option value="Plastik">(P)lastik</option>
+                <option value="Rafia">(R)afia</option>
+                <option value="Blongsong">(B)longsong</option>
+                <option value="Mutasi">(CUT) MUTASI</option>
               </select>
             </div>
             <!-- Berat Bersih -->
@@ -923,7 +927,7 @@
             <!-- Kategori Aval -->
             <div class="field">
               <label class="field-label">Kategori Aval</label>
-              <input type="text" id="kategori_hd" value="HD" readonly>
+              <input type="text" id="kategori_pa" value="HD" readonly>
             </div>
             <div class="field">
               <label class="field-label">Tali Aval</label>
@@ -1059,9 +1063,6 @@
           function updateTime() {
             let now = new Date();
             let hour = now.getHours();
-            // SHIFT
-            let shift = (hour >= 7 && hour < 19) ? "P" : "M";
-            document.getElementById("shift").value = shift;
             // TANGGAL PRODUKSI
             let prodDate = new Date(now);
             // 🔥 kalau jam 00:00 - 06:59 → mundur 1 hari
@@ -1083,7 +1084,7 @@
           // LOAD DATA
           async function loadRecent() {
             try {
-              const res = await fetch('/api/recent/aval_hd');
+              const res = await fetch('/api/recent/aval_packing');
               const rows = await res.json();
 
               console.log(rows);
@@ -1116,12 +1117,12 @@
             <td>${(r.tanggal || "").replace("T", " ")}</td>
             <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
             <td>${r.mesin || ""}</td>
-            <td>${r.kategori_hd || ""}</td>
-            <td>${r.jenis_hd || ""}</td>
+            <td>${r.kategori_pa || ""}</td>
+            <td>${r.jenis_pa || ""}</td>
             <td>${r.berat_bersih || ""}</td>
             <td>${r.divisi || ""}</td>
             <td>${r.shift || ""}</td>
-            <td>${r.operator_hd || ""}</td>
+            <td>${r.operator_pa || ""}</td>
             <td>${r.checker || ""}</td>
             <td>${r.code || ""}</td>
         </tr>
@@ -1176,9 +1177,10 @@
         </script>
         <script>
           const JENIS_KODE = {
-            "Prong": "AHP",
-            "Daun": "AHD",
-            "Sapuan": "AHS",
+            "Plastik": "APP",
+            "Rafia": "APR",
+            "Blongsong": "APB",
+            "Mutasi": "APC",
           };
 
           function updateJenisBadge(val) {
@@ -1229,7 +1231,7 @@
               const res = await fetch(`/api/operators/${divisi}`);
               const operators = await res.json();
 
-              const select = document.getElementById("operator_hd");
+              const select = document.getElementById("operator_pa");
               select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
 
               operators.forEach(op => {
@@ -1254,11 +1256,11 @@
 
             // VALIDASI WAJIB
             const requiredFields = [
-              { id: "operator_hd", name: "Operator HD" },
+              { id: "operator_pa", name: "Operator HD" },
               { id: "checker", name: "Checker" },
               { id: "spk", name: "No. SPK" },
-              { id: "jenis_hd", name: "Jenis Aval" },
-              { id: "kategori_hd", name: "Kategori Aval" },
+              { id: "jenis_pa", name: "Jenis Aval" },
+              { id: "kategori_pa", name: "Kategori Aval" },
               { id: "berat_bersih", name: "Aval Qty (kg)" },
               { id: "mesin", name: "Mesin" }
             ];
@@ -1283,7 +1285,7 @@
             const data = {
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
-              operator_hd: document.getElementById("operator_hd").value,
+              operator_pa: document.getElementById("operator_pa").value,
               checker: document.getElementById("checker").value,
               divisi: document.getElementById("divisi").value,
               spk: document.getElementById("spk").value,
@@ -1291,8 +1293,8 @@
               produk: document.getElementById("product").value,
               uk: document.getElementById("uk").value,
               mesin: document.getElementById("mesin").value,
-              jenis_hd: document.getElementById("jenis_hd").value,
-              kategori_hd: document.getElementById("kategori_hd").value,
+              jenis_pa: document.getElementById("jenis_pa").value,
+              kategori_pa: document.getElementById("kategori_pa").value,
               berat_bersih: document.getElementById("berat_bersih").value,
             };
 
@@ -1327,7 +1329,7 @@
           // ── RESET ────────────────────────────────────────────────
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
-            ['operator_hd', 'spk', 'customer', 'product', 'uk', 'mesin', 'jenis_hd', 'berat_bersih']
+            ['operator_pa', 'spk', 'customer', 'product', 'uk', 'mesin', 'jenis_pa', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';

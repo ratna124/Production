@@ -30,6 +30,9 @@ CSV_PACKING     = r"Z:\Checker\Production\Database\katalogpacking.csv"
 CSV_SISA_PACK   = r"Z:\Checker\Production\Database\katalogsisapack.csv"
 CSV_AVAL_MIXING = r"Z:\Checker\Production\Database\katalogavalmixing.csv"
 CSV_AVAL_HD = r"Z:\Checker\Production\Database\katalogavalhd.csv"
+CSV_AVAL_POTONG = r"Z:\Checker\Production\Database\katalogavalpotong.csv"
+CSV_AVAL_PACKING = r"Z:\Checker\Production\Database\katalogavalpacking.csv"
+CSV_AVAL_QC = r"Z:\Checker\Production\Database\katalogavalqc.csv"
 
 # Katalog map untuk lookup kode (scan salah)
 CATALOG_MAP = {
@@ -40,6 +43,9 @@ CATALOG_MAP = {
     "SISA_PACK":   CSV_SISA_PACK,
     "AVAL_MIXING": CSV_AVAL_MIXING,
     "AVAL_HD": CSV_AVAL_HD,
+    "AVAL_POTONG": CSV_AVAL_POTONG,
+    "AVAL_PACKING": CSV_AVAL_PACKING,
+    "AVAL_QC": CSV_AVAL_QC,
 }
 
 # CSV scan salah
@@ -133,9 +139,9 @@ def generate_label_image(order_id, data):
     operator = (
         data.get("operator_mix") or data.get("operator_hd") or
         data.get("operator_cu")  or data.get("operator_pa")  or
-        data.get("operator_sp")  or data.get("operator_amix")
-         or
-        data.get("operator_hd")  or data.get("operator_hd")
+        data.get("operator_sp")  or data.get("operator_amix") or
+        data.get("operator_hd")  or data.get("operator_hd") or
+        data.get("operator_qc")  or data.get("operator_qc")
     )
 
     text_data = [
@@ -171,6 +177,7 @@ def generate_code(data):
         "PACKING":     "PA",
         "SISA_PACK":   "PS",
         "AVAL_MIXING": "AMS",
+        "AVAL_QC": "AQC",
     }
 
     divisi = str(data.get("divisi", "")).strip().upper()
@@ -183,10 +190,35 @@ def generate_code(data):
             "Sapuan": "AHS",
         }
         jenis = str(data.get("jenis_hd", "")).strip()
-        div = jenis_map.get(jenis, "AHX")  # AHX = fallback jika tidak dikenal
+        div = jenis_map.get(jenis, "AHX")  
     else:
         div = div_map.get(divisi, "XX")
-
+    if divisi == "AVAL_POTONG":
+        jenis_map = {
+            "Plong": "ACP",
+            "Mesin": "ACM",
+            "Silet": "ACS",
+            "Mutasi": "ACH",
+            "Reject": "ACR",
+            "Sapuan": "ACS",
+        }
+        jenis = str(data.get("jenis_cu", "")).strip()
+        div = jenis_map.get(jenis, "ACX")  # 
+    else:
+        div = div_map.get(divisi, "XX")
+        
+    if divisi == "AVAL_PACKING":
+        jenis_map = {
+            "Plastik": "APP",
+            "Rafia": "APR",
+            "Blongsong": "APB",
+            "Mutasi": "APC",
+        }
+        jenis = str(data.get("jenis_pa", "")).strip()
+        div = jenis_map.get(jenis, "APX")  # 
+    else:
+        div = div_map.get(divisi, "XX")
+        
     tanggal = now.strftime("%d-%m-%Y")
     spk     = str(data.get("spk", "")).strip()
     shift   = str(data.get("shift", "")).strip()
@@ -274,6 +306,33 @@ def init_db():
         order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
         spk TEXT, operator_hd TEXT, checker TEXT,
         mesin REAL, jenis_hd TEXT, kategori_hd TEXT, berat_bersih REAL,
+        created_at TEXT, code TEXT
+    )""")
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS katalogavalpotong (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
+        spk TEXT, operator_cu TEXT, checker TEXT,
+        mesin REAL, jenis_cu TEXT, kategori_cu TEXT, berat_bersih REAL,
+        created_at TEXT, code TEXT
+    )""")
+    
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS katalogavalpacking (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
+        spk TEXT, operator_pa TEXT, checker TEXT,
+        mesin REAL, jenis_pa TEXT, kategori_pa TEXT, berat_bersih REAL,
+        created_at TEXT, code TEXT
+    )""")
+    
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS katalogavalqc (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
+        spk TEXT, operator_qc TEXT, checker TEXT,
+        mesin REAL, kategori_qc TEXT, berat_bersih REAL,
         created_at TEXT, code TEXT
     )""")
 
@@ -401,6 +460,51 @@ def save_record(data):
         headers  = ["tanggal","shift","divisi","spk",
                     "operator_hd","checker","mesin","jenis_hd","kategori_hd","berat_bersih","created_at","code"]
 
+    elif div == "AVAL_POTONG":
+        c.execute("""
+        INSERT INTO katalogavalpotong (
+            tanggal, shift, divisi, spk,
+            operator_cu, checker, mesin, jenis_cu, kategori_cu, berat_bersih, 
+            created_at, code
+        ) VALUES (
+            :tanggal, :shift, :divisi, :spk,
+            :operator_cu, :checker, :mesin, :jenis_cu, :kategori_cu, :berat_bersih,
+            :created_at, :code
+        )""", data)
+        csv_path = CSV_AVAL_POTONG
+        headers  = ["tanggal","shift","divisi","spk",
+                    "operator_cu","checker","mesin","jenis_cu","kategori_cu","berat_bersih","created_at","code"]
+  
+    elif div == "AVAL_PACKING":
+        c.execute("""
+        INSERT INTO katalogavalpacking (
+            tanggal, shift, divisi, spk,
+            operator_pa, checker, mesin, jenis_pa, kategori_pa, berat_bersih, 
+            created_at, code
+        ) VALUES (
+            :tanggal, :shift, :divisi, :spk,
+            :operator_pa, :checker, :mesin, :jenis_pa, :kategori_pa, :berat_bersih,
+            :created_at, :code
+        )""", data)
+        csv_path = CSV_AVAL_PACKING
+        headers  = ["tanggal","shift","divisi","spk",
+                    "operator_pa","checker","mesin","jenis_pa","kategori_pa","berat_bersih","created_at","code"]
+
+    elif div == "AVAL_QC":
+        c.execute("""
+        INSERT INTO katalogavalqc (
+            tanggal, shift, divisi, spk,
+            operator_qc, checker, mesin, kategori_qc, berat_bersih, 
+            created_at, code
+        ) VALUES (
+            :tanggal, :shift, :divisi, :spk,
+            :operator_qc, :checker, :mesin, :kategori_qc, :berat_bersih,
+            :created_at, :code
+        )""", data)
+        csv_path = CSV_AVAL_QC
+        headers  = ["tanggal","shift","divisi","spk",
+                    "operator_qc","checker","mesin","kategori_qc","berat_bersih","created_at","code"]
+
 
     elif div == "MIXING":
         c.execute("""
@@ -520,6 +624,21 @@ def aval_mixing():
 @login_required
 def aval_hd():
     return render_template("aval_hd.html", active_page="aval_hd", current_user=session.get("name"))
+
+@app.route("/aval_potong")
+@login_required
+def aval_potong():
+    return render_template("aval_potong.html", active_page="aval_potong", current_user=session.get("name"))
+
+@app.route("/aval_packing")
+@login_required
+def aval_packing():
+    return render_template("aval_packing.html", active_page="aval_packing", current_user=session.get("name"))
+
+@app.route("/aval_qc")
+@login_required
+def aval_qc():
+    return render_template("aval_qc.html", active_page="aval_qc", current_user=session.get("name"))
 
 @app.route("/scan_salah")
 @admin_required
@@ -703,6 +822,41 @@ def submit():
                 "berat_bersih": float(d.get("berat_bersih") or 0),
                 "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
             }
+        elif div == "AVAL_POTONG":
+            record = {
+                "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
+                "shift": d.get("shift"), "divisi": div,
+                "spk": d.get("spk"),
+                "operator_cu": d.get("operator_cu"), "checker": d.get("checker"),
+                "mesin": d.get("mesin"),
+                "jenis_cu": d.get("jenis_cu"),
+                "kategori_cu": d.get("kategori_cu"),
+                "berat_bersih": float(d.get("berat_bersih") or 0),
+                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
+            }
+        elif div == "AVAL_PACKING":
+            record = {
+                "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
+                "shift": d.get("shift"), "divisi": div,
+                "spk": d.get("spk"),
+                "operator_pa": d.get("operator_pa"), "checker": d.get("checker"),
+                "mesin": d.get("mesin"),
+                "jenis_pa": d.get("jenis_pa"),
+                "kategori_pa": d.get("kategori_pa"),
+                "berat_bersih": float(d.get("berat_bersih") or 0),
+                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
+            }
+        elif div == "AVAL_QC":
+            record = {
+                "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
+                "shift": d.get("shift"), "divisi": div,
+                "spk": d.get("spk"),
+                "operator_qc": d.get("operator_qc"), "checker": d.get("checker"),
+                "mesin": d.get("mesin"),
+                "kategori_qc": d.get("kategori_qc"),
+                "berat_bersih": float(d.get("berat_bersih") or 0),
+                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
+            }
         elif div == "MIXING":
             record = {
                 "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
@@ -756,6 +910,9 @@ def recent(divisi):
             "sisa_pack": CSV_SISA_PACK,
             "aval_mixing": CSV_AVAL_MIXING,
             "aval_hd": CSV_AVAL_HD,
+            "aval_potong": CSV_AVAL_POTONG,
+            "aval_packing": CSV_AVAL_PACKING,
+            "aval_qc": CSV_AVAL_QC,
         }
         path = path_map.get(divisi)
         if not path:
@@ -782,6 +939,9 @@ if __name__ == "__main__":
     init_csv(CSV_SISA_PACK)
     init_csv(CSV_AVAL_MIXING)
     init_csv(CSV_AVAL_HD)
+    init_csv(CSV_AVAL_POTONG)
+    init_csv(CSV_AVAL_PACKING)
+    init_csv(CSV_AVAL_QC)
     print("=" * 55)
     print("  Factory Label System running at http://localhost:5000")
     print("=" * 55)

@@ -786,7 +786,7 @@
     <!-- ── MAIN ── -->
     <main class="main">
       <div class="page-header">
-        <h1 class="page-title">Aval HD</h1>
+        <h1 class="page-title">Aval QC</h1>
         <span class="page-sub" id="current-date"></span>
       </div>
 
@@ -841,10 +841,8 @@
               <input type="text" id="shift" readonly>
             </div>
             <div class="field">
-              <label class="field-label">Operator Mix <span class="req">*</span></label>
-              <select id="operator_hd" required>
-                <option value="">-- Loading... --</option>
-              </select>
+              <label class="field-label">Operator QC <span class="req">*</span></label>
+              <input type="text" id="operator_qc" required>
             </div>
             <div class="field">
               <label class="field-label">Checker<span class="req"></span></label>
@@ -852,7 +850,7 @@
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
-              <input type="text" id="divisi" value="Aval_HD" readonly>
+              <input type="text" id="divisi" value="Aval_QC" readonly>
             </div>
           </div>
         </div>
@@ -888,32 +886,8 @@
             </div>
             <!-- Mesin -->
             <div class="field">
-              <label class="field-label">Mesin<span class="req">*</span></label>
-              <input type="number" id="mesin" min="1" max="12" required>
-            </div>
-            <!-- Jenis Aval -->
-            <div class="field">
-              <label class="field-label">
-                Jenis Aval<span class="req">*</span>
-                <!-- kode tampil di sebelah label -->
-                <span id="jenis-kode-badge" style="
-      font-family: var(--font-mono);
-      font-size: 11px;
-      background: rgba(232,66,10,0.15);
-      color: var(--accent);
-      border: 1px solid rgba(232,66,10,0.4);
-      border-radius: 4px;
-      padding: 1px 8px;
-      margin-left: 8px;
-      display: none;
-    "></span>
-              </label>
-              <select id="jenis_hd" required onchange="updateJenisBadge(this.value)">
-                <option value="">-- Pilih Jenis Aval --</option>
-                <option value="Prong">Prong</option>
-                <option value="Daun">Daun</option>
-                <option value="Sapuan">Sapuan</option>
-              </select>
+              <label class="field-label">Mesin</label>
+              <input type="number" id="mesin" value="0" readonly>
             </div>
             <!-- Berat Bersih -->
             <div class="field">
@@ -923,7 +897,7 @@
             <!-- Kategori Aval -->
             <div class="field">
               <label class="field-label">Kategori Aval</label>
-              <input type="text" id="kategori_hd" value="HD" readonly>
+              <input type="text" id="kategori_qc" value="HD" readonly>
             </div>
             <div class="field">
               <label class="field-label">Tali Aval</label>
@@ -969,7 +943,6 @@
                     <th>No SPK</th>
                     <th>Mesin</th>
                     <th>Kategori Aval</th>
-                    <th>Jenis Aval</th>
                     <th>Aval Qty (kg)</th>
                     <th>Divisi</th>
                     <th>Shift</th>
@@ -1083,7 +1056,7 @@
           // LOAD DATA
           async function loadRecent() {
             try {
-              const res = await fetch('/api/recent/aval_hd');
+              const res = await fetch('/api/recent/aval_qc');
               const rows = await res.json();
 
               console.log(rows);
@@ -1116,12 +1089,11 @@
             <td>${(r.tanggal || "").replace("T", " ")}</td>
             <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
             <td>${r.mesin || ""}</td>
-            <td>${r.kategori_hd || ""}</td>
-            <td>${r.jenis_hd || ""}</td>
+            <td>${r.kategori_qc || ""}</td>
             <td>${r.berat_bersih || ""}</td>
             <td>${r.divisi || ""}</td>
             <td>${r.shift || ""}</td>
-            <td>${r.operator_hd || ""}</td>
+            <td>${r.operator_qc || ""}</td>
             <td>${r.checker || ""}</td>
             <td>${r.code || ""}</td>
         </tr>
@@ -1175,23 +1147,6 @@
           }
         </script>
         <script>
-          const JENIS_KODE = {
-            "Prong": "AHP",
-            "Daun": "AHD",
-            "Sapuan": "AHS",
-          };
-
-          function updateJenisBadge(val) {
-            const badge = document.getElementById("jenis-kode-badge");
-            if (JENIS_KODE[val]) {
-              badge.textContent = JENIS_KODE[val];
-              badge.style.display = "inline";
-            } else {
-              badge.style.display = "none";
-            }
-          }
-
-
           let timeout = null;
 
           document.getElementById("spk").addEventListener("input", function () {
@@ -1222,25 +1177,7 @@
           });
         </script>
         <script>
-          async function loadOperators() {
-            const divisi = document.getElementById("divisi").value; // "Mixing"
-
-            try {
-              const res = await fetch(`/api/operators/${divisi}`);
-              const operators = await res.json();
-
-              const select = document.getElementById("operator_hd");
-              select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
-
-              operators.forEach(op => {
-                select.innerHTML += `<option value="${op}">${op}</option>`;
-              });
-
-            } catch (e) {
-              console.error("Gagal load operator:", e);
-            }
-          }
-
+         
           // Panggil saat halaman siap
           document.addEventListener("DOMContentLoaded", function () {
             loadOperators();
@@ -1254,11 +1191,10 @@
 
             // VALIDASI WAJIB
             const requiredFields = [
-              { id: "operator_hd", name: "Operator HD" },
+              { id: "operator_qc", name: "Operator QC" },
               { id: "checker", name: "Checker" },
               { id: "spk", name: "No. SPK" },
-              { id: "jenis_hd", name: "Jenis Aval" },
-              { id: "kategori_hd", name: "Kategori Aval" },
+              { id: "kategori_qc", name: "Kategori Aval" },
               { id: "berat_bersih", name: "Aval Qty (kg)" },
               { id: "mesin", name: "Mesin" }
             ];
@@ -1283,7 +1219,7 @@
             const data = {
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
-              operator_hd: document.getElementById("operator_hd").value,
+              operator_qc: document.getElementById("operator_qc").value,
               checker: document.getElementById("checker").value,
               divisi: document.getElementById("divisi").value,
               spk: document.getElementById("spk").value,
@@ -1291,8 +1227,7 @@
               produk: document.getElementById("product").value,
               uk: document.getElementById("uk").value,
               mesin: document.getElementById("mesin").value,
-              jenis_hd: document.getElementById("jenis_hd").value,
-              kategori_hd: document.getElementById("kategori_hd").value,
+              kategori_qc: document.getElementById("kategori_qc").value,
               berat_bersih: document.getElementById("berat_bersih").value,
             };
 
@@ -1327,7 +1262,7 @@
           // ── RESET ────────────────────────────────────────────────
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
-            ['operator_hd', 'spk', 'customer', 'product', 'uk', 'mesin', 'jenis_hd', 'berat_bersih']
+            ['operator_qc', 'spk', 'customer', 'product', 'uk', 'mesin', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
