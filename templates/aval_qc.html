@@ -897,7 +897,7 @@
             <!-- Kategori Aval -->
             <div class="field">
               <label class="field-label">Kategori Aval</label>
-              <input type="text" id="kategori_qc" value="HD" readonly>
+              <input type="text" id="kategori_qc" value="" readonly>
             </div>
             <div class="field">
               <label class="field-label">Tali Aval</label>
@@ -1151,29 +1151,27 @@
 
           document.getElementById("spk").addEventListener("input", function () {
             clearTimeout(timeout);
-
             const spk = this.value.trim();
-
             timeout = setTimeout(async () => {
               if (!spk) return;
-
               try {
                 const res = await fetch(`/get-spk/${spk}`);
                 const data = await res.json();
-
                 if (data && Object.keys(data).length > 0) {
                   document.getElementById("customer").value = data.customer || "";
                   document.getElementById("product").value = data.product || "";
                   document.getElementById("uk").value = data.uk || "";
+                  document.getElementById("kategori_qc").value = data.jenis_aval || "";
                 } else {
                   document.getElementById("customer").value = "";
                   document.getElementById("product").value = "";
                   document.getElementById("uk").value = "";
+                  document.getElementById("kategori_qc").value = "";
                 }
               } catch (err) {
                 console.error("Error SPK:", err);
               }
-            }, 70); // delay biar tidak spam request
+            }, 70);
           });
         </script>
         <script>

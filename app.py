@@ -159,7 +159,9 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
-
+# ─── LABEL SIZE ─────────────────────────────────────────────
+LABEL_W = 560
+LABEL_H = 240
 # ─── QR & LABEL ─────────────────────────────────────────────
 def generate_qr(code):
     qr = qrcode.make(code)
@@ -278,7 +280,10 @@ def generate_code(data):
 def load_spk_data():
     df = pd.read_csv(SPK_CSV, encoding="utf-8-sig")
     df.columns = df.columns.str.strip()
-    return df[["No. SPK", "CUSTOMER", "PRODUCT", "UK"]]
+    cols = ["No. SPK", "CUSTOMER", "PRODUCT", "UK"]
+    if "JENIS AVAL" in df.columns:
+        cols.append("JENIS AVAL")
+    return df[cols]
 
 
 # ─── DB INIT ────────────────────────────────────────────────
@@ -703,6 +708,20 @@ def get_operators(divisi):
         return jsonify(operators)
     except Exception as e:
         return jsonify([])
+    
+@app.route("/api/tali/<kategori>")
+@login_required
+def get_tali(kategori):
+    try:
+        df = pd.read_excel(USER_EXCEL, sheet_name="Tali", engine="openpyxl")
+        df.columns = df.columns.str.strip()
+        df["jenis_aval"] = df["jenis_aval"].astype(str).str.strip()
+        row = df[df["jenis_aval"] == kategori.strip()]
+        if not row.empty:
+            return jsonify({"warna": str(row.iloc[0].get("Warna", ""))})
+        return jsonify({"warna": ""})
+    except Exception as e:
+        return jsonify({"warna": "", "error": str(e)})
 
 
 # ─── API: SPK LOOKUP ────────────────────────────────────────
@@ -713,7 +732,12 @@ def get_spk(spk):
     row = df[df["No. SPK"].astype(str) == str(spk)]
     if not row.empty:
         r = row.iloc[0]
-        return jsonify({"customer": r["CUSTOMER"], "product": r["PRODUCT"], "uk": r["UK"]})
+        return jsonify({
+            "customer":   r["CUSTOMER"],
+            "product":    r["PRODUCT"],
+            "uk":         r["UK"],
+            "jenis_aval": str(r.get("JENIS AVAL", "") or ""),
+        })
     return jsonify({})
 
 
