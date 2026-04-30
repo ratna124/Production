@@ -6,657 +6,137 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Scan Salah — Checker Production</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link
-    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --black: #0a0a0a;
-      --white: #f5f4f0;
-      --accent: #e8420a;
-      --accent2: #f5a623;
-      --gray1: #1a1a1a;
-      --gray2: #2c2c2c;
-      --gray3: #3e3e3e;
-      --gray4: #777;
-      --gray5: #aaa;
-      --success: #22c55e;
-      --danger: #ef4444;
-      --border: #2e2e2e;
-      --radius: 4px;
-      --input-h: 44px;
-      --font-sans: 'IBM Plex Sans', sans-serif;
-      --font-mono: 'IBM Plex Mono', monospace;
-    }
-
-    body {
-      background: var(--black);
-      color: var(--white);
-      font-family: var(--font-sans);
-      font-size: 14px;
-      min-height: 100vh;
-      line-height: 1.5;
-    }
-
-    .shell {
-      display: grid;
-      grid-template-columns: 240px 1fr;
-      grid-template-rows: 56px 1fr;
-      min-height: 100vh;
-    }
-
-    .topbar {
-      grid-column: 1 / -1;
-      background: var(--gray1);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 24px;
-      gap: 16px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .topbar-logo {
-      font-family: var(--font-mono);
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--accent);
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
-    .topbar-sep {
-      width: 1px;
-      height: 20px;
-      background: var(--border);
-    }
-
-    .topbar-title {
-      font-size: 13px;
-      color: var(--gray5);
-      font-weight: 300;
-    }
-
-    .topbar-right {
-      margin-left: auto;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .clock {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--gray4);
-    }
-
-    .sidebar {
-      background: var(--gray1);
-      border-right: 1px solid var(--border);
-      padding: 24px 0;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      overflow-y: auto;
-    }
-
-    .sidebar-section {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--gray4);
-      padding: 16px 20px 6px;
-    }
-
-    .sidebar-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 20px;
-      cursor: pointer;
-      border-left: 2px solid transparent;
-      transition: background .12s, border-color .12s;
-      font-size: 13px;
-      color: var(--gray5);
-      user-select: none;
-    }
-
-    .sidebar-item:hover {
-      background: var(--gray2);
-      color: var(--white);
-    }
-
-    .sidebar-item.active {
-      border-left-color: var(--accent);
-      color: var(--white);
-      background: rgba(232, 66, 10, 0.08);
-    }
-
-    .sidebar-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--gray3);
-      flex-shrink: 0;
-    }
-
-    .sidebar-item.active .sidebar-dot {
-      background: var(--accent);
-    }
-
-    .sidebar-stats {
-      margin-top: auto;
-      padding: 16px 20px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-    }
-
-    .stat-label {
-      font-size: 11px;
-      color: var(--gray4);
-      font-family: var(--font-mono);
-    }
-
-    .stat-val {
-      font-size: 20px;
-      font-weight: 500;
-      color: var(--white);
-      font-family: var(--font-mono);
-    }
-
-    .main {
-      overflow-y: auto;
-      padding: 32px 40px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .page-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .page-title {
-      font-family: var(--font-mono);
-      font-size: 20px;
-      font-weight: 500;
-    }
-
-    .divisi-badge {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      padding: 3px 12px;
-      border-radius: 20px;
-      background: var(--gray3);
-      color: var(--gray5);
-      transition: background .2s, color .2s;
-    }
-
-    .divisi-badge.active-mixing {
-      background: rgba(232, 66, 10, 0.2);
-      color: var(--accent);
-      border: 1px solid rgba(232, 66, 10, 0.4);
-    }
-
-    .divisi-badge.active-hd {
-      background: rgba(245, 166, 35, 0.2);
-      color: var(--accent2);
-      border: 1px solid rgba(245, 166, 35, 0.4);
-    }
-
-    .divisi-badge.active-packing {
-      background: rgba(34, 197, 94, 0.2);
-      color: var(--success);
-      border: 1px solid rgba(34, 197, 94, 0.4);
-    }
-
-    .card {
-      background: var(--gray1);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-
-    .card-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 18px;
-      border-bottom: 1px solid var(--border);
-      background: var(--gray2);
-    }
-
-    .card-header-num {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      background: var(--accent);
-      color: white;
-      width: 22px;
-      height: 22px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 3px;
-      font-weight: 500;
-      flex-shrink: 0;
-    }
-
-    .btn-ghost {
-      background: none;
-      border: 1px solid var(--border);
-      color: var(--gray5);
-      padding: 6px 14px;
-      border-radius: var(--radius);
-      font-family: var(--font-mono);
-      font-size: 11px;
-      cursor: pointer;
-      text-decoration: none;
-      transition: border-color .15s, color .15s;
-    }
-
-    .btn-ghost:hover {
-      border-color: var(--gray5);
-      color: var(--white);
-    }
-
-    .card-header-title {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--white);
-    }
-
-    .card-header-extra {
-      margin-left: auto;
-    }
-
-    .card-body {
-      padding: 18px 20px;
-    }
-
-    .scan-wrap {
-      display: flex;
-      gap: 10px;
-      align-items: stretch;
-    }
-
-    .field-label {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--gray4);
-      margin-bottom: 6px;
-    }
-
-    .scan-input-wrap {
-      flex: 1;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      height: var(--input-h);
-      background: var(--gray2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--white);
-      font-family: var(--font-mono);
-      font-size: 14px;
-      padding: 0 14px;
-      outline: none;
-      transition: border-color .15s, background .15s;
-    }
-
-    input[type="text"]:focus {
-      border-color: var(--accent);
-      background: #222;
-    }
-
-    input[type="text"]::placeholder {
-      color: var(--gray4);
-    }
-
-    .btn-add {
-      height: var(--input-h);
-      padding: 0 20px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: var(--radius);
-      font-family: var(--font-mono);
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background .15s;
-      white-space: nowrap;
-      align-self: flex-end;
-    }
-
-    .btn-add:hover {
-      background: #c9360a;
-    }
-
-    .scan-hint {
-      font-size: 11px;
-      color: var(--gray4);
-      margin-top: 7px;
-      font-family: var(--font-mono);
-    }
-
-    .toast {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      margin-top: 8px;
-      min-height: 16px;
-      transition: opacity .3s;
-    }
-
-    .toast.success {
-      color: var(--success);
-    }
-
-    .toast.warning {
-      color: var(--accent2);
-    }
-
-    .toast.error {
-      color: var(--danger);
-    }
-
-    .toast.hidden {
-      opacity: 0;
-    }
-
-    .col-header {
-      display: grid;
-      grid-template-columns: 40px 1fr auto;
-      padding: 6px 16px;
-      background: var(--gray3);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .col-header span {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--gray4);
-    }
-
-    .code-list {
-      max-height: 280px;
-      overflow-y: auto;
-    }
-
-    .code-list::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .code-list::-webkit-scrollbar-track {
-      background: var(--gray1);
-    }
-
-    .code-list::-webkit-scrollbar-thumb {
-      background: var(--gray3);
-      border-radius: 3px;
-    }
-
-    .code-row {
-      display: grid;
-      grid-template-columns: 40px 1fr auto;
-      align-items: center;
-      padding: 8px 16px;
-      border-bottom: 1px solid rgba(46, 46, 46, 0.5);
-      transition: background .1s;
-      animation: fadeRow .15s ease;
-    }
-
-    @keyframes fadeRow {
-      from {
-        opacity: 0;
-        transform: translateY(-4px)
-      }
-
-      to {
-        opacity: 1;
-        transform: none
-      }
-    }
-
-    .code-row:nth-child(odd) {
-      background: rgba(255, 255, 255, 0.01);
-    }
-
-    .code-row:nth-child(even) {
-      background: rgba(0, 0, 0, 0.15);
-    }
-
-    .code-row:hover {
-      background: rgba(255, 255, 255, 0.03);
-    }
-
-    .code-idx {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--gray4);
-    }
-
-    .code-text {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      color: var(--white);
-      word-break: break-all;
-    }
-
-    .btn-del {
-      background: none;
-      border: none;
-      color: var(--danger);
-      font-size: 13px;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: var(--radius);
-      transition: background .1s;
-      font-family: var(--font-mono);
-      line-height: 1;
-    }
-
-    .btn-del:hover {
-      background: rgba(239, 68, 68, 0.15);
-    }
-
-    .list-empty {
-      padding: 32px 16px;
-      text-align: center;
-      color: var(--gray4);
-      font-size: 12px;
-      font-family: var(--font-mono);
-    }
-
-    .action-row {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .btn-clear {
-      height: 48px;
-      padding: 0 20px;
-      background: var(--gray2);
-      border: 1px solid var(--border);
-      color: var(--gray5);
-      border-radius: var(--radius);
-      font-family: var(--font-mono);
-      font-size: 12px;
-      cursor: pointer;
-      transition: all .15s;
-    }
-
-    .btn-clear:hover {
-      border-color: var(--gray5);
-      color: var(--white);
-      background: var(--gray3);
-    }
-
-    .btn-submit {
-      height: 48px;
-      padding: 0 28px;
-      background: var(--accent);
-      border: none;
-      color: white;
-      border-radius: var(--radius);
-      font-family: var(--font-mono);
-      font-size: 13px;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      cursor: pointer;
-      transition: background .15s, transform .1s;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .btn-submit:hover {
-      background: #c9360a;
-    }
-
-    .btn-submit:active {
-      transform: scale(0.98);
-    }
-
-    .btn-submit:disabled {
-      background: var(--gray3);
-      cursor: not-allowed;
-    }
-
-    .action-feedback {
-      margin-left: auto;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--success);
-    }
-
-    .result-panel {
-      display: none;
-      background: var(--gray1);
-      border: 1px solid var(--success);
-      border-radius: 6px;
-      overflow: hidden;
-      animation: slideIn .3s ease;
-    }
-
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(8px)
-      }
-
-      to {
-        opacity: 1;
-        transform: none
-      }
-    }
-
-    .result-panel.show {
-      display: block;
-    }
-
-    .result-header {
-      background: rgba(34, 197, 94, 0.08);
-      border-bottom: 1px solid rgba(34, 197, 94, 0.2);
-      padding: 12px 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .result-body {
-      padding: 18px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .result-line {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      color: var(--success);
-    }
-
-    .btn-new {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      height: 38px;
-      padding: 0 16px;
-      background: var(--gray2);
-      border: 1px solid var(--border);
-      color: var(--white);
-      border-radius: var(--radius);
-      font-family: var(--font-mono);
-      font-size: 11px;
-      cursor: pointer;
-      transition: all .15s;
-      margin-top: 4px;
-      width: fit-content;
-    }
-
-    .btn-new:hover {
-      border-color: var(--gray5);
-      background: var(--gray3);
-    }
-
-    /* ── SPINNER ────────────────────────────────────────── */
-    .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
-      display: none;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
+      --black: #0a0a0a; --white: #f5f4f0; --accent: #e8420a; --accent2: #f5a623;
+      --gray1: #1a1a1a; --gray2: #2c2c2c; --gray3: #3e3e3e; --gray4: #777; --gray5: #aaa;
+      --success: #22c55e; --danger: #ef4444; --border: #2e2e2e; --radius: 4px;
+      --input-h: 44px; --font-sans: 'IBM Plex Sans', sans-serif; --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    body { background: var(--black); color: var(--white); font-family: var(--font-sans); font-size: 14px; min-height: 100vh; line-height: 1.5; }
+
+    .shell { display: grid; grid-template-columns: 240px 1fr; grid-template-rows: 56px 1fr; min-height: 100vh; }
+
+    /* TOPBAR */
+    .topbar { grid-column: 1/-1; background: var(--gray1); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; gap: 16px; position: sticky; top: 0; z-index: 100; }
+    .topbar-logo { font-family: var(--font-mono); font-size: 13px; font-weight: 500; color: var(--accent); letter-spacing: .05em; text-transform: uppercase; }
+    .topbar-sep { width: 1px; height: 20px; background: var(--border); }
+    .topbar-title { font-size: 13px; color: var(--gray5); font-weight: 300; }
+    .topbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+    .clock { font-family: var(--font-mono); font-size: 11px; color: var(--gray4); }
+
+    .btn-ghost { background: none; border: 1px solid var(--border); color: var(--gray5); padding: 6px 14px; border-radius: var(--radius); font-family: var(--font-mono); font-size: 11px; cursor: pointer; text-decoration: none; transition: border-color .15s, color .15s; }
+    .btn-ghost:hover { border-color: var(--gray5); color: var(--white); }
+
+    /* SIDEBAR */
+    .sidebar { background: var(--gray1); border-right: 1px solid var(--border); padding: 24px 0; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+    .sidebar-section { font-family: var(--font-mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--gray4); padding: 16px 20px 6px; }
+    .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; cursor: pointer; border-left: 2px solid transparent; transition: background .12s, border-color .12s; font-size: 13px; color: var(--gray5); user-select: none; text-decoration: none; }
+    .sidebar-item:hover { background: var(--gray2); color: var(--white); }
+    .sidebar-item.active { border-left-color: var(--accent); color: var(--white); background: rgba(232,66,10,.08); }
+    .sidebar-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray3); flex-shrink: 0; }
+    .sidebar-item.active .sidebar-dot { background: var(--accent); }
+    .sidebar-stats { margin-top: auto; padding: 16px 20px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+    .stat-row { display: flex; justify-content: space-between; align-items: baseline; }
+    .stat-label { font-size: 11px; color: var(--gray4); font-family: var(--font-mono); }
+    .stat-val { font-size: 20px; font-weight: 500; color: var(--white); font-family: var(--font-mono); }
+
+    /* MAIN */
+    .main { overflow-y: auto; padding: 32px 40px; display: flex; flex-direction: column; gap: 20px; }
+    .page-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .page-title { font-family: var(--font-mono); font-size: 20px; font-weight: 500; }
+    .divisi-badge { font-family: var(--font-mono); font-size: 11px; padding: 3px 12px; border-radius: 20px; background: var(--gray3); color: var(--gray5); transition: background .2s, color .2s; }
+    .divisi-badge.active-mixing { background: rgba(232,66,10,.2); color: var(--accent); border: 1px solid rgba(232,66,10,.4); }
+    .divisi-badge.active-hd { background: rgba(245,166,35,.2); color: var(--accent2); border: 1px solid rgba(245,166,35,.4); }
+    .divisi-badge.active-packing { background: rgba(34,197,94,.2); color: var(--success); border: 1px solid rgba(34,197,94,.4); }
+
+    /* CARD */
+    .card { background: var(--gray1); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .card-header { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--border); background: var(--gray2); }
+    .card-header-num { font-family: var(--font-mono); font-size: 11px; background: var(--accent); color: white; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 3px; font-weight: 500; flex-shrink: 0; }
+    .card-header-title { font-size: 13px; font-weight: 500; color: var(--white); }
+    .card-header-extra { margin-left: auto; }
+    .card-body { padding: 18px 20px; }
+
+    /* SCAN INPUT */
+    .scan-wrap { display: flex; gap: 10px; align-items: stretch; }
+    .field-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--gray4); margin-bottom: 6px; }
+    .scan-input-wrap { flex: 1; }
+    input[type="text"] { width: 100%; height: var(--input-h); background: var(--gray2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--white); font-family: var(--font-mono); font-size: 14px; padding: 0 14px; outline: none; transition: border-color .15s, background .15s; }
+    input[type="text"]:focus { border-color: var(--accent); background: #222; }
+    input[type="text"]::placeholder { color: var(--gray4); }
+    .btn-add { height: var(--input-h); padding: 0 20px; background: var(--accent); color: white; border: none; border-radius: var(--radius); font-family: var(--font-mono); font-size: 12px; font-weight: 500; cursor: pointer; transition: background .15s; white-space: nowrap; align-self: flex-end; }
+    .btn-add:hover { background: #c9360a; }
+    .scan-hint { font-size: 11px; color: var(--gray4); margin-top: 7px; font-family: var(--font-mono); }
+
+    /* TOAST */
+    .toast { font-family: var(--font-mono); font-size: 11px; margin-top: 8px; min-height: 16px; transition: opacity .3s; }
+    .toast.success { color: var(--success); }
+    .toast.warning { color: var(--accent2); }
+    .toast.error { color: var(--danger); }
+    .toast.hidden { opacity: 0; }
+
+    /* TABLE */
+    .col-header { display: grid; grid-template-columns: 36px minmax(0,2fr) 70px minmax(0,1fr) minmax(0,2fr) 70px 40px; gap: 8px; padding: 6px 16px; background: var(--gray3); border-bottom: 1px solid var(--border); }
+    .col-header span { font-family: var(--font-mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--gray4); }
+    .code-list { max-height: 320px; overflow-y: auto; overflow-x: hidden; }
+    .code-list::-webkit-scrollbar { width: 6px; }
+    .code-list::-webkit-scrollbar-track { background: var(--gray1); }
+    .code-list::-webkit-scrollbar-thumb { background: var(--gray3); border-radius: 3px; }
+    .code-row { display: grid; grid-template-columns: 36px minmax(0,2fr) 70px minmax(0,1fr) minmax(0,2fr) 70px 40px; align-items: start; gap: 8px; padding: 8px 16px; border-bottom: 1px solid rgba(46,46,46,.5); transition: background .1s; animation: fadeRow .15s ease; }
+    @keyframes fadeRow { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+    .code-row:nth-child(odd) { background: rgba(255,255,255,.01); }
+    .code-row:nth-child(even) { background: rgba(0,0,0,.15); }
+    .code-row:hover { background: rgba(255,255,255,.03); }
+
+    /* INVALID ROW */
+    .code-row.invalid { background: rgba(239,68,68,.08) !important; border-left: 3px solid var(--danger); padding-left: 13px; }
+
+    .code-text { font-family: var(--font-mono); font-size: 12px; color: var(--white); word-break: break-all; overflow: hidden; white-space: normal; }
+    .code-text.missing { color: var(--danger) !important; font-style: italic; }
+    .code-idx { font-family: var(--font-mono); font-size: 10px; color: var(--gray4); }
+    .btn-del { background: none; border: none; color: var(--danger); font-size: 13px; cursor: pointer; padding: 4px 8px; border-radius: var(--radius); transition: background .1s; font-family: var(--font-mono); line-height: 1; }
+    .btn-del:hover { background: rgba(239,68,68,.15); }
+    .list-empty { padding: 32px 16px; text-align: center; color: var(--gray4); font-size: 12px; font-family: var(--font-mono); }
+
+    /* VALIDATION BANNER */
+    .validate-banner { display: none; background: rgba(239,68,68,.1); border-top: 1px solid rgba(239,68,68,.3); border-bottom: 1px solid rgba(239,68,68,.3); padding: 12px 18px; font-family: var(--font-mono); font-size: 11px; color: var(--danger); line-height: 1.7; }
+    .validate-banner.show { display: block; }
+
+    /* ACTION ROW */
+    .action-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 12px 16px; border-top: 1px solid var(--border); }
+    .btn-clear { height: 48px; padding: 0 20px; background: var(--gray2); border: 1px solid var(--border); color: var(--gray5); border-radius: var(--radius); font-family: var(--font-mono); font-size: 12px; cursor: pointer; transition: all .15s; }
+    .btn-clear:hover { border-color: var(--gray5); color: var(--white); background: var(--gray3); }
+    .btn-submit { height: 48px; padding: 0 28px; background: var(--accent); border: none; color: white; border-radius: var(--radius); font-family: var(--font-mono); font-size: 13px; font-weight: 500; letter-spacing: .04em; cursor: pointer; transition: background .15s, transform .1s; display: flex; align-items: center; gap: 8px; }
+    .btn-submit:hover { background: #c9360a; }
+    .btn-submit:active { transform: scale(.98); }
+    .btn-submit:disabled { background: var(--gray3); cursor: not-allowed; opacity: .6; }
+    .action-feedback { margin-left: auto; font-family: var(--font-mono); font-size: 11px; }
+    .action-feedback.ok { color: var(--success); }
+    .action-feedback.err { color: var(--danger); }
+
+    /* SPINNER */
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* RESULT PANEL */
+    .result-panel { display: none; background: var(--gray1); border: 1px solid var(--success); border-radius: 6px; overflow: hidden; animation: slideIn .3s ease; }
+    @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+    .result-panel.show { display: block; }
+    .result-header { background: rgba(34,197,94,.08); border-bottom: 1px solid rgba(34,197,94,.2); padding: 12px 20px; display: flex; align-items: center; gap: 10px; }
+    .result-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .result-line { font-family: var(--font-mono); font-size: 12px; color: var(--success); }
+    .btn-new { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px; background: var(--gray2); border: 1px solid var(--border); color: var(--white); border-radius: var(--radius); font-family: var(--font-mono); font-size: 11px; cursor: pointer; transition: all .15s; margin-top: 4px; width: fit-content; }
+    .btn-new:hover { border-color: var(--gray5); background: var(--gray3); }
 
     @media (max-width: 860px) {
-      .shell {
-        grid-template-columns: 1fr;
-      }
-
-      .sidebar {
-        display: none;
-      }
-
-      .main {
-        padding: 20px 16px;
-      }
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .main { padding: 20px 16px; }
     }
   </style>
 </head>
@@ -664,7 +144,7 @@
 <body>
   <div class="shell">
 
-    <!-- ── TOPBAR ── -->
+    <!-- TOPBAR -->
     <header class="topbar">
       <span class="topbar-logo">&#9632; SCAN SALAH</span>
       <span class="topbar-sep"></span>
@@ -678,14 +158,14 @@
       </div>
     </header>
 
-    <!-- ── SIDEBAR ── -->
+    <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="sidebar-section">Production Input</div>
       <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
         <span class="sidebar-dot"></span>Production Input
       </a>
-      <div class="sidebar-section">Pilih Divisi</div>
 
+      <div class="sidebar-section">Pilih Divisi</div>
       <div class="sidebar-item" onclick="selectDivisi('Mixing', this)" id="item-Mixing">
         <span class="sidebar-dot"></span>Mixing
       </div>
@@ -708,30 +188,31 @@
           <span class="stat-val" id="stat-count">0</span>
         </div>
         <div class="stat-row">
+          <span class="stat-label">Tidak valid</span>
+          <span class="stat-val" id="stat-invalid" style="font-size:16px;color:var(--danger)">0</span>
+        </div>
+        <div class="stat-row">
           <span class="stat-label">Divisi aktif</span>
           <span class="stat-val" id="stat-divisi" style="font-size:13px;color:var(--gray5)">—</span>
         </div>
       </div>
     </aside>
 
-    <!-- ── MAIN ── -->
+    <!-- MAIN -->
     <main class="main">
 
-      <!-- Page header -->
       <div class="page-header">
         <h1 class="page-title">SCAN KODE SALAH</h1>
         <span class="divisi-badge" id="divisi-badge">— pilih divisi</span>
-        <span style="margin-left:auto;font-size:11px;color:var(--gray4);font-family:var(--font-mono)"
-          id="current-date"></span>
+        <span style="margin-left:auto;font-size:11px;color:var(--gray4);font-family:var(--font-mono)" id="current-date"></span>
       </div>
 
-      <!-- ── SUCCESS PANEL ── -->
+      <!-- SUCCESS PANEL -->
       <div class="result-panel" id="result-panel">
         <div class="result-header">
           <span style="color:var(--success);font-size:16px">&#10003;</span>
           <span style="font-family:var(--font-mono);font-size:12px;color:var(--success)">DATA TERSIMPAN</span>
-          <span style="font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--white);margin-left:8px"
-            id="result-title"></span>
+          <span style="font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--white);margin-left:8px" id="result-title"></span>
         </div>
         <div class="result-body">
           <div class="result-line" id="result-line1"></div>
@@ -741,7 +222,7 @@
         </div>
       </div>
 
-      <!-- ── CARD 1: Scan Input ── -->
+      <!-- CARD 1: Scan Input -->
       <div class="card">
         <div class="card-header">
           <span class="card-header-num">1</span>
@@ -751,8 +232,10 @@
           <div class="field-label">Kode Barcode / QR</div>
           <div class="scan-wrap">
             <div class="scan-input-wrap">
-              <input type="text" id="scan-input" placeholder="Scan atau ketik kode, lalu Enter…" autocomplete="off"
-                spellcheck="false" onkeydown="if(event.key==='Enter') addCode()">
+              <input type="text" id="scan-input"
+                placeholder="Scan atau ketik kode, lalu Enter…"
+                autocomplete="off" spellcheck="false"
+                onkeydown="if(event.key==='Enter') addCode()">
             </div>
             <button class="btn-add" onclick="addCode()">&#43; Tambah</button>
           </div>
@@ -761,7 +244,7 @@
         </div>
       </div>
 
-      <!-- ── CARD 2: Code List ── -->
+      <!-- CARD 2: Code List -->
       <div class="card">
         <div class="card-header">
           <span class="card-header-num">2</span>
@@ -771,8 +254,7 @@
           </span>
         </div>
 
-        <!-- column header -->
-        <div class="col-header" style="grid-template-columns:36px 1fr 1fr 1fr 1fr 1fr auto">
+        <div class="col-header">
           <span>#</span>
           <span>Code</span>
           <span>SPK</span>
@@ -782,44 +264,53 @@
           <span>Del</span>
         </div>
 
-        <!-- scrollable list -->
         <div class="code-list" id="code-list">
           <div class="list-empty" id="list-empty">Belum ada kode discan…</div>
         </div>
-      </div>
 
-      <!-- ── ACTION ROW ── -->
-      <div class="action-row">
-        <button class="btn-clear" onclick="clearAll()">✕ &nbsp;Hapus Semua</button>
-        <button class="btn-submit" id="btn-submit" onclick="submitCodes()">
-          <span id="btn-text">SIMPAN</span>
-          <div class="spinner" id="spinner"></div>
-        </button>
-        <span class="action-feedback" id="action-feedback"></span>
+        <!-- VALIDATION BANNER -->
+        <div class="validate-banner" id="validate-banner"></div>
+
+        <div class="action-row">
+          <button class="btn-clear" onclick="clearAll()">✕ &nbsp;Hapus Semua</button>
+          <button class="btn-submit" id="btn-submit" onclick="submitCodes()">
+            <span id="btn-text">SIMPAN</span>
+            <div class="spinner" id="spinner"></div>
+          </button>
+          <span class="action-feedback" id="action-feedback"></span>
+        </div>
       </div>
 
     </main>
   </div>
 
   <script>
-    // ── STATE ──────────────────────────────────────────────────────────────────
+    // ── STATE ──
     let codes = [];
     let divisi = "";
 
-    const CSV_PATHS = {
-      Mixing: "Z:\\Checker\\Production\\Database\\scan_salah\\scansalahmixing.csv",
-      HD: "Z:\\Checker\\Production\\Database\\scan_salah\\scansalahhd.csv",
-      Potong: "Z:\\Checker\\Production\\Database\\scan_salah\\scansalahpotong.csv",
-      Packing: "Z:\\Checker\\Production\\Database\\scan_salah\\scansalahpacking.csv",
-      Sisa_Pack: "Z:\\Checker\\Production\\Database\\scan_salah\\scansalahsisapack.csv",
-    };
+    // Field wajib — harus terisi dan bukan "-"
+    const REQUIRED_FIELDS = ['spk', 'customer', 'produk', 'checker'];
 
-    // ── INIT ───────────────────────────────────────────────────────────────────
+    // ── HELPERS ──
+    function isFieldMissing(val) {
+      return !val || String(val).trim() === '' || String(val).trim() === '-';
+    }
+
+    function isCodeValid(c) {
+      return REQUIRED_FIELDS.every(f => !isFieldMissing(c[f]));
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    // ── INIT ──
     document.addEventListener("DOMContentLoaded", () => {
       updateClock();
       setInterval(updateClock, 1000);
       document.getElementById("current-date").textContent =
-        new Date().toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+        new Date().toLocaleDateString("id-ID", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
       document.getElementById("scan-input").focus();
     });
 
@@ -830,81 +321,152 @@
         `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
     }
 
-    // ── DIVISI SELECTION ───────────────────────────────────────────────────────
+    // ── DIVISI ──
     function selectDivisi(d, el) {
       divisi = d;
-
-      // sidebar items
       document.querySelectorAll(".sidebar-item").forEach(i => i.classList.remove("active"));
       el.classList.add("active");
-
-      // badge
       const badge = document.getElementById("divisi-badge");
       badge.textContent = d;
       badge.className = "divisi-badge active-" + d.toLowerCase();
-
-      // sidebar stats
       document.getElementById("stat-divisi").textContent = d;
-
-      // re-focus scan
       document.getElementById("scan-input").focus();
     }
 
-    // ── ADD CODE ───────────────────────────────────────────────────────────────
-    function addCode() {
+    // ── ADD CODE ──
+    async function addCode() {
+      if (!divisi) { showToast("⚠ Pilih divisi dulu.", "warning"); return; }
+
       const input = document.getElementById("scan-input");
       const val = input.value.trim();
       input.value = "";
       input.focus();
-
       if (!val) return;
 
-      if (codes.includes(val)) {
+      if (codes.find(c => c.code === val)) {
         showToast("⚠ Duplikat diabaikan: " + val, "warning");
         return;
       }
 
-      codes.push(val);
+      showToast("⏳ Mencari kode...", "success");
+
+      try {
+        const res = await fetch("/api/lookup_code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: val, divisi: divisi })
+        });
+        const data = await res.json();
+
+        if (data.found) {
+          codes.push({
+            code: val,
+            spk: data.spk,
+            customer: data.customer,
+            produk: data.produk,
+            uk: data.uk,
+            checker: data.checker,
+            found: true
+          });
+          showToast("✔ Ditemukan: " + val, "success");
+        } else {
+          codes.push({ code: val, spk: "-", customer: "-", produk: "-", uk: "-", checker: "-", found: false });
+          showToast("⚠ Kode tidak ditemukan di katalog: " + val, "warning");
+        }
+      } catch (e) {
+        codes.push({ code: val, spk: "-", customer: "-", produk: "-", uk: "-", checker: "-", found: false });
+        showToast("⚠ Gagal lookup: " + val, "warning");
+      }
+
       renderList();
-      showToast("✔ Ditambahkan: " + val, "success");
       updateStats();
     }
 
-    // ── RENDER LIST ────────────────────────────────────────────────────────────
+    // ── RENDER LIST ──
     function renderList() {
       const list = document.getElementById("code-list");
       const empty = document.getElementById("list-empty");
       document.getElementById("list-count").textContent = codes.length;
-
-      // remove old rows (keep #list-empty)
       list.querySelectorAll(".code-row").forEach(r => r.remove());
 
       if (!codes.length) {
         empty.style.display = "";
+        hideBanner();
+        updateSubmitState();
         return;
       }
       empty.style.display = "none";
 
-      codes.forEach((code, i) => {
+      codes.forEach((c, i) => {
+        const valid = isCodeValid(c);
         const row = document.createElement("div");
-        row.className = "code-row";
+        row.className = "code-row" + (valid ? "" : " invalid");
+
+        const cell = (val, baseColor) => {
+          const missing = isFieldMissing(val);
+          const cls = "code-text" + (missing ? " missing" : "");
+          const color = missing ? "var(--danger)" : (baseColor || "var(--gray5)");
+          const display = missing ? "⚠ kosong" : escHtml(val);
+          return `<span class="${cls}" style="color:${color}">${display}</span>`;
+        };
+
         row.innerHTML = `
-      <span class="code-idx">${i + 1}</span>
-      <span class="code-text">${escHtml(code)}</span>
-      <button class="btn-del" onclick="deleteCode(${i})" title="Hapus">✕</button>
-    `;
+          <span class="code-idx">${i + 1}</span>
+          ${cell(c.code, valid ? 'var(--white)' : 'var(--accent2)')}
+          ${cell(c.spk)}
+          ${cell(c.customer)}
+          ${cell(c.produk)}
+          ${cell(c.checker)}
+          <button class="btn-del" onclick="deleteCode(${i})">✕</button>
+        `;
         list.appendChild(row);
       });
 
-      // scroll to bottom
       list.scrollTop = list.scrollHeight;
+      updateSubmitState();
     }
 
-    function escHtml(s) {
-      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    // ── VALIDATION BANNER & SUBMIT STATE ──
+    function updateSubmitState() {
+      const invalidRows = codes.filter(c => !isCodeValid(c));
+      const banner = document.getElementById("validate-banner");
+      const btn    = document.getElementById("btn-submit");
+      const fb     = document.getElementById("action-feedback");
+
+      if (invalidRows.length > 0) {
+        const lines = invalidRows.map(c => {
+          const badFields = REQUIRED_FIELDS.filter(f => isFieldMissing(c[f])).join(", ");
+          return `• ${escHtml(c.code)} &rarr; field kosong: ${badFields}`;
+        }).join("<br>");
+
+        banner.className = "validate-banner show";
+        banner.innerHTML = `
+          <strong>⛔ ${invalidRows.length} data belum lengkap — tidak bisa disimpan</strong><br>
+          <span style="opacity:.75;font-size:10px;display:block;margin-top:4px">${lines}</span>
+          <span style="opacity:.55;font-size:10px">Hapus kode yang tidak valid atau pastikan semua field terisi.</span>
+        `;
+
+        btn.disabled = true;
+        fb.textContent = `${invalidRows.length} data tidak valid`;
+        fb.className = "action-feedback err";
+      } else {
+        hideBanner();
+        btn.disabled = (codes.length === 0);
+        if (codes.length > 0) {
+          fb.textContent = `✔ Semua ${codes.length} data valid`;
+          fb.className = "action-feedback ok";
+        } else {
+          fb.textContent = "";
+          fb.className = "action-feedback";
+        }
+      }
     }
 
-    // ── DELETE / CLEAR ─────────────────────────────────────────────────────────
+    function hideBanner() {
+      document.getElementById("validate-banner").className = "validate-banner";
+    }
+
+    // ── DELETE / CLEAR ──
     function deleteCode(idx) {
       codes.splice(idx, 1);
       renderList();
@@ -913,18 +475,19 @@
 
     function clearAll() {
       if (!codes.length) return;
-      if (!confirm("Hapus semua " + codes.length + " kode yang sudah discan?")) return;
+      if (!confirm("Hapus semua " + codes.length + " kode?")) return;
       codes = [];
       renderList();
       updateStats();
     }
 
-    // ── STATS ──────────────────────────────────────────────────────────────────
     function updateStats() {
       document.getElementById("stat-count").textContent = codes.length;
+      const inv = codes.filter(c => !isCodeValid(c)).length;
+      document.getElementById("stat-invalid").textContent = inv;
     }
 
-    // ── TOAST ──────────────────────────────────────────────────────────────────
+    // ── TOAST ──
     let toastTimer;
     function showToast(msg, type = "success") {
       const t = document.getElementById("toast");
@@ -934,52 +497,40 @@
       toastTimer = setTimeout(() => t.className = "toast hidden", 3000);
     }
 
-    // ── SUBMIT ─────────────────────────────────────────────────────────────────
+    // ── SUBMIT ──
     async function submitCodes() {
-      if (!divisi) {
-        alert("Pilih divisi terlebih dahulu.");
+      if (!divisi) { alert("Pilih divisi terlebih dahulu."); return; }
+      if (!codes.length) { alert("Belum ada kode."); return; }
+
+      // Safety net
+      const invalid = codes.filter(c => !isCodeValid(c));
+      if (invalid.length > 0) {
+        alert(`⛔ Masih ada ${invalid.length} data tidak lengkap.\nPerbaiki atau hapus data tersebut terlebih dahulu.`);
         return;
       }
 
-      if (!codes.length) {
-        alert("Belum ada kode.");
-        return;
-      }
-
-      const btn = document.getElementById("btn-submit");
+      const btn     = document.getElementById("btn-submit");
       const spinner = document.getElementById("spinner");
-
       btn.disabled = true;
       spinner.style.display = "block";
 
       try {
         const res = await fetch("/save_csv", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            divisi: divisi,
-            codes: codes
-          })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ divisi: divisi, records: codes })
         });
 
-        // 🔥 AMANIN RESPONSE
-        const contentType = res.headers.get("content-type") || "";
-
-        if (!contentType.includes("application/json")) {
+        const ct = res.headers.get("content-type") || "";
+        if (!ct.includes("application/json")) {
           const text = await res.text();
-          throw new Error("Server bukan JSON:\n" + text.substring(0, 100));
+          throw new Error("Server error: " + text.substring(0, 100));
         }
 
         const result = await res.json();
+        if (!result.success) throw new Error(result.error);
 
-        if (!result.success) {
-          throw new Error(result.error);
-        }
-
-        alert("✅ Data Berhasil Disimpan");
-
+        alert("✅ " + codes.length + " kode berhasil disimpan.");
         codes = [];
         renderList();
         updateStats();
@@ -992,29 +543,7 @@
       spinner.style.display = "none";
     }
 
-    function csvFilename(div) {
-      return "scansalah" + div.toLowerCase() + ".csv";
-    }
-
-    function formatDatetime(d) {
-      const pad = n => String(n).padStart(2, "0");
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} `
-        + `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-    }
-
-    function downloadCSV(content, filename) {
-      const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    // ── RESET ──────────────────────────────────────────────────────────────────
+    // ── RESET ──
     function resetSession() {
       document.getElementById("result-panel").classList.remove("show");
       document.getElementById("scan-input").focus();
@@ -1022,5 +551,4 @@
     }
   </script>
 </body>
-
 </html>

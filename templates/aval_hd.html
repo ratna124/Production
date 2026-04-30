@@ -734,8 +734,8 @@
       <span class="topbar-title">Sistem Label & Output Produksi</span>
       <div class="topbar-right">
         <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">
-        &#128100; {{ current_user }}
-    </span>
+          &#128100; {{ current_user }}
+        </span>
         <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
         <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
         <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a> -->
@@ -852,7 +852,7 @@
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
-              <input type="text" id="divisi" value="HD" readonly>
+              <input type="text" id="divisi" value="Aval_HD" readonly>
             </div>
           </div>
         </div>
@@ -893,8 +893,22 @@
             </div>
             <!-- Jenis Aval -->
             <div class="field">
-              <label class="field-label">Jenis Aval<span class="req">*</span></label>
-              <select id="jenis_hd" required>
+              <label class="field-label">
+                Jenis Aval<span class="req">*</span>
+                <!-- kode tampil di sebelah label -->
+                <span id="jenis-kode-badge" style="
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: rgba(232,66,10,0.15);
+      color: var(--accent);
+      border: 1px solid rgba(232,66,10,0.4);
+      border-radius: 4px;
+      padding: 1px 8px;
+      margin-left: 8px;
+      display: none;
+    "></span>
+              </label>
+              <select id="jenis_hd" required onchange="updateJenisBadge(this.value)">
                 <option value="">-- Pilih Jenis Aval --</option>
                 <option value="Prong">Prong</option>
                 <option value="Daun">Daun</option>
@@ -909,11 +923,11 @@
             <!-- Kategori Aval -->
             <div class="field">
               <label class="field-label">Kategori Aval</label>
-              <input type="text" id="kategori_hd">
+              <input type="text" id="kategori_hd" value="HD" readonly>
             </div>
             <div class="field">
               <label class="field-label">Tali Aval</label>
-              <input type="text" id="tali">
+              <input type="text" id="tali" value="HD" readonly required>
             </div>
           </div>
         </div>
@@ -953,11 +967,10 @@
                   <tr>
                     <th>Tanggal</th>
                     <th>No SPK</th>
-                    <th>Produk</th>
-                    <th>Customer</th>
                     <th>Mesin</th>
-                    <th>Berat Total (kg)</th>
-                    <th>Berat Bersih (kg)</th>
+                    <th>Kategori Aval</th>
+                    <th>Jenis Aval</th>
+                    <th>Aval Qty (kg)</th>
                     <th>Divisi</th>
                     <th>Shift</th>
                     <th>Operator</th>
@@ -1070,7 +1083,7 @@
           // LOAD DATA
           async function loadRecent() {
             try {
-              const res = await fetch('/api/recent/hd');
+              const res = await fetch('/api/recent/aval_hd');
               const rows = await res.json();
 
               console.log(rows);
@@ -1102,10 +1115,9 @@
         <tr>
             <td>${(r.tanggal || "").replace("T", " ")}</td>
             <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
-            <td>${r.produk || ""}</td>
-            <td>${r.customer || ""}</td>
             <td>${r.mesin || ""}</td>
-            <td>${r.berat_kg || ""}</td>
+            <td>${r.kategori_hd || ""}</td>
+            <td>${r.jenis_hd || ""}</td>
             <td>${r.berat_bersih || ""}</td>
             <td>${r.divisi || ""}</td>
             <td>${r.shift || ""}</td>
@@ -1163,6 +1175,23 @@
           }
         </script>
         <script>
+          const JENIS_KODE = {
+            "Prong": "AHP",
+            "Daun": "AHD",
+            "Sapuan": "AHS",
+          };
+
+          function updateJenisBadge(val) {
+            const badge = document.getElementById("jenis-kode-badge");
+            if (JENIS_KODE[val]) {
+              badge.textContent = JENIS_KODE[val];
+              badge.style.display = "inline";
+            } else {
+              badge.style.display = "none";
+            }
+          }
+
+
           let timeout = null;
 
           document.getElementById("spk").addEventListener("input", function () {
@@ -1228,9 +1257,10 @@
               { id: "operator_hd", name: "Operator HD" },
               { id: "checker", name: "Checker" },
               { id: "spk", name: "No. SPK" },
-              { id: "mesin", name: "Mesin" },
-              { id: "berat_kg", name: "Berat (kg)" },
-              { id: "bobin", name: "Berat Bobin (kg)" }
+              { id: "jenis_hd", name: "Jenis Aval" },
+              { id: "kategori_hd", name: "Kategori Aval" },
+              { id: "berat_bersih", name: "Aval Qty (kg)" },
+              { id: "mesin", name: "Mesin" }
             ];
 
             for (let f of requiredFields) {
@@ -1244,13 +1274,6 @@
                 el.focus(); // fokus ke field yang kosong
                 return; // ❗ STOP submit
               }
-            }
-            if (parseFloat(document.getElementById("berat_kg").value) <
-              parseFloat(document.getElementById("bobin").value)) {
-
-              errorMsg.innerText = "Berat tidak boleh lebih kecil dari bobin";
-              errorMsg.classList.add("show");
-              return;
             }
 
             errorMsg.classList.remove("show");
@@ -1268,8 +1291,8 @@
               produk: document.getElementById("product").value,
               uk: document.getElementById("uk").value,
               mesin: document.getElementById("mesin").value,
-              berat_kg: document.getElementById("berat_kg").value,
-              bobin: document.getElementById("bobin").value,
+              jenis_hd: document.getElementById("jenis_hd").value,
+              kategori_hd: document.getElementById("kategori_hd").value,
               berat_bersih: document.getElementById("berat_bersih").value,
             };
 
@@ -1304,7 +1327,7 @@
           // ── RESET ────────────────────────────────────────────────
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
-            ['operator_hd', 'checker', 'spk', 'customer', 'product', 'uk', 'mesin', 'berat_kg', 'bobin', 'berat_bersih']
+            ['operator_hd', 'spk', 'customer', 'product', 'uk', 'mesin', 'jenis_hd', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
@@ -1312,23 +1335,6 @@
             updateProducts();
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }
-        </script>
-        <script>
-          function hitungBersih() {
-            const berat = parseFloat(document.getElementById("berat_kg").value) || 0;
-            const bobin = parseFloat(document.getElementById("bobin").value) || 0;
-
-            let hasil = berat - bobin;
-
-            // biar tidak minus
-            if (hasil < 0) hasil = 0;
-
-            document.getElementById("berat_bersih").value = hasil.toFixed(2);
-          }
-
-          // trigger saat input berubah
-          document.getElementById("berat_kg").addEventListener("input", hitungBersih);
-          document.getElementById("bobin").addEventListener("input", hitungBersih);
         </script>
 </body>
 
