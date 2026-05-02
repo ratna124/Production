@@ -153,19 +153,18 @@ LABEL_W = 560
 LABEL_H = 240
 
 FIELD_MAP = {
-    "MIXING": {"operator": "operator_mix", "wadah": "karung"},
-    "HD": {"operator": "operator_hd", "wadah": "bobin"},
-    "POTONG": {"operator": "operator_cu", "wadah": "keranjang"},
-    "PACKING": {"operator": "operator_pa", "wadah": ""},
-    "SISA_PACK": {"operator": "operator_sp", "wadah": "sisa"},
-
-    "AVAL_MIXING": {"operator": "operator_amix", "wadah": "jenis"},
-    "AVAL_HD": {"operator": "operator_hd", "wadah": "jenis_hd"},
-    "AVAL_POTONG": {"operator": "operator_cu", "wadah": ""},
-    "AVAL_PACKING": {"operator": "operator_pa", "wadah": ""},
-    "AVAL_QC": {"operator": "operator_qc", "wadah": ""},
+    "MIXING":       {"operator": "operator_mix", "wadah": "karung"},
+    "HD":           {"operator": "operator_hd",  "wadah": "bobin"},
+    "POTONG":       {"operator": "operator_cu",  "wadah": "keranjang"},
+    "PACKING":      {"operator": "operator_pa",  "wadah": ""},
+    "SISA_PACK":    {"operator": "operator_sp",  "wadah": "sisa"},
+    "AVAL_MIXING":  {"operator": "operator_amix","wadah": "jenis"},
+    "AVAL_HD":      {"operator": "operator_hd",  "wadah": "jenis_hd"},
+    "AVAL_POTONG":  {"operator": "operator_cu",  "wadah": ""},
+    "AVAL_PACKING": {"operator": "operator_pa",  "wadah": ""},
+    "AVAL_QC":      {"operator": "operator_qc",  "wadah": ""},
 }
-# ─── QR & LABEL ─────────────────────────────────────────────
+
 def generate_qr(code):
     qr = qrcode.make(code)
     return qr.convert("RGB")
@@ -174,17 +173,17 @@ def generate_label_image(order_id, data):
     img  = Image.new("RGB", (LABEL_W, LABEL_H), "white")
     draw = ImageDraw.Draw(img)
 
-    prefix, _, _, _ = get_prefix_from_code(data.get("code", ""))
+    # Ambil divisi dari data untuk lookup FIELD_MAP
+    divisi_raw = str(data.get("divisi", "")).strip().upper()
 
-    if prefix:
-        divisi = prefix
-    else:
-        divisi = data.get("divisi", "")
-    
+    # Untuk display di label, pakai prefix kalau ada
+    prefix, _, _, _ = get_prefix_from_code(data.get("code", ""))
+    divisi_display = prefix if prefix else divisi_raw
+
     # QR — center vertikal
     qr_size = 160
     qr = generate_qr(data["code"]).resize((qr_size, qr_size))
-    qr_y = (LABEL_H - qr_size) // 2  # center vertikal
+    qr_y = (LABEL_H - qr_size) // 2
     img.paste(qr, (8, qr_y))
 
     try:
@@ -196,32 +195,39 @@ def generate_label_image(order_id, data):
         font_md = font_sm
         font_lg = font_sm
 
-    config = FIELD_MAP.get(divisi, {})
-
+    # Lookup config dari divisi_raw
+    config         = FIELD_MAP.get(divisi_raw, {})
     operator_field = config.get("operator", "")
     wadah_field    = config.get("wadah", "")
 
-    operator = data.get(operator_field, "")
-    bobin    = data.get(wadah_field, "") or data.get("karung", "") or data.get("keranjang", "") or data.get("sisa", "") or ""
-    berat   = data.get("berat_bersih", "")
-    beratkg   = data.get("berat_kg", "")
-    spk     = data.get("spk", "")
-    uk      = data.get("uk", "")
-    tanggal = data.get("tanggal", "")
-    mesin = data.get("mesin", "")
-    shift   = data.get("shift", "")
-    checker = data.get("checker", "")
-    created = data.get("created_at", "")
-    customer = data.get("customer", "")
-    produk   = data.get("produk", "")
+    operator = str(data.get(operator_field, "") or "")
+    bobin    = str(data.get(wadah_field, "")    or
+                   data.get("karung", "")        or
+                   data.get("keranjang", "")     or
+                   data.get("sisa", "")          or "")
+    berat    = str(data.get("berat_bersih", "") or "")
+    beratkg  = str(data.get("berat_kg", "")     or "")
+    spk      = str(data.get("spk", "")          or "")
+    uk       = str(data.get("uk", "")           or "")
+    tanggal  = str(data.get("tanggal", "")      or "")
+    mesin    = str(data.get("mesin", "")        or "")
+    shift    = str(data.get("shift", "")        or "")
+    checker  = str(data.get("checker", "")      or "")
+    created  = str(data.get("created_at", "")   or "")
+    customer = str(data.get("customer", "")     or "")
+    produk   = str(data.get("produk", "")       or "")
+    if divisi_raw == "AVAL_MIXING":
+        customer = "AVAL SAPUAN"
+        produk   = "MIXING"
 
-    # Hitung total tinggi teks agar bisa center vertikal
-    gap       = 22
-    n_rows    = 5
-    total_h   = (n_rows - 1) * gap + 16  # 16 = approx font height
-    text_y    = (LABEL_H - total_h) // 2  # start y agar center vertikal
+    # Center vertikal teks
+    gap     = 22
+    n_rows  = 5
+    total_h = (n_rows - 1) * gap + 16
+    text_y  = (LABEL_H - total_h) // 2
 
-    x = 178
+    x     = 178
+    gap_x = 10
 
     # Border
     draw.rectangle([2, 2, LABEL_W - 3, LABEL_H - 3], outline="black", width=1)
@@ -229,65 +235,52 @@ def generate_label_image(order_id, data):
     # Garis pemisah vertikal
     draw.line([(170, 8), (170, LABEL_H - 8)], fill="#cccccc", width=1)
 
-    # Baris 1: Customer | PRODUK
+    # ── Baris 1: Customer | Produk ──
     y1 = text_y
-
-    # gambar customer dulu
     draw.text((x, y1), customer, fill="black", font=font_lg)
-
-    # hitung lebar customer (REAL pixel)
     bbox = draw.textbbox((x, y1), customer, font=font_lg)
-    customer_width = bbox[2] - bbox[0]
+    customer_w = bbox[2] - bbox[0]
+    draw.text((x + customer_w + gap_x, y1), produk, fill="black", font=font_lg)
 
-    # kasih jarak aman
-    gap_x = 10
-
-    # posisi produk = setelah customer
-    draw.text((x + customer_width + gap_x, y1), produk, fill="black", font=font_lg)
-
-# Baris 2: Spk | UK | Operator | Mesin
+    # ── Baris 2: SPK | UK | Operator | Mesin ──
     y2 = y1 + gap
-    draw.text((x,       y2), str(spk),            fill="black", font=font_md)
-    draw.text((x + 80,  y2), str(uk),             fill="black", font=font_md)
-    draw.text((x + 160, y2), str(operator),        fill="black", font=font_md)
-    draw.text((x + 240, y2), f"M{mesin}",          fill="black", font=font_md)
+    draw.text((x,       y2), spk,               fill="black", font=font_md)
+    draw.text((x + 80,  y2), uk,                fill="black", font=font_md)
+    draw.text((x + 160, y2), operator,           fill="black", font=font_md)
+    if mesin:
+        draw.text((x + 240, y2), f"M{mesin}",   fill="black", font=font_md)
 
-    # Baris 3: Bobin | Berat
+    # ── Baris 3: Berat | Bobin | BeratKg ──
     y3 = y2 + gap
-    draw.text((x,      y3), str(berat), fill="black", font=font_md)
-    draw.text((x + 80, y3), str(bobin), fill="black", font=font_md)
-    draw.text((x + 160, y3), str(beratkg), fill="black", font=font_md)
+    draw.text((x,       y3), berat,  fill="black", font=font_md)
+    draw.text((x + 80,  y3), bobin,  fill="black", font=font_md)
+    draw.text((x + 160, y3), beratkg,fill="black", font=font_md)
 
-    # Baris 4: Divisi | Tanggal | Shift | Checker
+    # ── Baris 4: Divisi | Tanggal | Shift | Checker ──
     y4 = y3 + gap
-    y4 = y3 + gap
-    gap_x = 10
     cur_x = x
 
-    # Divisi
-    draw.text((cur_x, y4), str(divisi), fill="black", font=font_md)
-    bbox = draw.textbbox((cur_x, y4), str(divisi), font=font_md)
+    draw.text((cur_x, y4), divisi_display, fill="black", font=font_md)
+    bbox   = draw.textbbox((cur_x, y4), divisi_display, font=font_md)
     cur_x += (bbox[2] - bbox[0]) + gap_x
 
-    # Tanggal
-    draw.text((cur_x, y4), str(tanggal), fill="black", font=font_md)
-    bbox = draw.textbbox((cur_x, y4), str(tanggal), font=font_md)
+    draw.text((cur_x, y4), tanggal, fill="black", font=font_md)
+    bbox   = draw.textbbox((cur_x, y4), tanggal, font=font_md)
     cur_x += (bbox[2] - bbox[0]) + gap_x
 
-    # Shift
     shift_text = f"({shift})"
     draw.text((cur_x, y4), shift_text, fill="black", font=font_md)
-    bbox = draw.textbbox((cur_x, y4), shift_text, font=font_md)
+    bbox   = draw.textbbox((cur_x, y4), shift_text, font=font_md)
     cur_x += (bbox[2] - bbox[0]) + gap_x
 
-    # Checker
-    draw.text((cur_x, y4), str(checker), fill="black", font=font_md)
+    draw.text((cur_x, y4), checker, fill="black", font=font_md)
 
-    # Baris 5: created_at
+    # ── Baris 5: created_at ──
     y5 = y4 + gap
-    draw.text((x, y5), str(created), fill="black", font=font_sm)
+    draw.text((x, y5), created, fill="black", font=font_sm)
 
     return img
+
 
 #print
 #@app.route("/label/print/<order_id>")
