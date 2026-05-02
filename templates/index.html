@@ -734,8 +734,8 @@
       <span class="topbar-title">Sistem Label & Output Produksi</span>
       <div class="topbar-right">
         <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">
-        &#128100; {{ current_user }}
-    </span>
+          &#128100; {{ current_user }}
+        </span>
         <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
         <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
         <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a> -->
@@ -1188,115 +1188,112 @@
           });
         </script>
         <script>
-          async function loadOperators() {
-            const divisi = document.getElementById("divisi").value; // "Mixing"
+  async function loadOperators() {
+    const divisi = document.getElementById("divisi").value;
+    try {
+      const res = await fetch(`/api/operators/${divisi}`);
+      const operators = await res.json();
+      const select = document.getElementById("operator_mix");
+      select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
+      operators.forEach(op => {
+        select.innerHTML += `<option value="${op}">${op}</option>`;
+      });
+    } catch (e) {
+      console.error("Gagal load operator:", e);
+    }
+  }
 
-            try {
-              const res = await fetch(`/api/operators/${divisi}`);
-              const operators = await res.json();
+  document.addEventListener("DOMContentLoaded", function () {
+    loadOperators();
+  });
 
-              const select = document.getElementById("operator_mix");
-              select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
+  async function submitForm() {
+    const btn      = document.getElementById("btn-submit");
+    const spinner  = document.getElementById("spinner");
+    const errorMsg = document.getElementById("error-msg");
 
-              operators.forEach(op => {
-                select.innerHTML += `<option value="${op}">${op}</option>`;
-              });
+    const requiredFields = [
+      { id: "operator_mix", name: "Operator Mix" },
+      { id: "checker",      name: "Checker" },
+      { id: "spk",          name: "No. SPK" },
+      { id: "berat_bersih", name: "Berat (kg)" }
+    ];
 
-            } catch (e) {
-              console.error("Gagal load operator:", e);
-            }
-          }
+    for (let f of requiredFields) {
+      const el  = document.getElementById(f.id);
+      const val = (el.value || "").toString().trim();
+      if (!val) {
+        errorMsg.innerText = `${f.name} wajib diisi`;
+        errorMsg.classList.add("show");
+        el.focus();
+        return;
+      }
+    }
 
-          // Panggil saat halaman siap
-          document.addEventListener("DOMContentLoaded", function () {
-            loadOperators();
-            // ... kode DOMContentLoaded lainnya yang sudah ada
-          });
+    errorMsg.classList.remove("show");
+    btn.disabled = true;
+    spinner.style.display = "block";
 
-          async function submitForm() {
-            const btn = document.getElementById("btn-submit");
-            const spinner = document.getElementById("spinner");
-            const errorMsg = document.getElementById("error-msg");
+    const data = {
+      tanggal:      document.getElementById("tanggal").value,
+      shift:        document.getElementById("shift").value,
+      operator_mix: document.getElementById("operator_mix").value,
+      checker:      document.getElementById("checker").value,
+      divisi:       document.getElementById("divisi").value,
+      spk:          document.getElementById("spk").value,
+      customer:     document.getElementById("customer").value,
+      produk:       document.getElementById("product").value,
+      uk:           document.getElementById("uk").value,
+      berat_bersih: document.getElementById("berat_bersih").value,
+      karung:       document.getElementById("karung").value
+    };
 
-            // VALIDASI WAJIB
-            const requiredFields = [
-              { id: "operator_mix", name: "Operator Mix" },
-              { id: "checker", name: "Checker" },
-              { id: "spk", name: "No. SPK" },
-              { id: "berat_bersih", name: "Berat (kg)" }
-            ];
+    try {
+  const res = await fetch("/api/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
 
-            for (let f of requiredFields) {
-              const el = document.getElementById(f.id);
-              const val = (el.value || "").toString().trim();
+  const result = await res.json();
+  if (!result.success) throw new Error(result.message);
 
-              if (!val) {
-                errorMsg.innerText = `${f.name} wajib diisi`;
-                errorMsg.classList.add("show");
+  // Buka popup DULU sebelum await lain — bypass popup blocker
+  const printWin = window.open("about:blank", "_blank");
 
-                el.focus(); // fokus ke field yang kosong
-                return; // ❗ STOP submit
-              }
-            }
+  document.getElementById("result-panel").classList.add("show");
+  document.getElementById("result-order-id").innerText = result.order_id;
+  document.getElementById("label-img").src = result.label_url;
+  document.getElementById("btn-print").href = `/label/print/${result.order_id}`;
 
-            errorMsg.classList.remove("show");
-            btn.disabled = true;
-            spinner.style.display = "block";
+  // Arahkan popup ke halaman print setelah dapat order_id
+  if (printWin) {
+    printWin.location.href = `/label/print/${result.order_id}`;
+  }
 
-            const data = {
-              tanggal: document.getElementById("tanggal").value,
-              shift: document.getElementById("shift").value,
-              operator_mix: document.getElementById("operator_mix").value,
-              checker: document.getElementById("checker").value,
-              divisi: document.getElementById("divisi").value,
-              spk: document.getElementById("spk").value,
-              customer: document.getElementById("customer").value,
-              produk: document.getElementById("product").value,
-              uk: document.getElementById("uk").value,
-              berat_bersih: document.getElementById("berat_bersih").value,
-              karung: document.getElementById("karung").value
-            };
+  loadRecent();
 
-            try {
-              const res = await fetch("/api/submit", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-              });
+} catch (err) {
+  errorMsg.innerText = err.message;
+  errorMsg.classList.add("show");
+}
 
-              const result = await res.json();
+    // ← ini wajib ada di luar try/catch agar selalu dijalankan
+    btn.disabled = false;
+    spinner.style.display = "none";
+  }
 
-              if (!result.success) throw new Error(result.message);
-
-              document.getElementById("result-panel").classList.add("show");
-              document.getElementById("result-order-id").innerText = result.order_id;
-
-              document.getElementById("label-img").src = result.label_url;
-              document.getElementById("btn-print").href = result.print_url;
-
-              loadRecent();
-
-            } catch (err) {
-              errorMsg.innerText = err.message;
-              errorMsg.classList.add("show");
-            }
-
-            btn.disabled = false;
-            spinner.style.display = "none";
-          }
-
-          // ── RESET ────────────────────────────────────────────────
-          function resetForm() {
-            document.getElementById('result-panel').classList.remove('show');
-            ['operator_mix','spk', 'customer', 'product', 'uk', 'berat_bersih']
-              .forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-              });
-            updateProducts();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }
-        </script>
+  // ── RESET ──
+  function resetForm() {
+    document.getElementById('result-panel').classList.remove('show');
+    ['operator_mix', 'spk', 'customer', 'product', 'uk', 'berat_bersih']
+      .forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
 </body>
 
 </html>

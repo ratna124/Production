@@ -895,18 +895,17 @@
             <div class="field">
               <label class="field-label">
                 Jenis Aval<span class="req">*</span>
-                <!-- kode tampil di sebelah label -->
                 <span id="jenis-kode-badge" style="
-      font-family: var(--font-mono);
-      font-size: 11px;
-      background: rgba(232,66,10,0.15);
-      color: var(--accent);
-      border: 1px solid rgba(232,66,10,0.4);
-      border-radius: 4px;
-      padding: 1px 8px;
-      margin-left: 8px;
-      display: none;
-    "></span>
+                  font-family: var(--font-mono);
+                  font-size: 11px;
+                  background: rgba(232,66,10,0.15);
+                  color: var(--accent);
+                  border: 1px solid rgba(232,66,10,0.4);
+                  border-radius: 4px;
+                  padding: 1px 8px;
+                  margin-left: 8px;
+                  display: none;
+              "></span>
               </label>
               <select id="jenis_hd" required onchange="updateJenisBadge(this.value)">
                 <option value="">-- Pilih Jenis Aval --</option>
@@ -927,7 +926,7 @@
             </div>
             <div class="field">
               <label class="field-label">Tali Aval</label>
-              <input type="text" id="tali" value="HD" readonly required>
+              <input type="text" id="tali" value="" readonly required>
             </div>
           </div>
         </div>
@@ -1195,40 +1194,38 @@
           let timeout = null;
 
           document.getElementById("spk").addEventListener("input", function () {
-  clearTimeout(timeout);
-  const spk = this.value.trim();
-  timeout = setTimeout(async () => {
-    if (!spk) return;
-    try {
-      const res  = await fetch(`/get-spk/${spk}`);
-      const data = await res.json();
-      if (data && Object.keys(data).length > 0) {
-        document.getElementById("customer").value    = data.customer   || "";
-        document.getElementById("product").value     = data.product    || "";
-        document.getElementById("uk").value          = data.uk         || "";
-        document.getElementById("kategori_hd").value = data.jenis_aval || "";
+            clearTimeout(timeout);
+            const spk = this.value.trim();
+            timeout = setTimeout(async () => {
+              if (!spk) return;
+              try {
+                const res = await fetch(`/get-spk/${spk}`);
+                const data = await res.json();
+                if (data && Object.keys(data).length > 0) {
+                  document.getElementById("customer").value = data.customer || "";
+                  document.getElementById("product").value = data.product || "";
+                  document.getElementById("uk").value = data.uk || "";
+                  document.getElementById("kategori_hd").value = data.jenis_aval || "";
 
-        // ← auto-isi tali dari kategori
-        if (data.jenis_aval) {
-          const resTali = await fetch(`/api/tali/${encodeURIComponent(data.jenis_aval)}`);
-          const dataTali = await resTali.json();
-          document.getElementById("tali").value = dataTali.warna || "";
-        } else {
-          document.getElementById("tali").value = "";
-        }
-
-      } else {
-        document.getElementById("customer").value    = "";
-        document.getElementById("product").value     = "";
-        document.getElementById("uk").value          = "";
-        document.getElementById("kategori_hd").value = "";
-        document.getElementById("tali").value        = "";
-      }
-    } catch (err) {
-      console.error("Error SPK:", err);
-    }
-  }, 70);
-});
+                  if (data.jenis_aval) {
+                    const resTali = await fetch(`/api/tali/${encodeURIComponent(data.jenis_aval)}`);
+                    const dataTali = await resTali.json();
+                    document.getElementById("tali").value = dataTali.warna || "";
+                  } else {
+                    document.getElementById("tali").value = "";
+                  }
+                } else {
+                  document.getElementById("customer").value = "";
+                  document.getElementById("product").value = "";
+                  document.getElementById("uk").value = "";
+                  document.getElementById("kategori_hd").value = "";
+                  document.getElementById("tali").value = "";
+                }
+              } catch (err) {
+                console.error("Error SPK:", err);
+              }
+            }, 70);
+          });
         </script>
         <script>
           async function loadOperators() {

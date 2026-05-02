@@ -6,8 +6,6 @@ from datetime import datetime, timedelta
 import pandas as pd
 from pathlib import Path
 
-
-
 app = Flask(__name__)
 
 # ─── CONFIG ─────────────────────────────────────────────────
@@ -24,7 +22,7 @@ SPK_CSV      = r"Z:\Checker\Summary SPK.csv"
 USER_EXCEL   = r"Z:\Checker\Production\other\other.xlsx"
 USER_SHEET   = "User"
 
-# Katalog produksi (dipakai save_record + recent + lookup)
+# Katalog produksi
 CSV_MIXING      = r"Z:\Checker\Production\Database\katalogmixing.csv"
 CSV_HD          = r"Z:\Checker\Production\Database\kataloghd.csv"
 CSV_POTONG      = r"Z:\Checker\Production\Database\katalogpotong.csv"
@@ -36,7 +34,7 @@ CSV_AVAL_POTONG = r"Z:\Checker\Production\Database\katalogavalpotong.csv"
 CSV_AVAL_PACKING = r"Z:\Checker\Production\Database\katalogavalpacking.csv"
 CSV_AVAL_QC = r"Z:\Checker\Production\Database\katalogavalqc.csv"
 
-# Katalog map untuk lookup kode (scan salah)
+# Katalog map (scan salah)
 CATALOG_MAP = {
     "MIXING":      CSV_MIXING,
     "HD":          CSV_HD,
@@ -60,7 +58,7 @@ CSV_SCAN_FILES = {
     "scansalahqc.csv":      SCAN_DIR / "scansalahqc.csv",
 }
 
-# Prefix kode → (file csv, catalog untuk lookup, label divisi)
+# Prefix kode Aval
 PREFIX_CONFIG = {
     "HD":  ("scansalahhd.csv",      "HD",          "HD"),
     "AHP": ("scansalahhd.csv",      "AVAL_HD",     "HD — Prong"),
@@ -88,11 +86,7 @@ CSV_SCAN_COLUMNS = ["create_at", "divisi", "prefix", "divisi_label", "spk", "cus
 import re
 
 def get_prefix_from_code(code: str):
-    """
-    Ekstrak prefix dari kode barcode.
-    Coba 3 karakter dulu, lalu 2 karakter.
-    Return (prefix, csv_filename, catalog_key, divisi_label) atau None.
-    """
+
     code = code.strip().upper()
     m = re.match(r'^([A-Z]+)', code)
     if not m:
@@ -105,8 +99,6 @@ def get_prefix_from_code(code: str):
             csv_file, catalog_key, label = PREFIX_CONFIG[p]
             return p, csv_file, catalog_key, label
     return None, None, None, None
-
-
 
 # ─── SESSION TIMEOUT ────────────────────────────────────────
 @app.before_request
@@ -129,7 +121,6 @@ def check_session_timeout():
 
     session["last_active"] = now.isoformat()
 
-
 # ─── AUTH HELPERS ────────────────────────────────────────────
 def load_users():
     df = pd.read_excel(USER_EXCEL, sheet_name=USER_SHEET, engine="openpyxl")
@@ -139,7 +130,6 @@ def load_users():
     df["password"] = df["password"].astype(str).str.strip()
     return df
 
-
 def login_required(f):
     @functools.wraps(f)
     def decorated(*args, **kwargs):
@@ -147,7 +137,6 @@ def login_required(f):
             return redirect("/login")
         return f(*args, **kwargs)
     return decorated
-
 
 def admin_required(f):
     @functools.wraps(f)
@@ -167,48 +156,115 @@ def generate_qr(code):
     qr = qrcode.make(code)
     return qr.convert("RGB")
 
-
 def generate_label_image(order_id, data):
     img  = Image.new("RGB", (LABEL_W, LABEL_H), "white")
     draw = ImageDraw.Draw(img)
 
-    qr = generate_qr(data["code"]).resize((180, 180))
-    img.paste(qr, (10, 30))
+    # QR — center vertikal
+    qr_size = 160
+    qr = generate_qr(data["code"]).resize((qr_size, qr_size))
+    qr_y = (LABEL_H - qr_size) // 2  # center vertikal
+    img.paste(qr, (8, qr_y))
 
     try:
-        font = ImageFont.truetype("arial.ttf", 16)
+        font_sm = ImageFont.truetype("arial.ttf", 13)
+        font_md = ImageFont.truetype("arial.ttf", 15)
+        font_lg = ImageFont.truetype("arial.ttf", 16)
     except:
-        font = ImageFont.load_default()
-
-    x, y, gap = 210, 20, 22
+        font_sm = ImageFont.load_default()
+        font_md = font_sm
+        font_lg = font_sm
 
     operator = (
         data.get("operator_mix") or data.get("operator_hd") or
         data.get("operator_cu")  or data.get("operator_pa")  or
         data.get("operator_sp")  or data.get("operator_amix") or
-        data.get("operator_hd")  or data.get("operator_hd") or
-        data.get("operator_qc")  or data.get("operator_qc")
+        data.get("operator_qc")  or ""
     )
 
-    text_data = [
-        data.get("customer"),
-        data.get("spk"),
-        data.get("produk"),
-        data.get("uk"),
-        operator,
-        f"{data.get('berat_bersih')} kg",
-        f"{data.get('karung', '')} kg",
-        data.get("divisi"),
-        data.get("tanggal"),
-        data.get("shift"),
-        data.get("checker"),
-        data.get("created_at"),
-    ]
+    bobin   = data.get("bobin", "") or data.get("karung", "") or data.get("keranjang", "") or data.get("sisa", "") or ""
+    berat   = data.get("berat_bersih", "")
+    spk     = data.get("spk", "")
+    uk      = data.get("uk", "")
+    divisi  = data.get("divisi", "")
+    tanggal = data.get("tanggal", "")
+    shift   = data.get("shift", "")
+    checker = data.get("checker", "")
+    created = data.get("created_at", "")
+    customer = data.get("customer", "")
+    produk   = data.get("produk", "")
 
-    for i, t in enumerate(text_data):
-        draw.text((x, y + i * gap), str(t or ""), fill="black", font=font)
+    # Hitung total tinggi teks agar bisa center vertikal
+    gap       = 22
+    n_rows    = 5
+    total_h   = (n_rows - 1) * gap + 16  # 16 = approx font height
+    text_y    = (LABEL_H - total_h) // 2  # start y agar center vertikal
+
+    x = 178
+
+    # Border
+    draw.rectangle([2, 2, LABEL_W - 3, LABEL_H - 3], outline="black", width=1)
+
+    # Garis pemisah vertikal
+    draw.line([(170, 8), (170, LABEL_H - 8)], fill="#cccccc", width=1)
+
+    # Baris 1: Customer | PRODUK
+    y1 = text_y
+    draw.text((x,      y1), customer, fill="black", font=font_lg)
+    draw.text((x + max(len(customer) * 9, 80), y1), produk, fill="black", font=font_lg)
+
+    # Baris 2: Spk | UK | Operator
+    y2 = y1 + gap
+    draw.text((x,       y2), str(spk),     fill="black", font=font_md)
+    draw.text((x + 80,  y2), str(uk),      fill="black", font=font_md)
+    draw.text((x + 160, y2), str(operator),fill="black", font=font_md)
+
+    # Baris 3: Bobin | Berat
+    y3 = y2 + gap
+    draw.text((x,      y3), str(bobin), fill="black", font=font_md)
+    draw.text((x + 80, y3), str(berat), fill="black", font=font_md)
+
+    # Baris 4: Divisi | Tanggal | Shift | Checker
+    y4 = y3 + gap
+    draw.text((x,       y4), str(divisi),   fill="black", font=font_md)
+    draw.text((x + 60,  y4), str(tanggal),  fill="black", font=font_md)
+    draw.text((x + 175, y4), f"({shift})",  fill="black", font=font_md)
+    draw.text((x + 210, y4), str(checker),  fill="black", font=font_md)
+
+    # Baris 5: created_at
+    y5 = y4 + gap
+    draw.text((x, y5), str(created), fill="black", font=font_sm)
 
     return img
+
+#print
+@app.route("/label/print/<order_id>")
+@login_required
+def label_print(order_id):
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * {{ margin:0; padding:0; box-sizing:border-box; }}
+  body {{ background:white; }}
+  .page {{ page-break-after: always; display:flex; justify-content:center; align-items:center; height:100vh; }}
+  .page:last-child {{ page-break-after: auto; }}
+  img {{ max-width:100%; }}
+  @media print {{
+    @page {{ margin:0; size:auto; }}
+  }}
+</style>
+</head>
+<body>
+  <div class="page"><img src="/label/{order_id}"></div>
+  <div class="page"><img src="/label/{order_id}"></div>
+  <script>
+    window.onload = function() {{
+      setTimeout(function() {{ window.print(); }}, 500);
+    }};
+  </script>
+</body>
+</html>"""
 
 
 # ─── CODE GENERATOR ─────────────────────────────────────────
@@ -228,7 +284,6 @@ def generate_code(data):
 
     divisi = str(data.get("divisi", "")).strip().upper()
 
-    # Khusus AVAL_HD: kode tergantung jenis_hd
     if divisi == "AVAL_HD":
         jenis_map = {
             "Prong":  "AHP",
@@ -388,7 +443,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-
 # ─── CSV INIT ───────────────────────────────────────────────
 CSV_HEADERS = [
     "tanggal","shift","divisi",
@@ -411,7 +465,6 @@ def ensure_csv_scan(path):
         with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=CSV_SCAN_COLUMNS)
             writer.writeheader()
-
 
 # ─── SAVE RECORD ────────────────────────────────────────────
 def save_record(data):
@@ -584,10 +637,7 @@ def save_record(data):
         writer.writerow({k: data.get(k, "") for k in headers})
 
 
-# ═══════════════════════════════════════════════════════════════
 # ROUTES
-# ═══════════════════════════════════════════════════════════════
-
 # ─── AUTH ───────────────────────────────────────────────────
 @app.route("/")
 def home():
@@ -715,14 +765,13 @@ def get_tali(kategori):
     try:
         df = pd.read_excel(USER_EXCEL, sheet_name="Tali", engine="openpyxl")
         df.columns = df.columns.str.strip()
-        df["jenis_aval"] = df["jenis_aval"].astype(str).str.strip()
-        row = df[df["jenis_aval"] == kategori.strip()]
+        df["kategori_aval"] = df["kategori_aval"].astype(str).str.strip()
+        row = df[df["kategori_aval"] == kategori.strip()]
         if not row.empty:
-            return jsonify({"warna": str(row.iloc[0].get("Warna", ""))})
+            return jsonify({"warna": str(row.iloc[0].get("warna_tali", ""))})
         return jsonify({"warna": ""})
     except Exception as e:
         return jsonify({"warna": "", "error": str(e)})
-
 
 # ─── API: SPK LOOKUP ────────────────────────────────────────
 @app.route("/get-spk/<spk>")
@@ -752,7 +801,6 @@ def lookup_code():
         if not code:
             return jsonify(found=False, error="Kode kosong")
 
-        # Auto-detect prefix
         prefix, csv_file, catalog_key, divisi_label = get_prefix_from_code(code)
 
         if not prefix or catalog_key not in CATALOG_MAP:
@@ -764,7 +812,6 @@ def lookup_code():
                 csv_file=None
             )
 
-        # Lookup di katalog yang sesuai
         catalog_path = CATALOG_MAP[catalog_key]
         if not os.path.exists(catalog_path):
             return jsonify(
@@ -803,7 +850,6 @@ def lookup_code():
         )
     except Exception as e:
         return jsonify(found=False, error=str(e))
-
 
 # ─── API: SAVE SCAN SALAH ───────────────────────────────────
 @app.route("/save_csv", methods=["POST"])
