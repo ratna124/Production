@@ -208,6 +208,7 @@ def generate_label_image(order_id, data):
     spk     = data.get("spk", "")
     uk      = data.get("uk", "")
     tanggal = data.get("tanggal", "")
+    mesin = data.get("mesin", "")
     shift   = data.get("shift", "")
     checker = data.get("checker", "")
     created = data.get("created_at", "")
@@ -244,11 +245,12 @@ def generate_label_image(order_id, data):
     # posisi produk = setelah customer
     draw.text((x + customer_width + gap_x, y1), produk, fill="black", font=font_lg)
 
-    # Baris 2: Spk | UK | Operator
+# Baris 2: Spk | UK | Operator | Mesin
     y2 = y1 + gap
-    draw.text((x,       y2), str(spk),     fill="black", font=font_md)
-    draw.text((x + 80,  y2), str(uk),      fill="black", font=font_md)
-    draw.text((x + 160, y2), str(operator),fill="black", font=font_md)
+    draw.text((x,       y2), str(spk),            fill="black", font=font_md)
+    draw.text((x + 80,  y2), str(uk),             fill="black", font=font_md)
+    draw.text((x + 160, y2), str(operator),        fill="black", font=font_md)
+    draw.text((x + 240, y2), f"M{mesin}",          fill="black", font=font_md)
 
     # Baris 3: Bobin | Berat
     y3 = y2 + gap
@@ -461,7 +463,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS katalogavalHD (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, operator_hd TEXT, checker TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_hd TEXT, checker TEXT,
         mesin REAL, jenis_hd TEXT, kategori_hd TEXT, berat_bersih REAL,
         created_at TEXT, code TEXT
     )""")
@@ -470,7 +472,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS katalogavalpotong (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, operator_cu TEXT, checker TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_cu TEXT, checker TEXT,
         mesin REAL, jenis_cu TEXT, kategori_cu TEXT, berat_bersih REAL,
         created_at TEXT, code TEXT
     )""")
@@ -479,7 +481,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS katalogavalpacking (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, operator_pa TEXT, checker TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_pa TEXT, checker TEXT,
         mesin REAL, jenis_pa TEXT, kategori_pa TEXT, berat_bersih REAL,
         created_at TEXT, code TEXT
     )""")
@@ -488,7 +490,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS katalogavalqc (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, operator_qc TEXT, checker TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_qc TEXT, checker TEXT,
         mesin REAL, kategori_qc TEXT, berat_bersih REAL,
         created_at TEXT, code TEXT
     )""")
@@ -603,61 +605,61 @@ def save_record(data):
     elif div == "AVAL_HD":
         c.execute("""
         INSERT INTO katalogavalhd (
-            tanggal, shift, divisi, spk,
+            tanggal, shift, divisi, spk, customer, produk, uk,
             operator_hd, checker, mesin, jenis_hd, kategori_hd, berat_bersih, 
             created_at, code
         ) VALUES (
-            :tanggal, :shift, :divisi, :spk,
+            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
             :operator_hd, :checker, :mesin, :jenis_hd, :kategori_hd, :berat_bersih,
             :created_at, :code
         )""", data)
         csv_path = CSV_AVAL_HD
-        headers  = ["tanggal","shift","divisi","spk",
+        headers  = ["tanggal","shift","divisi","spk","customer","produk","uk",
                     "operator_hd","checker","mesin","jenis_hd","kategori_hd","berat_bersih","created_at","code"]
 
     elif div == "AVAL_POTONG":
         c.execute("""
         INSERT INTO katalogavalpotong (
-            tanggal, shift, divisi, spk,
+            tanggal, shift, divisi, spk, customer, produk, uk,
             operator_cu, checker, mesin, jenis_cu, kategori_cu, berat_bersih, 
             created_at, code
         ) VALUES (
-            :tanggal, :shift, :divisi, :spk,
+            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
             :operator_cu, :checker, :mesin, :jenis_cu, :kategori_cu, :berat_bersih,
             :created_at, :code
         )""", data)
         csv_path = CSV_AVAL_POTONG
-        headers  = ["tanggal","shift","divisi","spk",
+        headers  = ["tanggal","shift","divisi","spk","customer","produk","uk",
                     "operator_cu","checker","mesin","jenis_cu","kategori_cu","berat_bersih","created_at","code"]
   
     elif div == "AVAL_PACKING":
         c.execute("""
         INSERT INTO katalogavalpacking (
-            tanggal, shift, divisi, spk,
+            tanggal, shift, divisi, spk, customer, produk, uk,
             operator_pa, checker, mesin, jenis_pa, kategori_pa, berat_bersih, 
             created_at, code
         ) VALUES (
-            :tanggal, :shift, :divisi, :spk,
+            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
             :operator_pa, :checker, :mesin, :jenis_pa, :kategori_pa, :berat_bersih,
             :created_at, :code
         )""", data)
         csv_path = CSV_AVAL_PACKING
-        headers  = ["tanggal","shift","divisi","spk",
+        headers  = ["tanggal","shift","divisi","spk", "customer","produk","uk",
                     "operator_pa","checker","mesin","jenis_pa","kategori_pa","berat_bersih","created_at","code"]
 
     elif div == "AVAL_QC":
         c.execute("""
         INSERT INTO katalogavalqc (
-            tanggal, shift, divisi, spk,
+            tanggal, shift, divisi, spk, customer, produk, uk,
             operator_qc, checker, mesin, kategori_qc, berat_bersih, 
             created_at, code
         ) VALUES (
-            :tanggal, :shift, :divisi, :spk,
+            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
             :operator_qc, :checker, :mesin, :kategori_qc, :berat_bersih,
             :created_at, :code
         )""", data)
         csv_path = CSV_AVAL_QC
-        headers  = ["tanggal","shift","divisi","spk",
+        headers  = ["tanggal","shift","divisi","spk","customer","produk","uk",
                     "operator_qc","checker","mesin","kategori_qc","berat_bersih","created_at","code"]
 
 
@@ -1036,7 +1038,8 @@ def submit():
             record = {
                 "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
                 "shift": d.get("shift"), "divisi": div,
-                "spk": d.get("spk"),
+                "spk": d.get("spk"),"customer": d.get("customer"),
+                "produk": d.get("produk"), "uk": d.get("uk"),
                 "operator_hd": d.get("operator_hd"), "checker": d.get("checker"),
                 "mesin": d.get("mesin"),
                 "jenis_hd": d.get("jenis_hd"),
@@ -1048,7 +1051,8 @@ def submit():
             record = {
                 "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
                 "shift": d.get("shift"), "divisi": div,
-                "spk": d.get("spk"),
+                "spk": d.get("spk"),"customer": d.get("customer"),
+                "produk": d.get("produk"), "uk": d.get("uk"),
                 "operator_cu": d.get("operator_cu"), "checker": d.get("checker"),
                 "mesin": d.get("mesin"),
                 "jenis_cu": d.get("jenis_cu"),
@@ -1060,7 +1064,8 @@ def submit():
             record = {
                 "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
                 "shift": d.get("shift"), "divisi": div,
-                "spk": d.get("spk"),
+                "spk": d.get("spk"),"customer": d.get("customer"),
+                "produk": d.get("produk"), "uk": d.get("uk"),
                 "operator_pa": d.get("operator_pa"), "checker": d.get("checker"),
                 "mesin": d.get("mesin"),
                 "jenis_pa": d.get("jenis_pa"),
@@ -1072,7 +1077,8 @@ def submit():
             record = {
                 "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
                 "shift": d.get("shift"), "divisi": div,
-                "spk": d.get("spk"),
+                "spk": d.get("spk"),"customer": d.get("customer"),
+                "produk": d.get("produk"), "uk": d.get("uk"),
                 "operator_qc": d.get("operator_qc"), "checker": d.get("checker"),
                 "mesin": d.get("mesin"),
                 "kategori_qc": d.get("kategori_qc"),

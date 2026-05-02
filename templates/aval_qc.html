@@ -941,6 +941,9 @@
                   <tr>
                     <th>Tanggal</th>
                     <th>No SPK</th>
+                    <th>Customer</th>
+                    <th>Produk</th>
+                    <th>Ukuran</th>
                     <th>Mesin</th>
                     <th>Kategori Aval</th>
                     <th>Aval Qty (kg)</th>
@@ -1088,6 +1091,9 @@
         <tr>
             <td>${(r.tanggal || "").replace("T", " ")}</td>
             <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
+            <td>${r.customer || ""}</td>
+            <td>${r.produk || ""}</td>
+            <td>${r.uk || ""}</td>
             <td>${r.mesin || ""}</td>
             <td>${r.kategori_qc || ""}</td>
             <td>${r.berat_bersih || ""}</td>
