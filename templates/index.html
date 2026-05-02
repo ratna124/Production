@@ -1188,112 +1188,112 @@
           });
         </script>
         <script>
-  async function loadOperators() {
-    const divisi = document.getElementById("divisi").value;
-    try {
-      const res = await fetch(`/api/operators/${divisi}`);
-      const operators = await res.json();
-      const select = document.getElementById("operator_mix");
-      select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
-      operators.forEach(op => {
-        select.innerHTML += `<option value="${op}">${op}</option>`;
-      });
-    } catch (e) {
-      console.error("Gagal load operator:", e);
-    }
-  }
+          async function loadOperators() {
+            const divisi = document.getElementById("divisi").value;
+            try {
+              const res = await fetch(`/api/operators/${divisi}`);
+              const operators = await res.json();
+              const select = document.getElementById("operator_mix");
+              select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
+              operators.forEach(op => {
+                select.innerHTML += `<option value="${op}">${op}</option>`;
+              });
+            } catch (e) {
+              console.error("Gagal load operator:", e);
+            }
+          }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    loadOperators();
-  });
+          document.addEventListener("DOMContentLoaded", function () {
+            loadOperators();
+          });
 
-  async function submitForm() {
-    const btn      = document.getElementById("btn-submit");
-    const spinner  = document.getElementById("spinner");
-    const errorMsg = document.getElementById("error-msg");
+          async function submitForm() {
+            const btn = document.getElementById("btn-submit");
+            const spinner = document.getElementById("spinner");
+            const errorMsg = document.getElementById("error-msg");
 
-    const requiredFields = [
-      { id: "operator_mix", name: "Operator Mix" },
-      { id: "checker",      name: "Checker" },
-      { id: "spk",          name: "No. SPK" },
-      { id: "berat_bersih", name: "Berat (kg)" }
-    ];
+            const requiredFields = [
+              { id: "operator_mix", name: "Operator Mix" },
+              { id: "checker", name: "Checker" },
+              { id: "spk", name: "No. SPK" },
+              { id: "berat_bersih", name: "Berat (kg)" }
+            ];
 
-    for (let f of requiredFields) {
-      const el  = document.getElementById(f.id);
-      const val = (el.value || "").toString().trim();
-      if (!val) {
-        errorMsg.innerText = `${f.name} wajib diisi`;
-        errorMsg.classList.add("show");
-        el.focus();
-        return;
-      }
-    }
+            for (let f of requiredFields) {
+              const el = document.getElementById(f.id);
+              const val = (el.value || "").toString().trim();
+              if (!val) {
+                errorMsg.innerText = `${f.name} wajib diisi`;
+                errorMsg.classList.add("show");
+                el.focus();
+                return;
+              }
+            }
 
-    errorMsg.classList.remove("show");
-    btn.disabled = true;
-    spinner.style.display = "block";
+            errorMsg.classList.remove("show");
+            btn.disabled = true;
+            spinner.style.display = "block";
 
-    const data = {
-      tanggal:      document.getElementById("tanggal").value,
-      shift:        document.getElementById("shift").value,
-      operator_mix: document.getElementById("operator_mix").value,
-      checker:      document.getElementById("checker").value,
-      divisi:       document.getElementById("divisi").value,
-      spk:          document.getElementById("spk").value,
-      customer:     document.getElementById("customer").value,
-      produk:       document.getElementById("product").value,
-      uk:           document.getElementById("uk").value,
-      berat_bersih: document.getElementById("berat_bersih").value,
-      karung:       document.getElementById("karung").value
-    };
+            const data = {
+              tanggal: document.getElementById("tanggal").value,
+              shift: document.getElementById("shift").value,
+              operator_mix: document.getElementById("operator_mix").value,
+              checker: document.getElementById("checker").value,
+              divisi: document.getElementById("divisi").value,
+              spk: document.getElementById("spk").value,
+              customer: document.getElementById("customer").value,
+              produk: document.getElementById("product").value,
+              uk: document.getElementById("uk").value,
+              berat_bersih: document.getElementById("berat_bersih").value,
+              karung: document.getElementById("karung").value
+            };
 
-    try {
-  const res = await fetch("/api/submit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
-  });
+            try {
+              const res = await fetch("/api/submit", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+              });
 
-  const result = await res.json();
-  if (!result.success) throw new Error(result.message);
+              const result = await res.json();
+              if (!result.success) throw new Error(result.message);
 
-  // Buka popup DULU sebelum await lain — bypass popup blocker
-  const printWin = window.open("about:blank", "_blank");
+              // Buka popup DULU sebelum await lain — bypass popup blocker
+             // const printWin = window.open("about:blank", "_blank");
 
-  document.getElementById("result-panel").classList.add("show");
-  document.getElementById("result-order-id").innerText = result.order_id;
-  document.getElementById("label-img").src = result.label_url;
-  document.getElementById("btn-print").href = `/label/print/${result.order_id}`;
+              document.getElementById("result-panel").classList.add("show");
+              document.getElementById("result-order-id").innerText = result.order_id;
+              document.getElementById("label-img").src = result.label_url;
+            //  document.getElementById("btn-print").href = `/label/print/${result.order_id}`;
 
-  // Arahkan popup ke halaman print setelah dapat order_id
-  if (printWin) {
-    printWin.location.href = `/label/print/${result.order_id}`;
-  }
+              // Arahkan popup ke halaman print setelah dapat order_id
+         //     if (printWin) {
+          //      printWin.location.href = `/label/print/${result.order_id}`;
+         //     }
 
-  loadRecent();
+              loadRecent();
 
-} catch (err) {
-  errorMsg.innerText = err.message;
-  errorMsg.classList.add("show");
-}
+            } catch (err) {
+              errorMsg.innerText = err.message;
+              errorMsg.classList.add("show");
+            }
 
-    // ← ini wajib ada di luar try/catch agar selalu dijalankan
-    btn.disabled = false;
-    spinner.style.display = "none";
-  }
+            // ← ini wajib ada di luar try/catch agar selalu dijalankan
+            btn.disabled = false;
+            spinner.style.display = "none";
+          }
 
-  // ── RESET ──
-  function resetForm() {
-    document.getElementById('result-panel').classList.remove('show');
-    ['operator_mix', 'spk', 'customer', 'product', 'uk', 'berat_bersih']
-      .forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-      });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-</script>
+          // ── RESET ──
+          function resetForm() {
+            document.getElementById('result-panel').classList.remove('show');
+            ['operator_mix', 'spk', 'customer', 'product', 'uk', 'berat_bersih']
+              .forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+              });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        </script>
 </body>
 
 </html>

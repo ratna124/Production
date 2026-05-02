@@ -151,6 +151,20 @@ def admin_required(f):
 # ─── LABEL SIZE ─────────────────────────────────────────────
 LABEL_W = 560
 LABEL_H = 240
+
+FIELD_MAP = {
+    "MIXING": {"operator": "operator_mix", "wadah": "karung"},
+    "HD": {"operator": "operator_hd", "wadah": "bobin"},
+    "POTONG": {"operator": "operator_cu", "wadah": "keranjang"},
+    "PACKING": {"operator": "operator_pa", "wadah": ""},
+    "SISA_PACK": {"operator": "operator_sp", "wadah": "sisa"},
+
+    "AVAL_MIXING": {"operator": "operator_amix", "wadah": "jenis"},
+    "AVAL_HD": {"operator": "operator_hd", "wadah": "jenis_hd"},
+    "AVAL_POTONG": {"operator": "operator_cu", "wadah": ""},
+    "AVAL_PACKING": {"operator": "operator_pa", "wadah": ""},
+    "AVAL_QC": {"operator": "operator_qc", "wadah": ""},
+}
 # ─── QR & LABEL ─────────────────────────────────────────────
 def generate_qr(code):
     qr = qrcode.make(code)
@@ -160,6 +174,13 @@ def generate_label_image(order_id, data):
     img  = Image.new("RGB", (LABEL_W, LABEL_H), "white")
     draw = ImageDraw.Draw(img)
 
+    prefix, _, _, _ = get_prefix_from_code(data.get("code", ""))
+
+    if prefix:
+        divisi = prefix
+    else:
+        divisi = data.get("divisi", "")
+    
     # QR — center vertikal
     qr_size = 160
     qr = generate_qr(data["code"]).resize((qr_size, qr_size))
@@ -175,18 +196,17 @@ def generate_label_image(order_id, data):
         font_md = font_sm
         font_lg = font_sm
 
-    operator = (
-        data.get("operator_mix") or data.get("operator_hd") or
-        data.get("operator_cu")  or data.get("operator_pa")  or
-        data.get("operator_sp")  or data.get("operator_amix") or
-        data.get("operator_qc")  or ""
-    )
+    config = FIELD_MAP.get(divisi, {})
 
-    bobin   = data.get("bobin", "") or data.get("karung", "") or data.get("keranjang", "") or data.get("sisa", "") or ""
+    operator_field = config.get("operator", "")
+    wadah_field    = config.get("wadah", "")
+
+    operator = data.get(operator_field, "")
+    bobin    = data.get(wadah_field, "") or data.get("karung", "") or data.get("keranjang", "") or data.get("sisa", "") or ""
     berat   = data.get("berat_bersih", "")
+    beratkg   = data.get("berat_kg", "")
     spk     = data.get("spk", "")
     uk      = data.get("uk", "")
-    divisi  = data.get("divisi", "")
     tanggal = data.get("tanggal", "")
     shift   = data.get("shift", "")
     checker = data.get("checker", "")
@@ -210,8 +230,19 @@ def generate_label_image(order_id, data):
 
     # Baris 1: Customer | PRODUK
     y1 = text_y
-    draw.text((x,      y1), customer, fill="black", font=font_lg)
-    draw.text((x + max(len(customer) * 9, 80), y1), produk, fill="black", font=font_lg)
+
+    # gambar customer dulu
+    draw.text((x, y1), customer, fill="black", font=font_lg)
+
+    # hitung lebar customer (REAL pixel)
+    bbox = draw.textbbox((x, y1), customer, font=font_lg)
+    customer_width = bbox[2] - bbox[0]
+
+    # kasih jarak aman
+    gap_x = 10
+
+    # posisi produk = setelah customer
+    draw.text((x + customer_width + gap_x, y1), produk, fill="black", font=font_lg)
 
     # Baris 2: Spk | UK | Operator
     y2 = y1 + gap
@@ -221,15 +252,34 @@ def generate_label_image(order_id, data):
 
     # Baris 3: Bobin | Berat
     y3 = y2 + gap
-    draw.text((x,      y3), str(bobin), fill="black", font=font_md)
-    draw.text((x + 80, y3), str(berat), fill="black", font=font_md)
+    draw.text((x,      y3), str(berat), fill="black", font=font_md)
+    draw.text((x + 80, y3), str(bobin), fill="black", font=font_md)
+    draw.text((x + 160, y3), str(beratkg), fill="black", font=font_md)
 
     # Baris 4: Divisi | Tanggal | Shift | Checker
     y4 = y3 + gap
-    draw.text((x,       y4), str(divisi),   fill="black", font=font_md)
-    draw.text((x + 60,  y4), str(tanggal),  fill="black", font=font_md)
-    draw.text((x + 175, y4), f"({shift})",  fill="black", font=font_md)
-    draw.text((x + 210, y4), str(checker),  fill="black", font=font_md)
+    y4 = y3 + gap
+    gap_x = 10
+    cur_x = x
+
+    # Divisi
+    draw.text((cur_x, y4), str(divisi), fill="black", font=font_md)
+    bbox = draw.textbbox((cur_x, y4), str(divisi), font=font_md)
+    cur_x += (bbox[2] - bbox[0]) + gap_x
+
+    # Tanggal
+    draw.text((cur_x, y4), str(tanggal), fill="black", font=font_md)
+    bbox = draw.textbbox((cur_x, y4), str(tanggal), font=font_md)
+    cur_x += (bbox[2] - bbox[0]) + gap_x
+
+    # Shift
+    shift_text = f"({shift})"
+    draw.text((cur_x, y4), shift_text, fill="black", font=font_md)
+    bbox = draw.textbbox((cur_x, y4), shift_text, font=font_md)
+    cur_x += (bbox[2] - bbox[0]) + gap_x
+
+    # Checker
+    draw.text((cur_x, y4), str(checker), fill="black", font=font_md)
 
     # Baris 5: created_at
     y5 = y4 + gap
@@ -238,9 +288,9 @@ def generate_label_image(order_id, data):
     return img
 
 #print
-@app.route("/label/print/<order_id>")
-@login_required
-def label_print(order_id):
+#@app.route("/label/print/<order_id>")
+#@login_required
+#def label_print(order_id):
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -271,30 +321,33 @@ def label_print(order_id):
 def generate_code(data):
     now = datetime.now()
 
-    # Mapping divisi normal
+    divisi = str(data.get("divisi", "")).strip().upper()
+
+    # Default mapping
     div_map = {
-        "MIXING":      "MI",
-        "HD":          "HD",
-        "POTONG":      "CU",
-        "PACKING":     "PA",
-        "SISA_PACK":   "PS",
+        "MIXING": "MI",
+        "HD": "HD",
+        "POTONG": "CU",
+        "PACKING": "PA",
+        "SISA_PACK": "PS",
         "AVAL_MIXING": "AMS",
         "AVAL_QC": "AQC",
     }
 
-    divisi = str(data.get("divisi", "")).strip().upper()
+    # Default dulu
+    div = div_map.get(divisi, "XX")
 
+    # Override khusus AVAL
     if divisi == "AVAL_HD":
         jenis_map = {
-            "Prong":  "AHP",
-            "Daun":   "AHD",
+            "Prong": "AHP",
+            "Daun": "AHD",
             "Sapuan": "AHS",
         }
         jenis = str(data.get("jenis_hd", "")).strip()
-        div = jenis_map.get(jenis, "AHX")  
-    else:
-        div = div_map.get(divisi, "XX")
-    if divisi == "AVAL_POTONG":
+        div = jenis_map.get(jenis, "AHX")
+
+    elif divisi == "AVAL_POTONG":
         jenis_map = {
             "Plong": "ACP",
             "Mesin": "ACM",
@@ -304,11 +357,9 @@ def generate_code(data):
             "Sapuan": "ACS",
         }
         jenis = str(data.get("jenis_cu", "")).strip()
-        div = jenis_map.get(jenis, "ACX")  # 
-    else:
-        div = div_map.get(divisi, "XX")
-        
-    if divisi == "AVAL_PACKING":
+        div = jenis_map.get(jenis, "ACX")
+
+    elif divisi == "AVAL_PACKING":
         jenis_map = {
             "Plastik": "APP",
             "Rafia": "APR",
@@ -316,18 +367,20 @@ def generate_code(data):
             "Mutasi": "APC",
         }
         jenis = str(data.get("jenis_pa", "")).strip()
-        div = jenis_map.get(jenis, "APX")  # 
-    else:
-        div = div_map.get(divisi, "XX")
-        
+        div = jenis_map.get(jenis, "APX")
+
+    # Format bagian lain
     tanggal = now.strftime("%d-%m-%Y")
     spk     = str(data.get("spk", "")).strip()
     shift   = str(data.get("shift", "")).strip()
+
     try:
         berat = "{:.2f}".format(float(data.get("berat_bersih") or 0))
     except:
         berat = "0.00"
+
     waktu = now.strftime("%H%M%S")
+
     return f"{div}{tanggal}{spk}{shift}{berat}{waktu}"
 
 
