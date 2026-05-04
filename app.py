@@ -58,6 +58,23 @@ CSV_SCAN_FILES = {
     "scansalahqc.csv":      SCAN_DIR / "scansalahqc.csv",
 }
 
+# CSV scan pemakaian
+SCAN_PDIR  = Path(r"Z:\Checker\Production\Database\scan_pemakaian")
+CSV_SCAN_PFILES = {
+    "scanhd.csv":      SCAN_PDIR / "scanhd.csv",
+    "scanmixing.csv":  SCAN_PDIR / "scanmixing.csv",
+    "scanpotong.csv":  SCAN_PDIR / "scanpotong.csv",
+    "scanpacking.csv": SCAN_PDIR / "scanpacking.csv",
+}
+
+PEMAKAIAN_MAP = {
+    "HD": "scanhd.csv",
+    "MI": "scanmixing.csv",
+    "CU": "scanpotong.csv",
+    "PA": "scanpacking.csv",
+    "PS": "scanpacking.csv",
+}
+
 # Prefix kode Aval
 PREFIX_CONFIG = {
     "HD":  ("scansalahhd.csv",      "HD",          "HD"),
@@ -174,29 +191,25 @@ def generate_label_image(order_id, data):
     img  = Image.new("RGB", (LABEL_W, LABEL_H), "white")
     draw = ImageDraw.Draw(img)
 
-    # Ambil divisi dari data untuk lookup FIELD_MAP
-    divisi_raw = str(data.get("divisi", "")).strip().upper()
-
-    # Untuk display di label, pakai prefix kalau ada
+    divisi_raw     = str(data.get("divisi", "")).strip().upper()
     prefix, _, _, _ = get_prefix_from_code(data.get("code", ""))
     divisi_display = prefix if prefix else divisi_raw
 
-    # QR — center vertikal
-    qr_size = 160
+    # QR — center vertikal, lebih kecil
+    qr_size = 100
     qr = generate_qr(data["code"]).resize((qr_size, qr_size))
     qr_y = (LABEL_H - qr_size) // 2
-    img.paste(qr, (8, qr_y))
+    img.paste(qr, (4, qr_y))
 
     try:
-        font_sm = ImageFont.truetype("arial.ttf", 13)
-        font_md = ImageFont.truetype("arial.ttf", 15)
-        font_lg = ImageFont.truetype("arial.ttf", 16)
+        font_sm = ImageFont.truetype("arial.ttf", 8)
+        font_md = ImageFont.truetype("arial.ttf", 9)
+        font_lg = ImageFont.truetype("arial.ttf", 10)
     except:
         font_sm = ImageFont.load_default()
         font_md = font_sm
         font_lg = font_sm
 
-    # Lookup config dari divisi_raw
     config         = FIELD_MAP.get(divisi_raw, {})
     operator_field = config.get("operator", "")
     wadah_field    = config.get("wadah", "")
@@ -217,24 +230,25 @@ def generate_label_image(order_id, data):
     created  = str(data.get("created_at", "")   or "")
     customer = str(data.get("customer", "")     or "")
     produk   = str(data.get("produk", "")       or "")
+
     if divisi_raw == "AVAL_MIXING":
         customer = "AVAL SAPUAN"
         produk   = "MIXING"
 
     # Center vertikal teks
-    gap     = 22
+    gap     = 14
     n_rows  = 5
-    total_h = (n_rows - 1) * gap + 16
+    total_h = (n_rows - 1) * gap + 10
     text_y  = (LABEL_H - total_h) // 2
 
-    x     = 178
-    gap_x = 10
+    x     = 108  # setelah QR
+    gap_x = 6
 
     # Border
-    draw.rectangle([2, 2, LABEL_W - 3, LABEL_H - 3], outline="black", width=1)
+    draw.rectangle([1, 1, LABEL_W - 2, LABEL_H - 2], outline="black", width=1)
 
     # Garis pemisah vertikal
-    draw.line([(170, 8), (170, LABEL_H - 8)], fill="#cccccc", width=1)
+    draw.line([(106, 4), (106, LABEL_H - 4)], fill="#cccccc", width=1)
 
     # ── Baris 1: Customer | Produk ──
     y1 = text_y
@@ -245,17 +259,17 @@ def generate_label_image(order_id, data):
 
     # ── Baris 2: SPK | UK | Operator | Mesin ──
     y2 = y1 + gap
-    draw.text((x,       y2), spk,               fill="black", font=font_md)
-    draw.text((x + 80,  y2), uk,                fill="black", font=font_md)
-    draw.text((x + 160, y2), operator,           fill="black", font=font_md)
+    draw.text((x,      y2), spk,      fill="black", font=font_md)
+    draw.text((x + 45, y2), uk,       fill="black", font=font_md)
+    draw.text((x + 90, y2), operator, fill="black", font=font_md)
     if mesin:
-        draw.text((x + 240, y2), f"M{mesin}",   fill="black", font=font_md)
+        draw.text((x + 150, y2), f"M{mesin}", fill="black", font=font_md)
 
     # ── Baris 3: Berat | Bobin | BeratKg ──
     y3 = y2 + gap
-    draw.text((x,       y3), berat,  fill="black", font=font_md)
-    draw.text((x + 80,  y3), bobin,  fill="black", font=font_md)
-    draw.text((x + 160, y3), beratkg,fill="black", font=font_md)
+    draw.text((x,      y3), berat,   fill="black", font=font_md)
+    draw.text((x + 45, y3), bobin,   fill="black", font=font_md)
+    draw.text((x + 90, y3), beratkg, fill="black", font=font_md)
 
     # ── Baris 4: Divisi | Tanggal | Shift | Checker ──
     y4 = y3 + gap
@@ -293,19 +307,19 @@ def label_print(order_id):
   * {{ margin:0; padding:0; box-sizing:border-box; }}
   body {{ background:white; }}
   .page {{
-    width: 100%;
     page-break-after: always;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 4mm;
+    width: 80mm;
+    height: 40mm;
   }}
   .page:last-child {{ page-break-after: auto; }}
-  img {{ width: 100%; height: auto; }}
+  img {{ width: 80mm; height: 40mm; }}
   @media print {{
     @page {{
       margin: 0;
-      size: 100mm 50mm landscape;
+      size: 80mm 40mm;
     }}
     body {{ margin: 0; }}
   }}
@@ -806,6 +820,12 @@ def aval_qc():
 def scan_salah():
     return render_template("scan_salah.html", active_page="scan_salah", current_user=session.get("name"))
 
+@app.route("/scan_pemakaian")
+@admin_required
+def scan_pemakaian():
+    return render_template("scan_pemakaian.html", active_page="scan_pemakaian", current_user=session.get("name"))
+
+
 
 # ─── API: OPERATORS ─────────────────────────────────────────
 @app.route("/api/operators/<divisi>")
@@ -970,6 +990,66 @@ def save_csv():
     except Exception as e:
         return jsonify(success=False, error=str(e))
 
+
+# ─── API: SAVE SCAN PEMAKAIAN ───────────────────────────────────
+@app.route("/save_pemakaian", methods=["POST"])
+@login_required
+def save_pemakaian():
+    try:
+        data    = request.get_json()
+        records = data.get("records", [])
+
+        if not records:
+            return jsonify(success=False, error="Tidak ada data")
+
+        # Kelompokkan per file CSV tujuan
+        from collections import defaultdict
+        groups = defaultdict(list)
+
+        for rec in records:
+            csv_file = rec.get("csv_file")
+
+        if not csv_file or csv_file not in CSV_SCAN_PFILES:
+            prefix, _, _, _ = get_prefix_from_code(rec.get("code", ""))
+            csv_file = PEMAKAIAN_MAP.get(prefix)
+
+        if not csv_file or csv_file not in CSV_SCAN_PFILES:
+            return jsonify(
+                success=False,
+                error=f"Kode '{rec.get('code')}' tidak bisa ditentukan CSV tujuannya"
+        )
+
+        groups[csv_file].append(rec)
+
+        # Simpan per grup
+        for csv_filename, recs in groups.items():
+            path = CSV_SCAN_PFILES[csv_filename]
+            path.parent.mkdir(parents=True, exist_ok=True)
+            file_exists = path.exists()
+
+            with open(path, "a", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=CSV_SCAN_COLUMNS)
+                if not file_exists:
+                    writer.writeheader()
+                for rec in recs:
+                    writer.writerow({
+                        "create_at":    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "divisi":       rec.get("prefix", ""),
+                        "prefix":       rec.get("prefix", ""),
+                        "divisi_label": rec.get("divisi_label", ""),
+                        "spk":          rec.get("spk", ""),
+                        "customer":     rec.get("customer", ""),
+                        "produk":       rec.get("produk", ""),
+                        "uk":           rec.get("uk", ""),
+                        "checker":      rec.get("checker", ""),
+                        "scanned_by":   session.get("name", ""),
+                        "code":         rec.get("code", ""),
+                    })
+
+        return jsonify(success=True, saved=len(records))
+
+    except Exception as e:
+        return jsonify(success=False, error=str(e))
 
 # ─── API: SUBMIT PRODUKSI ───────────────────────────────────
 @app.route("/api/submit", methods=["POST"])
