@@ -6,10 +6,10 @@ conn = sqlite3.connect(DB_PATH)
 c = conn.cursor()
 
 try:
-    c.execute("ALTER TABLE katalogavalqc ADD COLUMN uk REAL;")
-    print("✔ kolom uk berhasil ditambahkan")
+    c.execute("ALTER TABLE katalogavalpotong ADD COLUMN berat_kg REAL;")
+    print("✔ kolom berat_kg berhasil ditambahkan")
 except Exception as e:
-    print("⚠ uk:", e)
+    print("⚠ berat_kg:", e)
 
 conn.commit()
 conn.close()

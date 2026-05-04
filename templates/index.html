@@ -1184,27 +1184,33 @@
               } catch (err) {
                 console.error("Error SPK:", err);
               }
-            }, 100); // delay biar tidak spam request
+            }, 70); // delay biar tidak spam request
           });
         </script>
         <script>
           async function loadOperators() {
-            const divisi = document.getElementById("divisi").value;
+            const divisi = document.getElementById("divisi").value; 
+
             try {
               const res = await fetch(`/api/operators/${divisi}`);
               const operators = await res.json();
+
               const select = document.getElementById("operator_mix");
               select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
+
               operators.forEach(op => {
                 select.innerHTML += `<option value="${op}">${op}</option>`;
               });
+
             } catch (e) {
               console.error("Gagal load operator:", e);
             }
           }
 
+          // Panggil saat halaman siap
           document.addEventListener("DOMContentLoaded", function () {
             loadOperators();
+            // ... kode DOMContentLoaded lainnya yang sudah ada
           });
 
           async function submitForm() {
@@ -1219,6 +1225,7 @@
               { id: "berat_bersih", name: "Berat (kg)" }
             ];
 
+            // VALIDASI
             for (let f of requiredFields) {
               const el = document.getElementById(f.id);
               const val = (el.value || "").toString().trim();
@@ -1255,45 +1262,59 @@
                 body: JSON.stringify(data)
               });
 
+              if (!res.ok) {
+                throw new Error("Gagal koneksi ke server");
+              }
+
               const result = await res.json();
-              if (!result.success) throw new Error(result.message);
 
-              // Buka popup DULU sebelum await lain — bypass popup blocker
-             // const printWin = window.open("about:blank", "_blank");
+              if (!result.success) {
+                throw new Error(result.message || "Gagal menyimpan data");
+              }
 
+              // 🔥 TAMPILKAN RESULT
               document.getElementById("result-panel").classList.add("show");
               document.getElementById("result-order-id").innerText = result.order_id;
               document.getElementById("label-img").src = result.label_url;
-            //  document.getElementById("btn-print").href = `/label/print/${result.order_id}`;
+              document.getElementById("btn-print").href = `/label/print/${result.order_id}`;
 
-              // Arahkan popup ke halaman print setelah dapat order_id
-         //     if (printWin) {
-          //      printWin.location.href = `/label/print/${result.order_id}`;
-         //     }
+              // 🔥 PRINT TANPA PINDAH HALAMAN
+              const frame = document.getElementById("print-frame");
 
+              frame.onload = function () {
+                frame.contentWindow.focus();
+                frame.contentWindow.print();
+              };
+
+              frame.src = `/label/print/${result.order_id}`;
+
+              // 🔄 REFRESH TABLE
               loadRecent();
 
             } catch (err) {
-              errorMsg.innerText = err.message;
+              console.error(err);
+              errorMsg.innerText = err.message || "Terjadi kesalahan";
               errorMsg.classList.add("show");
+            } finally {
+              btn.disabled = false;
+              spinner.style.display = "none";
             }
-
-            // ← ini wajib ada di luar try/catch agar selalu dijalankan
-            btn.disabled = false;
-            spinner.style.display = "none";
           }
 
           // ── RESET ──
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
+
             ['operator_mix', 'spk', 'customer', 'product', 'uk', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
               });
+
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }
         </script>
+        <iframe id="print-frame" style="display:none;"></iframe>
 </body>
 
 </html>

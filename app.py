@@ -149,8 +149,9 @@ def admin_required(f):
     return decorated
 
 # ─── LABEL SIZE ─────────────────────────────────────────────
-LABEL_W = 560
-LABEL_H = 240
+# Rasio 80x40mm → pixel (96dpi): 80mm = 302px, 40mm = 151px
+LABEL_W = 302
+LABEL_H = 151
 
 FIELD_MAP = {
     "MIXING":       {"operator": "operator_mix", "wadah": "karung"},
@@ -282,21 +283,31 @@ def generate_label_image(order_id, data):
     return img
 
 
-#print
-#@app.route("/label/print/<order_id>")
-#@login_required
-#def label_print(order_id):
+@app.route("/label/print/<order_id>")
+@login_required
+def label_print(order_id):
     return f"""<!DOCTYPE html>
 <html>
 <head>
 <style>
   * {{ margin:0; padding:0; box-sizing:border-box; }}
   body {{ background:white; }}
-  .page {{ page-break-after: always; display:flex; justify-content:center; align-items:center; height:100vh; }}
+  .page {{
+    width: 100%;
+    page-break-after: always;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4mm;
+  }}
   .page:last-child {{ page-break-after: auto; }}
-  img {{ max-width:100%; }}
+  img {{ width: 100%; height: auto; }}
   @media print {{
-    @page {{ margin:0; size:auto; }}
+    @page {{
+      margin: 0;
+      size: 100mm 50mm landscape;
+    }}
+    body {{ margin: 0; }}
   }}
 </style>
 </head>
@@ -305,7 +316,10 @@ def generate_label_image(order_id, data):
   <div class="page"><img src="/label/{order_id}"></div>
   <script>
     window.onload = function() {{
-      setTimeout(function() {{ window.print(); }}, 500);
+      setTimeout(function() {{
+        window.print();
+        setTimeout(function() {{ window.close(); }}, 1000);
+      }}, 600);
     }};
   </script>
 </body>
@@ -448,7 +462,7 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
         spk TEXT, operator_amix TEXT, checker TEXT,
-        mesin REAL, berat_bersih REAL, jenis REAL,
+        mesin REAL, berat_kg REAL, berat_bersih REAL, jenis REAL,
         created_at TEXT, code TEXT
     )""")
 
@@ -457,7 +471,7 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
         spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_hd TEXT, checker TEXT,
-        mesin REAL, jenis_hd TEXT, kategori_hd TEXT, berat_bersih REAL,
+        mesin REAL, jenis_hd TEXT, kategori_hd TEXT, berat_kg REAL, berat_bersih REAL,
         created_at TEXT, code TEXT
     )""")
 
@@ -466,7 +480,7 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
         spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_cu TEXT, checker TEXT,
-        mesin REAL, jenis_cu TEXT, kategori_cu TEXT, berat_bersih REAL,
+        mesin REAL, jenis_cu TEXT, kategori_cu TEXT, berat_kg REAL, berat_bersih REAL,
         created_at TEXT, code TEXT
     )""")
     
@@ -584,46 +598,46 @@ def save_record(data):
         c.execute("""
         INSERT INTO katalogavalmixing (
             tanggal, shift, divisi, spk,
-            operator_amix, checker, mesin, berat_bersih, jenis,
+            operator_amix, checker, mesin, berat_kg, berat_bersih, jenis,
             created_at, code
         ) VALUES (
             :tanggal, :shift, :divisi, :spk,
-            :operator_amix, :checker, :mesin, :berat_bersih, :jenis,
+            :operator_amix, :checker, :mesin, :berat_kg, :berat_bersih, :jenis,
             :created_at, :code
         )""", data)
         csv_path = CSV_AVAL_MIXING
         headers  = ["tanggal","shift","divisi","spk",
-                    "operator_amix","checker","mesin","berat_bersih","jenis","created_at","code"]
+                    "operator_amix","checker","mesin","berat_kg","berat_bersih","jenis","created_at","code"]
 
     elif div == "AVAL_HD":
         c.execute("""
         INSERT INTO katalogavalhd (
             tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_hd, checker, mesin, jenis_hd, kategori_hd, berat_bersih, 
+            operator_hd, checker, mesin, jenis_hd, kategori_hd, berat_kg, berat_bersih, 
             created_at, code
         ) VALUES (
             :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_hd, :checker, :mesin, :jenis_hd, :kategori_hd, :berat_bersih,
+            :operator_hd, :checker, :mesin, :jenis_hd, :kategori_hd, :berat_kg, :berat_bersih,
             :created_at, :code
         )""", data)
         csv_path = CSV_AVAL_HD
         headers  = ["tanggal","shift","divisi","spk","customer","produk","uk",
-                    "operator_hd","checker","mesin","jenis_hd","kategori_hd","berat_bersih","created_at","code"]
+                    "operator_hd","checker","mesin","jenis_hd","kategori_hd","berat_kg","berat_bersih","created_at","code"]
 
     elif div == "AVAL_POTONG":
         c.execute("""
         INSERT INTO katalogavalpotong (
             tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_cu, checker, mesin, jenis_cu, kategori_cu, berat_bersih, 
+            operator_cu, checker, mesin, jenis_cu, kategori_cu, berat_kg, berat_bersih, 
             created_at, code
         ) VALUES (
             :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_cu, :checker, :mesin, :jenis_cu, :kategori_cu, :berat_bersih,
+            :operator_cu, :checker, :mesin, :jenis_cu, :kategori_cu, :berat_kg, :berat_bersih,
             :created_at, :code
         )""", data)
         csv_path = CSV_AVAL_POTONG
         headers  = ["tanggal","shift","divisi","spk","customer","produk","uk",
-                    "operator_cu","checker","mesin","jenis_cu","kategori_cu","berat_bersih","created_at","code"]
+                    "operator_cu","checker","mesin","jenis_cu","kategori_cu","berat_kg","berat_bersih","created_at","code"]
   
     elif div == "AVAL_PACKING":
         c.execute("""
@@ -1023,6 +1037,7 @@ def submit():
                 "spk": d.get("spk"),
                 "operator_amix": d.get("operator_amix"), "checker": d.get("checker"),
                 "mesin": d.get("mesin"),
+                "berat_kg": float(d.get("berat_kg") or 0),
                 "berat_bersih": float(d.get("berat_bersih") or 0),
                 "jenis": d.get("jenis"),
                 "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
@@ -1037,6 +1052,7 @@ def submit():
                 "mesin": d.get("mesin"),
                 "jenis_hd": d.get("jenis_hd"),
                 "kategori_hd": d.get("kategori_hd"),
+                "berat_kg": float(d.get("berat_kg") or 0),
                 "berat_bersih": float(d.get("berat_bersih") or 0),
                 "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
             }
@@ -1050,6 +1066,7 @@ def submit():
                 "mesin": d.get("mesin"),
                 "jenis_cu": d.get("jenis_cu"),
                 "kategori_cu": d.get("kategori_cu"),
+                "berat_kg": float(d.get("berat_kg") or 0),
                 "berat_bersih": float(d.get("berat_bersih") or 0),
                 "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
             }

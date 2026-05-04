@@ -917,7 +917,7 @@
             <!-- Berat Bersih -->
             <div class="field">
               <label class="field-label">Afal Qty (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_bersih" required>
+              <input type="text" id="berat_kg" required>
             </div>
             <!-- Kategori Aval -->
             <div class="field">
@@ -927,6 +927,10 @@
             <div class="field">
               <label class="field-label">Tali Aval</label>
               <input type="text" id="tali" value="" readonly required>
+            </div>
+            <div class="field">
+              <label class="field-label">Berat Bersih (Karung 0.9)</label>
+              <input type="text" id="berat_bersih" value="" readonly required>
             </div>
           </div>
         </div>
@@ -1232,6 +1236,12 @@
               }
             }, 70);
           });
+
+          document.getElementById("berat_kg").addEventListener("input", function () {
+            const beratKg = parseFloat(this.value) || 0;
+            const bersih = beratKg - 0.09;
+            document.getElementById("berat_bersih").value = bersih > 0 ? bersih.toFixed(2) : "0.00";
+          });
         </script>
         <script>
           async function loadOperators() {
@@ -1271,7 +1281,7 @@
               { id: "spk", name: "No. SPK" },
               { id: "jenis_hd", name: "Jenis Aval" },
               { id: "kategori_hd", name: "Kategori Aval" },
-              { id: "berat_bersih", name: "Aval Qty (kg)" },
+              { id: "berat_kg", name: "Aval Qty (kg)" },
               { id: "mesin", name: "Mesin" }
             ];
 
@@ -1305,6 +1315,7 @@
               mesin: document.getElementById("mesin").value,
               jenis_hd: document.getElementById("jenis_hd").value,
               kategori_hd: document.getElementById("kategori_hd").value,
+              berat_kg:     document.getElementById("berat_kg").value,
               berat_bersih: document.getElementById("berat_bersih").value,
             };
 
@@ -1339,7 +1350,7 @@
           // ── RESET ────────────────────────────────────────────────
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
-            ['operator_hd', 'spk', 'customer', 'product', 'uk', 'mesin', 'jenis_hd', 'berat_bersih']
+            ['operator_hd', 'spk', 'customer', 'product', 'uk', 'tali', 'kategori_hd', 'mesin', 'jenis_hd', 'berat_kg', 'berat_bersih',]
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';

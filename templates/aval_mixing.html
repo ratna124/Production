@@ -885,7 +885,11 @@
             <!-- Berat Total (kg) -->
             <div class="field">
               <label class="field-label">Aval Qty (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_bersih" required>
+              <input type="text" id="berat_kg" required>
+            </div>
+            <div class="field">
+              <label class="field-label">Berat Bersih (Karung 0.1)</label>
+              <input type="text" id="berat_bersih" value="" readonly required>
             </div>
           </div>
         </div>
@@ -1100,6 +1104,11 @@
             el.classList.add('active');
             document.getElementById('divisi').value = div;
           }
+          document.getElementById("berat_kg").addEventListener("input", function () {
+            const beratKg = parseFloat(this.value) || 0;
+            const bersih = beratKg - 0.01;
+            document.getElementById("berat_bersih").value = bersih > 0 ? bersih.toFixed(2) : "0.00";
+          });
         </script>
         <script>
           async function loadOperators() {
@@ -1138,7 +1147,7 @@
               { id: "operator_amix", name: "Operator Mix" },
               { id: "checker", name: "Checker" },
               { id: "spk", name: "No. SPK" },
-              { id: "berat_bersih", name: "Berat (kg)" }
+              { id: "berat_kg", name: "Berat (kg)" }
             ];
 
             for (let f of requiredFields) {
@@ -1167,6 +1176,7 @@
               spk: document.getElementById("spk").value,
               mesin: document.getElementById("mesin").value,
               jenis: document.getElementById("jenis").value,
+              berat_kg:     document.getElementById("berat_kg").value,
               berat_bersih: document.getElementById("berat_bersih").value
             };
 
@@ -1201,7 +1211,7 @@
           // ── RESET ────────────────────────────────────────────────
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
-            ['operator_amix', 'spk', 'berat_bersih']
+            ['operator_amix', 'spk', 'berat_bersih', 'berat_kg']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
