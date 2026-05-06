@@ -173,8 +173,9 @@ def admin_required(f):
     return decorated
 
 
+# ─── LABEL SIZE ─────────────────────────────────────────────
 LABEL_W = 302   # 80mm
-LABEL_H = 151   # 40mm
+LABEL_H = 151   # 40mm  
 SCALE   = 4
 LABEL_W_HI = LABEL_W * SCALE  # 1208px
 LABEL_H_HI = LABEL_H * SCALE  # 604px
@@ -207,28 +208,24 @@ def generate_label_image(order_id, data):
     img  = Image.new("RGB", (LABEL_W_HI, LABEL_H_HI), "white")
     draw = ImageDraw.Draw(img)
 
-    # Load font
     font_paths = [
         r"C:\Windows\Fonts\arial.ttf",
         r"C:\Windows\Fonts\Arial.ttf",
         r"C:\Windows\Fonts\calibri.ttf",
-        r"C:\Windows\Fonts\segoeui.ttf",
         r"C:\Windows\Fonts\tahoma.ttf",
     ]
 
     font_sm = font_md = font_lg = None
     for fp in font_paths:
         try:
-            font_sm = ImageFont.truetype(fp, 10 * SCALE)
-            font_md = ImageFont.truetype(fp, 11 * SCALE)
-            font_lg = ImageFont.truetype(fp, 13 * SCALE)
-            print(f"Font loaded: {fp}")
+            font_sm = ImageFont.truetype(fp, 9  * SCALE)
+            font_md = ImageFont.truetype(fp, 10 * SCALE)
+            font_lg = ImageFont.truetype(fp, 12 * SCALE)
             break
         except:
             continue
 
     if font_sm is None:
-        print("WARNING: pakai default font!")
         font_sm = ImageFont.load_default()
         font_md = font_sm
         font_lg = font_sm
@@ -237,8 +234,8 @@ def generate_label_image(order_id, data):
     prefix, _, _, _ = get_prefix_from_code(data.get("code", ""))
     divisi_display  = prefix if prefix else divisi_raw
 
-    # QR — lebih kecil
-    qr_size = 85 * SCALE
+    # QR kiri — sejajar dengan tinggi teks
+    qr_size = 90 * SCALE  # ← dari 130 ke 90
     qr      = generate_qr(data["code"]).resize((qr_size, qr_size), Image.LANCZOS)
     qr_y    = (LABEL_H_HI - qr_size) // 2
     img.paste(qr, (4 * SCALE, qr_y))
@@ -268,57 +265,33 @@ def generate_label_image(order_id, data):
         customer = "AVAL SAPUAN"
         produk   = "MIXING"
 
-    gap     = 15 * SCALE
+    # Teks di kanan QR
+    x   = (4 + 90 + 6) * SCALE  # ← sesuaikan x setelah QR dikecilkan
+    gap = 13 * SCALE
+
     n_rows  = 5
-    total_h = (n_rows - 1) * gap + 13 * SCALE
-    text_y  = (LABEL_H_HI - total_h) // 2
+    total_h = (n_rows - 1) * gap + 12 * SCALE
+    y       = (LABEL_H_HI - total_h) // 2
 
-    x     = 95 * SCALE   # mulai teks setelah QR
-    gap_x = 6  * SCALE
+    # Baris 1: Customer  Produk
+    draw.text((x, y), f"{customer}  {produk}", fill="black", font=font_lg)
 
-    # ── Baris 1: Customer | Produk ──
-    y1 = text_y
-    draw.text((x, y1), customer, fill="black", font=font_lg)
-    bbox       = draw.textbbox((x, y1), customer, font=font_lg)
-    customer_w = bbox[2] - bbox[0]
-    draw.text((x + customer_w + gap_x, y1), produk, fill="black", font=font_lg)
+    # Baris 2: SPK  UK
+    y += gap
+    draw.text((x, y), f"{spk}   {uk}", fill="black", font=font_md)
 
-    # ── Baris 2: SPK | UK | Operator | Mesin ──
-    y2 = y1 + gap
-    draw.text((x,              y2), spk,      fill="black", font=font_md)
-    draw.text((x + 42 * SCALE, y2), uk,       fill="black", font=font_md)
-    draw.text((x + 85 * SCALE, y2), operator, fill="black", font=font_md)
-    if mesin:
-        draw.text((x + 140 * SCALE, y2), f"M{mesin}", fill="black", font=font_md)
+    # Baris 3: Berat  Bobin  BeratKg  Operator  Mesin
+    y += gap
+    mesin_text = f"  M{mesin}" if mesin else ""
+    draw.text((x, y), f"{berat}  {bobin}  {beratkg}  {operator}{mesin_text}", fill="black", font=font_md)
 
-    # ── Baris 3: Berat | Bobin | BeratKg ──
-    y3 = y2 + gap
-    draw.text((x,               y3), berat,   fill="black", font=font_md)
-    draw.text((x + 42 * SCALE,  y3), bobin,   fill="black", font=font_md)
-    draw.text((x + 85 * SCALE,  y3), beratkg, fill="black", font=font_md)
+    # Baris 4: Divisi  Tanggal  Shift  Checker
+    y += gap
+    draw.text((x, y), f"{divisi_display}  {tanggal}  ({shift})  {checker}", fill="black", font=font_md)
 
-    # ── Baris 4: Divisi | Tanggal | Shift | Checker ──
-    y4    = y3 + gap
-    cur_x = x
-
-    draw.text((cur_x, y4), divisi_display, fill="black", font=font_md)
-    bbox   = draw.textbbox((cur_x, y4), divisi_display, font=font_md)
-    cur_x += (bbox[2] - bbox[0]) + gap_x
-
-    draw.text((cur_x, y4), tanggal, fill="black", font=font_md)
-    bbox   = draw.textbbox((cur_x, y4), tanggal, font=font_md)
-    cur_x += (bbox[2] - bbox[0]) + gap_x
-
-    shift_text = f"({shift})"
-    draw.text((cur_x, y4), shift_text, fill="black", font=font_md)
-    bbox   = draw.textbbox((cur_x, y4), shift_text, font=font_md)
-    cur_x += (bbox[2] - bbox[0]) + gap_x
-
-    draw.text((cur_x, y4), checker, fill="black", font=font_md)
-
-    # ── Baris 5: created_at ──
-    y5 = y4 + gap
-    draw.text((x, y5), created, fill="black", font=font_sm)
+    # Baris 5: created_at
+    y += gap
+    draw.text((x, y), created, fill="black", font=font_sm)
 
     return img
 
@@ -336,33 +309,25 @@ def label_print(order_id):
     margin: 0;
     padding: 0;
     width: 80mm;
-    height: 40mm;
     background: white;
-    overflow: hidden;
   }}
   .label {{
     width: 80mm;
-    height: 40mm;
     display: block;
-    overflow: hidden;
   }}
   .label img {{
     width: 80mm;
-    height: 40mm;
     display: block;
-    object-fit: fill;
   }}
   @media print {{
     @page {{
       margin: 0;
-      size: 80mm 40mm;
+      size: 80mm auto;
     }}
     html, body {{
       margin: 0;
       padding: 0;
       width: 80mm;
-      height: 40mm;
-      overflow: hidden;
     }}
   }}
 </style>
