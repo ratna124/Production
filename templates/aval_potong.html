@@ -895,7 +895,7 @@
             <!-- Mesin -->
             <div class="field">
               <label class="field-label">Mesin<span class="req">*</span></label>
-              <input type="number" id="mesin" min="1" max="12" required>
+              <input type="number" id="mesin" min="1" max="12" required oninput="validateMesin(this)">
             </div>
             <!-- Jenis Aval -->
             <div class="field">
@@ -926,7 +926,7 @@
             <!-- Berat Bersih -->
             <div class="field">
               <label class="field-label">Afal Qty (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_kg" required>
+              <input type="text" id="berat_kg" required oninput="validateBerat(this)">
             </div>
             <!-- Kategori Aval -->
             <div class="field">
@@ -1309,6 +1309,27 @@
               }
             }
 
+            // TIDAK BOLEH MINUS ATAU ANGKA YANG TIDAK SESUAI
+            const beratVal = parseFloat(document.getElementById("berat_kg").value);
+            if (isNaN(beratVal) || beratVal <= 0) {
+              errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
+              errorMsg.classList.add("show");
+              document.getElementById("berat_kg").focus();
+              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
+              return;
+            }
+            document.getElementById("berat_kg").style.borderColor = "";
+
+            const mesinVal = parseFloat(document.getElementById("mesin").value);
+            if (isNaN(mesinVal) || mesinVal <= 0) {
+              errorMsg.innerText = "Mesin tidak boleh minus, nol, atau mesin yang tidak ada";
+              errorMsg.classList.add("show");
+              document.getElementById("mesin").focus();
+              document.getElementById("mesin").style.borderColor = "var(--accent)";
+              return;
+            }
+            document.getElementById("mesin").style.borderColor = "";
+
             errorMsg.classList.remove("show");
             btn.disabled = true;
             spinner.style.display = "block";
@@ -1326,7 +1347,7 @@
               mesin: document.getElementById("mesin").value,
               jenis_cu: document.getElementById("jenis_cu").value,
               kategori_cu: document.getElementById("kategori_cu").value,
-              berat_kg:     document.getElementById("berat_kg").value,
+              berat_kg: document.getElementById("berat_kg").value,
               berat_bersih: document.getElementById("berat_bersih").value,
             };
 
@@ -1347,29 +1368,83 @@
               document.getElementById("label-img").src = result.label_url;
               document.getElementById("btn-print").href = result.print_url;
 
+              // PRINT TANPA PINDAH HALAMAN
+              let frame = document.getElementById("print-frame");
+              if (!frame) {
+                frame = document.createElement("iframe");
+                frame.id = "print-frame";
+                frame.style.display = "none";
+                document.body.appendChild(frame);
+              }
+              frame.src = `/label/print/${result.order_id}`;
+
               loadRecent();
+
+              //auto reset
+              setTimeout(() => {
+                resetForm();
+              }, 2000);
 
             } catch (err) {
               errorMsg.innerText = err.message;
               errorMsg.classList.add("show");
+            } finally {
+              btn.disabled = false;
+              spinner.style.display = "none";
             }
-
-            btn.disabled = false;
-            spinner.style.display = "none";
           }
 
           // ── RESET ────────────────────────────────────────────────
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
+
             ['operator_cu', 'spk', 'customer', 'product', 'uk', 'mesin', 'tali', 'jenis_cu', 'kategori_cu', 'berat_kg', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
               });
-            updateProducts();
+
+            // Reset dropdown operator ke default
+            const opSelect = document.getElementById("operator_cu");
+            if (opSelect) opSelect.selectedIndex = 0;
+
+            // Scroll ke atas
             window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Fokus ke SPK biar langsung bisa input
+            document.getElementById("spk").focus();
+          }
+
+          //TIDAK BOLEH MINUS
+          function validateBerat(el) {
+            const val = parseFloat(el.value);
+            const errorMsg = document.getElementById("error-msg");
+
+            if (el.value !== "" && (isNaN(val) || val <= 0)) {
+              errorMsg.innerText = "Berat tidak boleh minus atau nol";
+              errorMsg.classList.add("show");
+              el.style.borderColor = "var(--accent)";
+            } else {
+              errorMsg.classList.remove("show");
+              el.style.borderColor = "";
+            }
+          }
+
+          function validateMesin(el) {
+            const val = parseFloat(el.value);
+            const errorMsg = document.getElementById("error-msg");
+
+            if (el.value !== "" && (isNaN(val) || val <= 0)) {
+              errorMsg.innerText = "Mesin tidak boleh minus atau nol";
+              errorMsg.classList.add("show");
+              el.style.borderColor = "var(--accent)";
+            } else {
+              errorMsg.classList.remove("show");
+              el.style.borderColor = "";
+            }
           }
         </script>
+        <iframe id="print-frame" style="display:none"></iframe>
 </body>
 
 </html>

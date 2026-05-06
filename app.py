@@ -100,6 +100,13 @@ PREFIX_CONFIG = {
 
 CSV_SCAN_COLUMNS = ["create_at", "divisi", "prefix", "divisi_label", "spk", "customer", "produk", "uk", "checker", "scanned_by", "code"]
 
+CSV_PSCAN_COLUMNS = [
+    "create_at", "tanggal", "shift",
+    "divisi", "prefix", "divisi_label",
+    "spk", "customer", "produk", "uk",
+    "checker", "scanned_by", "code"
+]
+
 import re
 
 def get_prefix_from_code(code: str):
@@ -165,10 +172,12 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ─── LABEL SIZE ─────────────────────────────────────────────
-# Rasio 80x40mm → pixel (96dpi): 80mm = 302px, 40mm = 151px
-LABEL_W = 302
-LABEL_H = 151
+
+LABEL_W = 302   # 80mm
+LABEL_H = 151   # 40mm
+SCALE   = 4
+LABEL_W_HI = LABEL_W * SCALE  # 1208px
+LABEL_H_HI = LABEL_H * SCALE  # 604px
 
 FIELD_MAP = {
     "MIXING":       {"operator": "operator_mix", "wadah": "karung"},
@@ -184,31 +193,55 @@ FIELD_MAP = {
 }
 
 def generate_qr(code):
-    qr = qrcode.make(code)
-    return qr.convert("RGB")
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=10,
+        border=1,
+    )
+    qr.add_data(code)
+    qr.make(fit=True)
+    return qr.make_image(fill_color="black", back_color="white").convert("RGB")
 
 def generate_label_image(order_id, data):
-    img  = Image.new("RGB", (LABEL_W, LABEL_H), "white")
+    img  = Image.new("RGB", (LABEL_W_HI, LABEL_H_HI), "white")
     draw = ImageDraw.Draw(img)
 
-    divisi_raw     = str(data.get("divisi", "")).strip().upper()
-    prefix, _, _, _ = get_prefix_from_code(data.get("code", ""))
-    divisi_display = prefix if prefix else divisi_raw
+    # Load font
+    font_paths = [
+        r"C:\Windows\Fonts\arial.ttf",
+        r"C:\Windows\Fonts\Arial.ttf",
+        r"C:\Windows\Fonts\calibri.ttf",
+        r"C:\Windows\Fonts\segoeui.ttf",
+        r"C:\Windows\Fonts\tahoma.ttf",
+    ]
 
-    # QR — center vertikal, lebih kecil
-    qr_size = 100
-    qr = generate_qr(data["code"]).resize((qr_size, qr_size))
-    qr_y = (LABEL_H - qr_size) // 2
-    img.paste(qr, (4, qr_y))
+    font_sm = font_md = font_lg = None
+    for fp in font_paths:
+        try:
+            font_sm = ImageFont.truetype(fp, 10 * SCALE)
+            font_md = ImageFont.truetype(fp, 11 * SCALE)
+            font_lg = ImageFont.truetype(fp, 13 * SCALE)
+            print(f"Font loaded: {fp}")
+            break
+        except:
+            continue
 
-    try:
-        font_sm = ImageFont.truetype("arial.ttf", 8)
-        font_md = ImageFont.truetype("arial.ttf", 9)
-        font_lg = ImageFont.truetype("arial.ttf", 10)
-    except:
+    if font_sm is None:
+        print("WARNING: pakai default font!")
         font_sm = ImageFont.load_default()
         font_md = font_sm
         font_lg = font_sm
+
+    divisi_raw      = str(data.get("divisi", "")).strip().upper()
+    prefix, _, _, _ = get_prefix_from_code(data.get("code", ""))
+    divisi_display  = prefix if prefix else divisi_raw
+
+    # QR — lebih kecil
+    qr_size = 85 * SCALE
+    qr      = generate_qr(data["code"]).resize((qr_size, qr_size), Image.LANCZOS)
+    qr_y    = (LABEL_H_HI - qr_size) // 2
+    img.paste(qr, (4 * SCALE, qr_y))
 
     config         = FIELD_MAP.get(divisi_raw, {})
     operator_field = config.get("operator", "")
@@ -235,44 +268,37 @@ def generate_label_image(order_id, data):
         customer = "AVAL SAPUAN"
         produk   = "MIXING"
 
-    # Center vertikal teks
-    gap     = 14
+    gap     = 15 * SCALE
     n_rows  = 5
-    total_h = (n_rows - 1) * gap + 10
-    text_y  = (LABEL_H - total_h) // 2
+    total_h = (n_rows - 1) * gap + 13 * SCALE
+    text_y  = (LABEL_H_HI - total_h) // 2
 
-    x     = 108  # setelah QR
-    gap_x = 6
-
-    # Border
-    draw.rectangle([1, 1, LABEL_W - 2, LABEL_H - 2], outline="black", width=1)
-
-    # Garis pemisah vertikal
-    draw.line([(106, 4), (106, LABEL_H - 4)], fill="#cccccc", width=1)
+    x     = 95 * SCALE   # mulai teks setelah QR
+    gap_x = 6  * SCALE
 
     # ── Baris 1: Customer | Produk ──
     y1 = text_y
     draw.text((x, y1), customer, fill="black", font=font_lg)
-    bbox = draw.textbbox((x, y1), customer, font=font_lg)
+    bbox       = draw.textbbox((x, y1), customer, font=font_lg)
     customer_w = bbox[2] - bbox[0]
     draw.text((x + customer_w + gap_x, y1), produk, fill="black", font=font_lg)
 
     # ── Baris 2: SPK | UK | Operator | Mesin ──
     y2 = y1 + gap
-    draw.text((x,      y2), spk,      fill="black", font=font_md)
-    draw.text((x + 45, y2), uk,       fill="black", font=font_md)
-    draw.text((x + 90, y2), operator, fill="black", font=font_md)
+    draw.text((x,              y2), spk,      fill="black", font=font_md)
+    draw.text((x + 42 * SCALE, y2), uk,       fill="black", font=font_md)
+    draw.text((x + 85 * SCALE, y2), operator, fill="black", font=font_md)
     if mesin:
-        draw.text((x + 150, y2), f"M{mesin}", fill="black", font=font_md)
+        draw.text((x + 140 * SCALE, y2), f"M{mesin}", fill="black", font=font_md)
 
     # ── Baris 3: Berat | Bobin | BeratKg ──
     y3 = y2 + gap
-    draw.text((x,      y3), berat,   fill="black", font=font_md)
-    draw.text((x + 45, y3), bobin,   fill="black", font=font_md)
-    draw.text((x + 90, y3), beratkg, fill="black", font=font_md)
+    draw.text((x,               y3), berat,   fill="black", font=font_md)
+    draw.text((x + 42 * SCALE,  y3), bobin,   fill="black", font=font_md)
+    draw.text((x + 85 * SCALE,  y3), beratkg, fill="black", font=font_md)
 
     # ── Baris 4: Divisi | Tanggal | Shift | Checker ──
-    y4 = y3 + gap
+    y4    = y3 + gap
     cur_x = x
 
     draw.text((cur_x, y4), divisi_display, fill="black", font=font_md)
@@ -303,42 +329,71 @@ def label_print(order_id):
     return f"""<!DOCTYPE html>
 <html>
 <head>
+<title></title>
 <style>
   * {{ margin:0; padding:0; box-sizing:border-box; }}
-  body {{ background:white; }}
-  .page {{
-    page-break-after: always;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  html, body {{
+    margin: 0;
+    padding: 0;
     width: 80mm;
     height: 40mm;
+    background: white;
+    overflow: hidden;
   }}
-  .page:last-child {{ page-break-after: auto; }}
-  img {{ width: 80mm; height: 40mm; }}
+  .label {{
+    width: 80mm;
+    height: 40mm;
+    display: block;
+    overflow: hidden;
+  }}
+  .label img {{
+    width: 80mm;
+    height: 40mm;
+    display: block;
+    object-fit: fill;
+  }}
   @media print {{
     @page {{
       margin: 0;
       size: 80mm 40mm;
     }}
-    body {{ margin: 0; }}
+    html, body {{
+      margin: 0;
+      padding: 0;
+      width: 80mm;
+      height: 40mm;
+      overflow: hidden;
+    }}
   }}
 </style>
 </head>
 <body>
-  <div class="page"><img src="/label/{order_id}"></div>
-  <div class="page"><img src="/label/{order_id}"></div>
+  <div class="label"><img src="/label/{order_id}"></div>
   <script>
     window.onload = function() {{
-      setTimeout(function() {{
-        window.print();
-        setTimeout(function() {{ window.close(); }}, 1000);
-      }}, 600);
+      var imgs = document.querySelectorAll('img');
+      var loaded = 0;
+      function doPrint() {{
+        setTimeout(function() {{
+          window.print();
+          setTimeout(function() {{ window.close(); }}, 500);
+        }}, 400);
+      }}
+      imgs.forEach(function(img) {{
+        if (img.complete) {{
+          loaded++;
+          if (loaded === imgs.length) doPrint();
+        }} else {{
+          img.onload = function() {{
+            loaded++;
+            if (loaded === imgs.length) doPrint();
+          }};
+        }}
+      }});
     }};
   </script>
 </body>
 </html>"""
-
 
 # ─── CODE GENERATOR ─────────────────────────────────────────
 def generate_code(data):
@@ -998,28 +1053,39 @@ def save_pemakaian():
     try:
         data    = request.get_json()
         records = data.get("records", [])
+        tanggal = data.get("tanggal", "")   # input manual user, format: "2026-05-04T08:30"
+        shift   = data.get("shift", "")     # "P" atau "M"
 
         if not records:
             return jsonify(success=False, error="Tidak ada data")
 
-        # Kelompokkan per file CSV tujuan
+        if not tanggal:
+            return jsonify(success=False, error="Tanggal wajib diisi")
+
+        if not shift:
+            return jsonify(success=False, error="Shift wajib dipilih")
+
+        # Format tanggal jadi lebih bersih: "2026-05-04 08:30"
+        tanggal_clean = tanggal.replace("T", " ")
+
         from collections import defaultdict
         groups = defaultdict(list)
 
         for rec in records:
             csv_file = rec.get("csv_file")
 
-        if not csv_file or csv_file not in CSV_SCAN_PFILES:
-            prefix, _, _, _ = get_prefix_from_code(rec.get("code", ""))
-            csv_file = PEMAKAIAN_MAP.get(prefix)
+            # Fallback: deteksi dari prefix kode
+            if not csv_file or csv_file not in CSV_SCAN_PFILES:
+                prefix, _, _, _ = get_prefix_from_code(rec.get("code", ""))
+                csv_file = PEMAKAIAN_MAP.get(prefix)
 
-        if not csv_file or csv_file not in CSV_SCAN_PFILES:
-            return jsonify(
-                success=False,
-                error=f"Kode '{rec.get('code')}' tidak bisa ditentukan CSV tujuannya"
-        )
+            if not csv_file or csv_file not in CSV_SCAN_PFILES:
+                return jsonify(
+                    success=False,
+                    error=f"Kode '{rec.get('code')}' tidak bisa ditentukan CSV tujuannya"
+                )
 
-        groups[csv_file].append(rec)
+            groups[csv_file].append(rec)
 
         # Simpan per grup
         for csv_filename, recs in groups.items():
@@ -1028,12 +1094,14 @@ def save_pemakaian():
             file_exists = path.exists()
 
             with open(path, "a", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=CSV_SCAN_COLUMNS)
+                writer = csv.DictWriter(f, fieldnames=CSV_PSCAN_COLUMNS)
                 if not file_exists:
                     writer.writeheader()
                 for rec in recs:
                     writer.writerow({
-                        "create_at":    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "create_at":    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # otomatis saat submit
+                        "tanggal":      tanggal_clean,   # input manual user
+                        "shift":        shift,
                         "divisi":       rec.get("prefix", ""),
                         "prefix":       rec.get("prefix", ""),
                         "divisi_label": rec.get("divisi_label", ""),
@@ -1193,7 +1261,7 @@ def submit():
 
         img = generate_label_image(order_id, record)
         os.makedirs(LABELS_DIR, exist_ok=True)
-        img.save(os.path.join(LABELS_DIR, f"{order_id}.png"))
+        img.save(os.path.join(LABELS_DIR, f"{order_id}.png"), dpi=(300, 300))
 
         return jsonify({
             "success": True,

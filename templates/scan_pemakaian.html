@@ -53,7 +53,7 @@
       min-height: 100vh;
     }
 
-    /* TOPBAR */
+    /* ── TOPBAR ── */
     .topbar {
       grid-column: 1/-1;
       background: var(--gray1);
@@ -119,7 +119,7 @@
       color: var(--white);
     }
 
-    /* SIDEBAR */
+    /* ── SIDEBAR ── */
     .sidebar {
       background: var(--gray1);
       border-right: 1px solid var(--border);
@@ -151,19 +151,6 @@
       color: var(--gray5);
       user-select: none;
       text-decoration: none;
-    }
-
-    .field-label {
-      font-family: var(--font-mono);
-      font-size: var(--label-h);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--gray4);
-    }
-
-    .field-label .req {
-      color: var(--accent);
-      margin-left: 2px;
     }
 
     .sidebar-item:hover {
@@ -217,7 +204,7 @@
       font-family: var(--font-mono);
     }
 
-    /* MAIN */
+    /* ── MAIN ── */
     .main {
       overflow-y: auto;
       padding: 32px 40px;
@@ -246,28 +233,9 @@
       border-radius: 20px;
       background: var(--gray3);
       color: var(--gray5);
-      transition: background .2s, color .2s;
     }
 
-    .divisi-badge.active-mixing {
-      background: rgba(232, 66, 10, .2);
-      color: var(--accent);
-      border: 1px solid rgba(232, 66, 10, .4);
-    }
-
-    .divisi-badge.active-hd {
-      background: rgba(245, 166, 35, .2);
-      color: var(--accent2);
-      border: 1px solid rgba(245, 166, 35, .4);
-    }
-
-    .divisi-badge.active-packing {
-      background: rgba(34, 197, 94, .2);
-      color: var(--success);
-      border: 1px solid rgba(34, 197, 94, .4);
-    }
-
-    /* CARD */
+    /* ── CARD ── */
     .card {
       background: var(--gray1);
       border: 1px solid var(--border);
@@ -313,11 +281,20 @@
       padding: 18px 20px;
     }
 
-    /* SCAN INPUT */
-    .scan-wrap {
+    /* ── FORM GRID ── */
+    .form-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .form-grid.cols-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .field {
       display: flex;
-      gap: 10px;
-      align-items: stretch;
+      flex-direction: column;
+      gap: 6px;
     }
 
     .field-label {
@@ -326,14 +303,16 @@
       letter-spacing: .08em;
       text-transform: uppercase;
       color: var(--gray4);
-      margin-bottom: 6px;
     }
 
-    .scan-input-wrap {
-      flex: 1;
+    .field-label .req {
+      color: var(--accent);
+      margin-left: 2px;
     }
 
-    input[type="text"] {
+    input[type="text"],
+    input[type="datetime-local"],
+    select {
       width: 100%;
       height: var(--input-h);
       background: var(--gray2);
@@ -341,19 +320,115 @@
       border-radius: var(--radius);
       color: var(--white);
       font-family: var(--font-mono);
-      font-size: 14px;
+      font-size: 13px;
       padding: 0 14px;
       outline: none;
       transition: border-color .15s, background .15s;
+      appearance: none;
+      -webkit-appearance: none;
     }
 
-    input[type="text"]:focus {
+    input[type="text"]:focus,
+    input[type="datetime-local"]:focus,
+    select:focus {
       border-color: var(--accent);
       background: #222;
     }
 
     input[type="text"]::placeholder {
       color: var(--gray4);
+    }
+
+    /* datetime-local calendar icon color fix */
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.5);
+      cursor: pointer;
+    }
+
+    select option {
+      background: var(--gray2);
+      color: var(--white);
+    }
+
+    /* custom select arrow */
+    .select-wrap {
+      position: relative;
+    }
+
+    .select-wrap::after {
+      content: '▾';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray4);
+      pointer-events: none;
+      font-size: 12px;
+    }
+
+    .select-wrap select {
+      padding-right: 32px;
+    }
+
+    /* shift pills */
+    .shift-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .shift-pill {
+      flex: 1;
+      height: var(--input-h);
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--gray5);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      user-select: none;
+    }
+
+    .shift-pill:hover {
+      border-color: var(--gray5);
+      color: var(--white);
+    }
+
+    .shift-pill.active-P {
+      background: rgba(232, 66, 10, .15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .shift-pill.active-M {
+      background: rgba(245, 166, 35, .15);
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    .shift-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: .7;
+    }
+
+    /* ── SCAN INPUT ── */
+    .scan-wrap {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .scan-input-wrap {
+      flex: 1;
     }
 
     .btn-add {
@@ -383,7 +458,7 @@
       font-family: var(--font-mono);
     }
 
-    /* TOAST */
+    /* ── TOAST ── */
     .toast {
       font-family: var(--font-mono);
       font-size: 11px;
@@ -408,10 +483,10 @@
       opacity: 0;
     }
 
-    /* TABLE */
+    /* ── TABLE ── */
     .col-header {
       display: grid;
-      grid-template-columns: 36px minmax(0, 2fr) 70px minmax(0, 1fr) minmax(0, 2fr) 70px 40px;
+      grid-template-columns: 30px minmax(0, 2fr) 50px minmax(0, 1fr) minmax(0, 1.5fr) 65px minmax(0, 1fr) 36px;
       gap: 8px;
       padding: 6px 16px;
       background: var(--gray3);
@@ -447,7 +522,7 @@
 
     .code-row {
       display: grid;
-      grid-template-columns: 36px minmax(0, 2fr) 70px minmax(0, 1fr) minmax(0, 2fr) 70px 40px;
+      grid-template-columns: 30px minmax(0, 2fr) 50px minmax(0, 1fr) minmax(0, 1.5fr) 65px minmax(0, 1fr) 36px;
       align-items: start;
       gap: 8px;
       padding: 8px 16px;
@@ -480,7 +555,6 @@
       background: rgba(255, 255, 255, .03);
     }
 
-    /* INVALID ROW */
     .code-row.invalid {
       background: rgba(239, 68, 68, .08) !important;
       border-left: 3px solid var(--danger);
@@ -492,7 +566,6 @@
       font-size: 12px;
       color: var(--white);
       word-break: break-all;
-      overflow: hidden;
       white-space: normal;
     }
 
@@ -532,7 +605,7 @@
       font-family: var(--font-mono);
     }
 
-    /* VALIDATION BANNER */
+    /* ── VALIDATION BANNER ── */
     .validate-banner {
       display: none;
       background: rgba(239, 68, 68, .1);
@@ -549,7 +622,7 @@
       display: block;
     }
 
-    /* ACTION ROW */
+    /* ── ACTION ROW ── */
     .action-row {
       display: flex;
       gap: 10px;
@@ -624,7 +697,7 @@
       color: var(--danger);
     }
 
-    /* SPINNER */
+    /* ── SPINNER ── */
     .spinner {
       width: 16px;
       height: 16px;
@@ -641,7 +714,7 @@
       }
     }
 
-    /* RESULT PANEL */
+    /* ── RESULT PANEL ── */
     .result-panel {
       display: none;
       background: var(--gray1);
@@ -712,6 +785,7 @@
       background: var(--gray3);
     }
 
+    /* ── RESPONSIVE ── */
     @media (max-width: 860px) {
       .shell {
         grid-template-columns: 1fr;
@@ -723,6 +797,10 @@
 
       .main {
         padding: 20px 16px;
+      }
+
+      .form-grid.cols-2 {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -765,6 +843,10 @@
           <span class="stat-label">Divisi aktif</span>
           <span class="stat-val" id="stat-divisi" style="font-size:13px;color:var(--gray5)">—</span>
         </div>
+        <div class="stat-row">
+          <span class="stat-label">Shift</span>
+          <span class="stat-val" id="stat-shift" style="font-size:16px;color:var(--accent2)">—</span>
+        </div>
       </div>
     </aside>
 
@@ -777,8 +859,6 @@
         <span style="margin-left:auto;font-size:11px;color:var(--gray4);font-family:var(--font-mono)"
           id="current-date"></span>
       </div>
-
-      
 
       <!-- SUCCESS PANEL -->
       <div class="result-panel" id="result-panel">
@@ -796,10 +876,43 @@
         </div>
       </div>
 
-      <!-- CARD 1: Scan Input -->
+      <!-- CARD 1: Info Produksi (Tanggal + Shift) -->
       <div class="card">
         <div class="card-header">
           <span class="card-header-num">1</span>
+          <span class="card-header-title">Info Produksi</span>
+        </div>
+        <div class="card-body">
+          <div class="form-grid cols-2">
+
+            <!-- TANGGAL -->
+            <div class="field">
+              <label class="field-label" for="tanggal">Tanggal &amp; Waktu<span class="req">*</span></label>
+              <input type="datetime-local" id="tanggal" required>
+            </div>
+
+            <!-- SHIFT -->
+            <div class="field">
+              <label class="field-label">Shift<span class="req">*</span></label>
+              <div class="shift-group">
+                <div class="shift-pill" id="pill-P" onclick="selectShift('P')">
+                  <span class="shift-dot"></span> P — Pagi
+                </div>
+                <div class="shift-pill" id="pill-M" onclick="selectShift('M')">
+                  <span class="shift-dot"></span> M — Malam
+                </div>
+              </div>
+              <input type="hidden" id="shift" value="">
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: Scan Input -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-num">2</span>
           <span class="card-header-title">Input Kode</span>
         </div>
         <div class="card-body">
@@ -816,42 +929,17 @@
         </div>
       </div>
 
+      <!-- CARD 3: Daftar Kode -->
       <div class="card">
         <div class="card-header">
-          <span class="card-header-num">2</span>
-          <span class="card-header-title">Produk</span>
-        </div>
-        <div class="card-body">
-          <div class="form-grid cols-2">
-            <!-- CUSTOMER -->
-            <div class="field">
-              <label class="field-label">Tanggal </label>
-              <input type="datetime-local" id="tanggal">
-            </div>
-            <div class="field">
-              <label class="field-label">Shift<span class="req">*</span></label>
-              <select id="shift" required>
-                <option value="">-- Pilih Shift --</option>
-                <option value="P">P</option>
-                <option value="M">M</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-
-      <!-- CARD 2: Code List -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-header-num">2</span>
+          <span class="card-header-num">3</span>
           <span class="card-header-title">Daftar Kode Discan</span>
           <span class="card-header-extra" style="font-family:var(--font-mono);font-size:11px;color:var(--gray4)">
             <span id="list-count">0</span> kode
           </span>
         </div>
 
-        <div class="col-header"
-          style="grid-template-columns: 30px minmax(0,2fr) 50px minmax(0,1fr) minmax(0,1.5fr) 65px minmax(0,1fr) 36px; gap:8px;">
+        <div class="col-header">
           <span>#</span>
           <span>Code</span>
           <span>SPK</span>
@@ -866,7 +954,6 @@
           <div class="list-empty" id="list-empty">Belum ada kode discan…</div>
         </div>
 
-        <!-- VALIDATION BANNER -->
         <div class="validate-banner" id="validate-banner"></div>
 
         <div class="action-row">
@@ -885,11 +972,8 @@
   <script>
     // ── STATE ──
     let codes = [];
+    let selectedShift = "";
 
-    // Field wajib
-    const REQUIRED_FIELDS = ['spk', 'checker'];
-
-    // Mirror PREFIX_CONFIG dari backend (untuk deteksi lokal)
     const PREFIX_LABEL = {
       "HD": "HD", "AHP": "HD — Prong", "AHD": "HD — Daun", "AHS": "HD — Sapuan",
       "MI": "Mixing", "AMS": "Aval Mixing",
@@ -910,14 +994,30 @@
       return "";
     }
 
+    // ── SHIFT SELECTOR ──
+    function selectShift(val) {
+      selectedShift = val;
+      document.getElementById("shift").value = val;
+
+      document.getElementById("pill-P").className = "shift-pill" + (val === "P" ? " active-P" : "");
+      document.getElementById("pill-M").className = "shift-pill" + (val === "M" ? " active-M" : "");
+
+      const el = document.getElementById("stat-shift");
+      if (el) {
+        el.textContent = val === "P" ? "P — Pagi" : "M — Malam";
+        el.style.color = val === "P" ? "var(--accent)" : "var(--accent2)";
+      }
+    }
+
     // ── HELPERS ──
     function isFieldMissing(val) {
       return !val || String(val).trim() === '' || String(val).trim() === '-';
     }
-    // Hanya 3 field ini yang wajib — code, checker, prefix (divisi)
+
     function isCodeValid(c) {
       return !isFieldMissing(c.code) && !isFieldMissing(c.checker) && !isFieldMissing(c.prefix);
     }
+
     function escHtml(s) {
       return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
@@ -928,6 +1028,13 @@
       setInterval(updateClock, 1000);
       document.getElementById("current-date").textContent =
         new Date().toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+      // Set datetime-local default ke sekarang
+      const now = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      const localDT = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      document.getElementById("tanggal").value = localDT;
+
       document.getElementById("scan-input").focus();
     });
 
@@ -938,7 +1045,7 @@
         `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
     }
 
-    // ── ADD CODE — tanpa perlu pilih divisi ──
+    // ── ADD CODE ──
     async function addCode() {
       const input = document.getElementById("scan-input");
       const val = input.value.trim();
@@ -951,7 +1058,6 @@
         return;
       }
 
-      // Cek prefix lokal dulu sebelum hit server
       const localPrefix = getPrefixFromCode(val);
       if (!localPrefix) {
         showToast("⛔ Prefix kode tidak dikenal: " + val, "error");
@@ -1028,7 +1134,6 @@
         const valid = isCodeValid(c);
         const row = document.createElement("div");
         row.className = "code-row" + (valid ? "" : " invalid");
-        row.style.gridTemplateColumns = "30px minmax(0,2fr) 50px minmax(0,1fr) minmax(0,1.5fr) 65px minmax(0,1fr) 36px";
 
         const cell = (val, baseColor) => {
           const missing = isFieldMissing(val);
@@ -1038,15 +1143,15 @@
         };
 
         row.innerHTML = `
-  <span class="code-idx">${i + 1}</span>
-  ${cell(c.code, 'var(--white)')}
-  ${cell(c.spk)}
-  ${cell(c.customer)}
-  ${cell(c.produk)}
-  ${cell(c.checker)}
-  <span class="code-text" style="color:var(--accent2);font-size:10px;line-height:1.3">${escHtml(c.divisi_label || c.prefix || "?")}</span>
-  <button class="btn-del" onclick="deleteCode(${i})">✕</button>
-`;
+          <span class="code-idx">${i + 1}</span>
+          ${cell(c.code, 'var(--white)')}
+          ${cell(c.spk)}
+          ${cell(c.customer)}
+          ${cell(c.produk)}
+          ${cell(c.checker)}
+          <span class="code-text" style="color:var(--accent2);font-size:10px;line-height:1.3">${escHtml(c.divisi_label || c.prefix || "?")}</span>
+          <button class="btn-del" onclick="deleteCode(${i})">✕</button>
+        `;
         list.appendChild(row);
       });
 
@@ -1068,9 +1173,9 @@
 
         banner.className = "validate-banner show";
         banner.innerHTML = `
-      <strong>⛔ ${invalidRows.length} kode tidak valid — tidak bisa disimpan</strong><br>
-      <span style="opacity:.75;font-size:10px;display:block;margin-top:4px">${lines}</span>
-    `;
+          <strong>⛔ ${invalidRows.length} kode tidak valid — tidak bisa disimpan</strong><br>
+          <span style="opacity:.75;font-size:10px;display:block;margin-top:4px">${lines}</span>
+        `;
         btn.disabled = true;
         fb.textContent = `${invalidRows.length} kode tidak valid`;
         fb.className = "action-feedback err";
@@ -1111,7 +1216,6 @@
 
     function updateStats() {
       document.getElementById("stat-count").textContent = codes.length;
-      // "tidak valid" sekarang hanya yg prefix/checker tidak terdeteksi
       const inv = codes.filter(c => !isCodeValid(c)).length;
       document.getElementById("stat-invalid").textContent = inv;
 
@@ -1136,7 +1240,18 @@
     async function submitCodes() {
       if (!codes.length) { alert("Belum ada kode."); return; }
 
-      // Hanya blokir jika ada kode yang prefix/checker-nya tidak terdeteksi
+      const tanggal = document.getElementById("tanggal").value;
+      if (!tanggal) {
+        alert("⚠ Tanggal & waktu wajib diisi.");
+        document.getElementById("tanggal").focus();
+        return;
+      }
+
+      if (!selectedShift) {
+        alert("⚠ Pilih shift terlebih dahulu (P atau M).");
+        return;
+      }
+
       const invalid = codes.filter(c => !isCodeValid(c));
       if (invalid.length > 0) {
         alert(`⛔ Ada ${invalid.length} kode yang checker atau divisnya tidak terdeteksi.\nHapus kode tersebut terlebih dahulu.`);
@@ -1148,33 +1263,41 @@
       btn.disabled = true;
       spinner.style.display = "block";
 
+      // ← Tambah created_at di sini
+      const created_at = new Date().toISOString();
+
       try {
         const res = await fetch("/save_pemakaian", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ records: codes })
+          body: JSON.stringify({
+            records: codes,
+            tanggal: tanggal,       // tanggal input manual user
+            shift: selectedShift,
+            created_at: created_at  // ← timestamp otomatis saat submit
+          })
         });
 
-        const ct = res.headers.get("content-type") || "";
-        if (!ct.includes("application/json")) {
-          const text = await res.text();
-          throw new Error("Server error: " + text.substring(0, 100));
-        }
+    const ct = res.headers.get("content-type") || "";
+    if (!ct.includes("application/json")) {
+      const text = await res.text();
+      throw new Error("Server error: " + text.substring(0, 100));
+    }
 
-        const result = await res.json();
-        if (!result.success) throw new Error(result.error);
+    const result = await res.json();
+    if (!result.success) throw new Error(result.error);
 
-        alert("✅ " + codes.length + " kode berhasil disimpan.");
-        codes = [];
-        renderList();
-        updateStats();
+    alert("✅ " + codes.length + " kode berhasil disimpan.");
+    codes = [];
+    renderList();
+    updateStats();
 
       } catch (err) {
-        alert("❌ Gagal: " + err.message);
-      }
+      alert("❌ Gagal: " + err.message);
+    }
 
-      btn.disabled = false;
-      spinner.style.display = "none";
+    btn.disabled = false;
+    spinner.style.display = "none";
     }
 
     // ── RESET ──

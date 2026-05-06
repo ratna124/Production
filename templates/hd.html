@@ -19,7 +19,6 @@
     }
 
     /* ── SIDEBAR ────────────────────────────────────────── */
-
     input[required],
     select[required],
     textarea[required] {
@@ -87,8 +86,6 @@
     .sidebar-item.active .sidebar-dot {
       background: #e8420a;
     }
-
-
 
     :root {
       --black: #0a0a0a;
@@ -727,7 +724,6 @@
 
 <body>
   <div class="shell">
-
     <!-- ── TOPBAR ── -->
     <header class="topbar">
       <span class="topbar-logo">&#9632; Garindra Plastik</span>
@@ -735,8 +731,8 @@
       <span class="topbar-title">Sistem Label & Output Produksi</span>
       <div class="topbar-right">
         <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">
-        &#128100; {{ current_user }}
-    </span>
+          &#128100; {{ current_user }}
+        </span>
         <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
         <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
         <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a> -->
@@ -811,18 +807,6 @@
           <div class="result-actions">
             <div style="font-size:11px;color:var(--gray4);font-family:var(--font-mono);margin-bottom:4px">AKSI LABEL
             </div>
-            <a class="btn-action primary" id="btn-print" href="#" target="_blank">
-              <span class="btn-action-icon">&#9113;</span>
-              <span>Cetak Label</span>
-            </a>
-            <!-- <a class="btn-action" id="btn-download" href="#">
-            <span class="btn-action-icon">&#8595;</span>
-            <span>Download PNG</span>
-          </a>
-          <div style="font-size:11px;color:var(--gray4);font-family:var(--font-mono);margin:8px 0 4px">STATUS</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; Tersimpan ke database</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; Dicatat ke CSV</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; QR Code generated</div> -->
             <button class="btn-action btn-new" onclick="resetForm()">
               <span class="btn-action-icon">+</span>
               <span>Input baru</span>
@@ -896,17 +880,17 @@
             <!-- Mesin -->
             <div class="field">
               <label class="field-label">Mesin<span class="req">*</span></label>
-              <input type="number" id="mesin" min="1" max="12" required>
+              <input type="number" id="mesin" min="1" max="12" required oninput="validateMesin(this)">
             </div>
             <!-- Berat Total -->
             <div class="field">
               <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_kg" required>
+              <input type="text" id="berat_kg" required oninput="validateBerat(this)">
             </div>
             <!-- Berat Bobin -->
             <div class="field">
               <label class="field-label">Berat Bobin (kg)<span class="req">*</span></label>
-              <input type="text" id="bobin" required>
+              <input type="text" id="bobin" required oninput="validateBobin(this)">
             </div>
             <!-- Berat Bersih -->
             <div class="field">
@@ -963,7 +947,6 @@
                     <th>Code</th>
                   </tr>
                 </thead>
-
                 <tbody id="recent-body">
                   <tr>
                     <td colspan="9" style="text-align:center;color:var(--gray4);padding:24px">
@@ -1192,7 +1175,7 @@
         </script>
         <script>
           async function loadOperators() {
-            const divisi = document.getElementById("divisi").value; 
+            const divisi = document.getElementById("divisi").value;
 
             try {
               const res = await fetch(`/api/operators/${divisi}`);
@@ -1213,9 +1196,7 @@
           // Panggil saat halaman siap
           document.addEventListener("DOMContentLoaded", function () {
             loadOperators();
-            // ... kode DOMContentLoaded lainnya yang sudah ada
           });
-
 
           async function submitForm() {
             const btn = document.getElementById("btn-submit");
@@ -1244,6 +1225,38 @@
                 return; // ❗ STOP submit
               }
             }
+
+            // TIDAK BOLEH MINUS ATAU ANGKA YANG TIDAK SESUAI
+            const beratVal = parseFloat(document.getElementById("berat_kg").value);
+            if (isNaN(beratVal) || beratVal <= 0) {
+              errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
+              errorMsg.classList.add("show");
+              document.getElementById("berat_kg").focus();
+              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
+              return;
+            }
+            document.getElementById("berat_kg").style.borderColor = "";
+
+            const mesinVal = parseFloat(document.getElementById("mesin").value);
+            if (isNaN(mesinVal) || mesinVal <= 0) {
+              errorMsg.innerText = "Mesin tidak boleh minus, nol, atau mesin yang tidak ada";
+              errorMsg.classList.add("show");
+              document.getElementById("mesin").focus();
+              document.getElementById("mesin").style.borderColor = "var(--accent)";
+              return;
+            }
+            document.getElementById("mesin").style.borderColor = "";
+
+            const bobinVal = parseFloat(document.getElementById("bobin").value);
+            if (isNaN(bobinVal) || bobinVal <= 0) {
+              errorMsg.innerText = "Bobin tidak boleh minus, nol, atau bukan angka";
+              errorMsg.classList.add("show");
+              document.getElementById("bobin").focus();
+              document.getElementById("bobin").style.borderColor = "var(--accent)";
+              return;
+            }
+            document.getElementById("bobin").style.borderColor = "";
+
             if (parseFloat(document.getElementById("berat_kg").value) <
               parseFloat(document.getElementById("bobin").value)) {
 
@@ -1285,31 +1298,48 @@
 
               document.getElementById("result-panel").classList.add("show");
               document.getElementById("result-order-id").innerText = result.order_id;
-
               document.getElementById("label-img").src = result.label_url;
-              document.getElementById("btn-print").href = result.print_url;
+
+              // PRINT TANPA PINDAH HALAMAN
+              const frame = document.getElementById("print-frame");
+
+              frame.src = `/label/print/${result.order_id}`;
 
               loadRecent();
+
+              //auto reset
+              setTimeout(() => {
+                resetForm();
+              }, 2000);
 
             } catch (err) {
               errorMsg.innerText = err.message;
               errorMsg.classList.add("show");
+            } finally {
+              btn.disabled = false;
+              spinner.style.display = "none";
             }
-
-            btn.disabled = false;
-            spinner.style.display = "none";
           }
 
           // ── RESET ────────────────────────────────────────────────
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
-            ['operator_hd', 'spk', 'customer', 'product', 'uk', 'mesin', 'berat_kg', 'bobin', 'berat_bersih']
+
+            ['spk', 'customer', 'product', 'uk', 'mesin', 'berat_kg', 'bobin', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
               });
-            updateProducts();
+
+            // Reset dropdown operator ke default
+            const opSelect = document.getElementById("operator_hd");
+            if (opSelect) opSelect.selectedIndex = 0;
+
+            // Scroll ke atas
             window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Fokus ke SPK biar langsung bisa input
+            document.getElementById("spk").focus();
           }
         </script>
         <script>
@@ -1328,7 +1358,51 @@
           // trigger saat input berubah
           document.getElementById("berat_kg").addEventListener("input", hitungBersih);
           document.getElementById("bobin").addEventListener("input", hitungBersih);
+
+          //TIDAK BOLEH MINUS
+          function validateBerat(el) {
+            const val = parseFloat(el.value);
+            const errorMsg = document.getElementById("error-msg");
+
+            if (el.value !== "" && (isNaN(val) || val <= 0)) {
+              errorMsg.innerText = "Berat tidak boleh minus atau nol";
+              errorMsg.classList.add("show");
+              el.style.borderColor = "var(--accent)";
+            } else {
+              errorMsg.classList.remove("show");
+              el.style.borderColor = "";
+            }
+          }
+
+          function validateMesin(el) {
+            const val = parseFloat(el.value);
+            const errorMsg = document.getElementById("error-msg");
+
+            if (el.value !== "" && (isNaN(val) || val <= 0)) {
+              errorMsg.innerText = "Mesin tidak boleh minus atau nol";
+              errorMsg.classList.add("show");
+              el.style.borderColor = "var(--accent)";
+            } else {
+              errorMsg.classList.remove("show");
+              el.style.borderColor = "";
+            }
+          }
+
+          function validateBobin(el) {
+            const val = parseFloat(el.value);
+            const errorMsg = document.getElementById("error-msg");
+
+            if (el.value !== "" && (isNaN(val) || val <= 0)) {
+              errorMsg.innerText = "Bobin tidak boleh minus atau nol";
+              errorMsg.classList.add("show");
+              el.style.borderColor = "var(--accent)";
+            } else {
+              errorMsg.classList.remove("show");
+              el.style.borderColor = "";
+            }
+          }
         </script>
+        <iframe id="print-frame" style="display:none"></iframe>
 </body>
 
 </html>

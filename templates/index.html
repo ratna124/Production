@@ -87,8 +87,6 @@
       background: #e8420a;
     }
 
-
-
     :root {
       --black: #0a0a0a;
       --white: #f5f4f0;
@@ -726,7 +724,6 @@
 
 <body>
   <div class="shell">
-
     <!-- ── TOPBAR ── -->
     <header class="topbar">
       <span class="topbar-logo">&#9632; Garindra Plastik</span>
@@ -744,7 +741,6 @@
 
     <!-- ── SIDEBAR ── -->
     <aside class="sidebar">
-
       <div class="sidebar-section">Divisi</div>
       <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
         <span class="sidebar-dot"></span>Mixing
@@ -815,14 +811,6 @@
               <span class="btn-action-icon">&#9113;</span>
               <span>Cetak Label</span>
             </a>
-            <!-- <a class="btn-action" id="btn-download" href="#">
-            <span class="btn-action-icon">&#8595;</span>
-            <span>Download PNG</span>
-          </a>
-          <div style="font-size:11px;color:var(--gray4);font-family:var(--font-mono);margin:8px 0 4px">STATUS</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; Tersimpan ke database</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; Dicatat ke CSV</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; QR Code generated</div> -->
             <button class="btn-action btn-new" onclick="resetForm()">
               <span class="btn-action-icon">+</span>
               <span>Input baru</span>
@@ -873,43 +861,36 @@
         </div>
         <div class="card-body">
           <div class="form-grid cols-2">
-
             <!-- SPK -->
             <div class="field">
               <label class="field-label">No. SPK <span class="req">*</span></label>
               <input type="text" id="spk" placeholder="Masukkan No SPK" required>
             </div>
-
             <!-- CUSTOMER -->
             <div class="field">
               <label class="field-label">Customer</label>
               <input type="text" id="customer" readonly>
             </div>
-
             <!-- PRODUCT -->
             <div class="field">
               <label class="field-label">Produk</label>
               <input type="text" id="product" readonly>
             </div>
-
             <!-- UK -->
             <div class="field">
               <label class="field-label">UKURAN</label>
               <input type="text" id="uk" readonly>
             </div>
-
             <!-- Berat Total (kg) -->
             <div class="field">
               <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_bersih" required>
+              <input type="text" id="berat_bersih" required oninput="validateBerat(this)">
             </div>
-
             <!-- Berat Karung -->
             <div class="field">
               <label class="field-label">Berat Karung (kg)</label>
               <input type="text" id="karung" value="0.09" readonly>
             </div>
-
           </div>
         </div>
 
@@ -958,7 +939,6 @@
                     <th>Code</th>
                   </tr>
                 </thead>
-
                 <tbody id="recent-body">
                   <tr>
                     <td colspan="9" style="text-align:center;color:var(--gray4);padding:24px">
@@ -968,7 +948,6 @@
                 </tbody>
               </table>
             </div>
-
           </div>
         </div>
 
@@ -1038,9 +1017,7 @@
           // TIME + SHIFT
           function updateTime() {
             let now = new Date();
-
             let hour = now.getHours();
-
             // SHIFT
             let shift = (hour >= 7 && hour < 19) ? "P" : "M";
             document.getElementById("shift").value = shift;
@@ -1135,7 +1112,6 @@
                 (r.tanggal || "").trim() === target
               );
             }
-
             renderTable(filtered);
           }
 
@@ -1189,7 +1165,7 @@
         </script>
         <script>
           async function loadOperators() {
-            const divisi = document.getElementById("divisi").value; 
+            const divisi = document.getElementById("divisi").value;
 
             try {
               const res = await fetch(`/api/operators/${divisi}`);
@@ -1210,7 +1186,6 @@
           // Panggil saat halaman siap
           document.addEventListener("DOMContentLoaded", function () {
             loadOperators();
-            // ... kode DOMContentLoaded lainnya yang sudah ada
           });
 
           async function submitForm() {
@@ -1236,6 +1211,18 @@
                 return;
               }
             }
+
+            const beratVal = parseFloat(document.getElementById("berat_bersih").value);
+            if (isNaN(beratVal) || beratVal <= 0) {
+              errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
+              errorMsg.classList.add("show");
+              document.getElementById("berat_bersih").focus();
+              document.getElementById("berat_bersih").style.borderColor = "var(--accent)";
+              return;
+            }
+
+            // Reset border kalau valid
+            document.getElementById("berat_bersih").style.borderColor = "";
 
             errorMsg.classList.remove("show");
             btn.disabled = true;
@@ -1272,24 +1259,28 @@
                 throw new Error(result.message || "Gagal menyimpan data");
               }
 
-              // 🔥 TAMPILKAN RESULT
+              // TAMPILKAN RESULT
               document.getElementById("result-panel").classList.add("show");
               document.getElementById("result-order-id").innerText = result.order_id;
               document.getElementById("label-img").src = result.label_url;
               document.getElementById("btn-print").href = `/label/print/${result.order_id}`;
 
-              // 🔥 PRINT TANPA PINDAH HALAMAN
+              // PRINT TANPA PINDAH HALAMAN
               const frame = document.getElementById("print-frame");
-
-              frame.onload = function () {
-                frame.contentWindow.focus();
-                frame.contentWindow.print();
-              };
-
               frame.src = `/label/print/${result.order_id}`;
 
-              // 🔄 REFRESH TABLE
               loadRecent();
+              // Auto clear input
+              setTimeout(() => {
+                ['spk', 'customer', 'product', 'uk', 'berat_bersih', 'karung'].forEach(id => {
+                  const el = document.getElementById(id);
+                  if (el) el.value = '';
+                });
+                const opSelect = document.getElementById("operator_mix");
+                if (opSelect) opSelect.selectedIndex = 0;
+                document.getElementById('result-panel').classList.remove('show');
+                document.getElementById("spk").focus();
+              }, 2000);
 
             } catch (err) {
               console.error(err);
@@ -1311,7 +1302,26 @@
                 if (el) el.value = '';
               });
 
+            const opSelect = document.getElementById("operator_mix");
+            if (opSelect) opSelect.selectedIndex = 0;
+
             window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            document.getElementById("spk").focus();
+          }
+
+          function validateBerat(el) {
+            const val = parseFloat(el.value);
+            const errorMsg = document.getElementById("error-msg");
+
+            if (el.value !== "" && (isNaN(val) || val <= 0)) {
+              errorMsg.innerText = "Berat tidak boleh minus atau nol";
+              errorMsg.classList.add("show");
+              el.style.borderColor = "var(--accent)";
+            } else {
+              errorMsg.classList.remove("show");
+              el.style.borderColor = "";
+            }
           }
         </script>
         <iframe id="print-frame" style="display:none;"></iframe>
