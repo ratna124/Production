@@ -894,8 +894,12 @@
               <input type="text" id="berat_kg" required oninput="validateBerat(this)">
             </div>
             <div class="field">
-              <label class="field-label">Berat Bersih (Karung 0.1)</label>
-              <input type="text" id="berat_bersih" value="" readonly required>
+              <label class="field-label">Karung</label>
+              <input type="text" id="karung" value="0.01" readonly>
+            </div>
+            <div class="field">
+              <label class="field-label">Berat Bersih (Kg)<span class="req">*</span></label>
+              <input type="text" id="berat_bersih" value="" readonly>
             </div>
           </div>
         </div>
@@ -937,6 +941,7 @@
                     <th>No SPK</th>
                     <th>Mesin</th>
                     <th>Jenis Aval</th>
+                    <th>Berat</th>
                     <th>Berat Bersih (kg)</th>
                     <th>Divisi</th>
                     <th>Shift</th>
@@ -1055,6 +1060,7 @@
             <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
             <td>${r.mesin || ""}</td>
             <td>${r.jenis || ""}</td>
+            <td>${r.berat_kg || ""}</td>
             <td>${r.berat_bersih || ""}</td>
             <td>${r.divisi || ""}</td>
             <td>${r.shift || ""}</td>
@@ -1110,11 +1116,7 @@
             el.classList.add('active');
             document.getElementById('divisi').value = div;
           }
-          document.getElementById("berat_kg").addEventListener("input", function () {
-            const beratKg = parseFloat(this.value) || 0;
-            const bersih = beratKg - 0.01;
-            document.getElementById("berat_bersih").value = bersih > 0 ? bersih.toFixed(2) : "0.00";
-          });
+          
         </script>
         <script>
           async function loadOperators() {
@@ -1193,6 +1195,7 @@
               spk: document.getElementById("spk").value,
               mesin: document.getElementById("mesin").value,
               jenis: document.getElementById("jenis").value,
+              karung: document.getElementById("karung").value,
               berat_kg: document.getElementById("berat_kg").value,
               berat_bersih: document.getElementById("berat_bersih").value
             };
@@ -1245,7 +1248,7 @@
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
 
-            ['operator_amix', 'spk', 'berat_bersih', 'berat_kg']
+            ['operator_amix', 'berat_bersih', 'berat_kg']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
@@ -1261,6 +1264,22 @@
             // Fokus ke SPK biar langsung bisa input
             document.getElementById("spk").focus();
           }
+
+          function hitungBersih() {
+            const berat = parseFloat(document.getElementById("berat_kg").value) || 0;
+            const karung = parseFloat(document.getElementById("karung").value) || 0;
+
+            let hasil = berat - karung;
+
+            // biar tidak minus
+            if (hasil < 0) hasil = 0;
+
+            document.getElementById("berat_bersih").value = hasil.toFixed(2);
+          }
+
+          // trigger saat input berubah
+          document.getElementById("berat_kg").addEventListener("input", hitungBersih);
+          document.getElementById("karung").addEventListener("input", hitungBersih);
 
           //TIDAK BOLEH MINUS
           function validateBerat(el) {

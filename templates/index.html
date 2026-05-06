@@ -884,12 +884,17 @@
             <!-- Berat Total (kg) -->
             <div class="field">
               <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_bersih" required oninput="validateBerat(this)">
+              <input type="text" id="berat_kg" required oninput="validateBerat(this)">
             </div>
             <!-- Berat Karung -->
             <div class="field">
               <label class="field-label">Berat Karung (kg)</label>
               <input type="text" id="karung" value="0.09" readonly>
+            </div>
+            <!-- Berat Total (kg) -->
+            <div class="field">
+              <label class="field-label">Berat Bersih (kg)<span class="req">*</span></label>
+              <input type="text" id="berat_bersih" readonly>
             </div>
           </div>
         </div>
@@ -931,7 +936,8 @@
                     <th>No SPK</th>
                     <th>Produk</th>
                     <th>Customer</th>
-                    <th>Berat (kg)</th>
+                    <th>Berat</th>
+                    <th>Berat Bersih</th>
                     <th>Divisi</th>
                     <th>Shift</th>
                     <th>Operator</th>
@@ -1078,6 +1084,7 @@
             <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
             <td>${r.produk || ""}</td>
             <td>${r.customer || ""}</td>
+            <td>${r.berat_kg || ""}</td>
             <td>${r.berat_bersih || ""}</td>
             <td>${r.divisi || ""}</td>
             <td>${r.shift || ""}</td>
@@ -1197,7 +1204,7 @@
               { id: "operator_mix", name: "Operator Mix" },
               { id: "checker", name: "Checker" },
               { id: "spk", name: "No. SPK" },
-              { id: "berat_bersih", name: "Berat (kg)" }
+              { id: "berat_kg", name: "Berat (kg)" }
             ];
 
             // VALIDASI
@@ -1212,17 +1219,17 @@
               }
             }
 
-            const beratVal = parseFloat(document.getElementById("berat_bersih").value);
+            const beratVal = parseFloat(document.getElementById("berat_kg").value);
             if (isNaN(beratVal) || beratVal <= 0) {
               errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
               errorMsg.classList.add("show");
-              document.getElementById("berat_bersih").focus();
-              document.getElementById("berat_bersih").style.borderColor = "var(--accent)";
+              document.getElementById("berat_kg").focus();
+              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
               return;
             }
 
             // Reset border kalau valid
-            document.getElementById("berat_bersih").style.borderColor = "";
+            document.getElementById("berat_kg").style.borderColor = "";
 
             errorMsg.classList.remove("show");
             btn.disabled = true;
@@ -1238,6 +1245,7 @@
               customer: document.getElementById("customer").value,
               produk: document.getElementById("product").value,
               uk: document.getElementById("uk").value,
+              berat_kg: document.getElementById("berat_kg").value,
               berat_bersih: document.getElementById("berat_bersih").value,
               karung: document.getElementById("karung").value
             };
@@ -1272,7 +1280,7 @@
               loadRecent();
               // Auto clear input
               setTimeout(() => {
-                ['spk', 'customer', 'product', 'uk', 'berat_bersih', 'karung'].forEach(id => {
+                ['spk', 'customer', 'product', 'uk', 'berat_kg', 'berat_bersih'].forEach(id => {
                   const el = document.getElementById(id);
                   if (el) el.value = '';
                 });
@@ -1292,11 +1300,27 @@
             }
           }
 
+          function hitungBersih() {
+            const berat = parseFloat(document.getElementById("berat_kg").value) || 0;
+            const karung = parseFloat(document.getElementById("karung").value) || 0;
+
+            let hasil = berat - karung;
+
+            // biar tidak minus
+            if (hasil < 0) hasil = 0;
+
+            document.getElementById("berat_bersih").value = hasil.toFixed(2);
+          }
+
+          // trigger saat input berubah
+          document.getElementById("berat_kg").addEventListener("input", hitungBersih);
+          document.getElementById("karung").addEventListener("input", hitungBersih);
+
           // ── RESET ──
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
 
-            ['operator_mix', 'spk', 'customer', 'product', 'uk', 'berat_bersih']
+            ['operator_mix', 'spk', 'customer', 'product', 'uk', 'berat_kg', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';

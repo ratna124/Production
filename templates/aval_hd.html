@@ -875,7 +875,7 @@
             <!-- SPK -->
             <div class="field">
               <label class="field-label">No. SPK <span class="req">*</span></label>
-              <input type="text" id="spk" placeholder="Masukkan No SPK">
+              <input type="text" id="spk" placeholder="Masukkan No SPK" required>
             </div>
             <!-- CUSTOMER -->
             <div class="field">
@@ -935,8 +935,12 @@
               <input type="text" id="tali" value="" readonly required>
             </div>
             <div class="field">
-              <label class="field-label">Berat Bersih (Karung 0.9)</label>
-              <input type="text" id="berat_bersih" value="" readonly required>
+              <label class="field-label">Karung</label>
+              <input type="text" id="karung" value="0.09" readonly>
+            </div>
+            <div class="field">
+              <label class="field-label">Berat Bersih (Kg)</label>
+              <input type="text" id="berat_bersih" value="" readonly>
             </div>
           </div>
         </div>
@@ -1243,11 +1247,7 @@
             }, 70);
           });
 
-          document.getElementById("berat_kg").addEventListener("input", function () {
-            const beratKg = parseFloat(this.value) || 0;
-            const bersih = beratKg - 0.09;
-            document.getElementById("berat_bersih").value = bersih > 0 ? bersih.toFixed(2) : "0.00";
-          });
+          
         </script>
         <script>
           async function loadOperators() {
@@ -1342,6 +1342,7 @@
               mesin: document.getElementById("mesin").value,
               jenis_hd: document.getElementById("jenis_hd").value,
               kategori_hd: document.getElementById("kategori_hd").value,
+              karung: document.getElementById("karung").value,
               berat_kg: document.getElementById("berat_kg").value,
               berat_bersih: document.getElementById("berat_bersih").value,
             };
@@ -1409,6 +1410,23 @@
             // Fokus ke SPK biar langsung bisa input
             document.getElementById("spk").focus();
           }
+
+          function hitungBersih() {
+            const berat = parseFloat(document.getElementById("berat_kg").value) || 0;
+            const karung = parseFloat(document.getElementById("karung").value) || 0;
+
+            let hasil = berat - karung;
+
+            // biar tidak minus
+            if (hasil < 0) hasil = 0;
+
+            document.getElementById("berat_bersih").value = hasil.toFixed(2);
+          }
+
+          // trigger saat input berubah
+          document.getElementById("berat_kg").addEventListener("input", hitungBersih);
+          document.getElementById("karung").addEventListener("input", hitungBersih);
+
 
           //TIDAK BOLEH MINUS
           function validateBerat(el) {

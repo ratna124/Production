@@ -180,17 +180,15 @@ def admin_required(f):
     return decorated
 
 
-
-
 FIELD_MAP = {
     "MIXING":       {"operator": "operator_mix", "wadah": "karung"},
     "HD":           {"operator": "operator_hd",  "wadah": "bobin"},
     "POTONG":       {"operator": "operator_cu",  "wadah": "keranjang"},
     "PACKING":      {"operator": "operator_pa",  "wadah": ""},
     "SISA_PACK":    {"operator": "operator_sp",  "wadah": "sisa"},
-    "AVAL_MIXING":  {"operator": "operator_amix","wadah": "jenis"},
-    "AVAL_HD":      {"operator": "operator_hd",  "wadah": "jenis_hd"},
-    "AVAL_POTONG":  {"operator": "operator_cu",  "wadah": ""},
+    "AVAL_MIXING":  {"operator": "operator_amix","wadah": "karung"},
+    "AVAL_HD":      {"operator": "operator_hd",  "wadah": "karung"},
+    "AVAL_POTONG":  {"operator": "operator_cu",  "wadah": "karung"},
     "AVAL_PACKING": {"operator": "operator_pa",  "wadah": ""},
     "AVAL_QC":      {"operator": "operator_qc",  "wadah": ""},
 }
@@ -218,18 +216,16 @@ def generate_label_image(order_id, data):
     draw = ImageDraw.Draw(img)
 
     font_paths = [
-        r"C:\Windows\Fonts\arial.ttf",
-        r"C:\Windows\Fonts\Arial.ttf",
-        r"C:\Windows\Fonts\calibri.ttf",
+        r"C:\Windows\Fonts\calibrib.ttf",
         r"C:\Windows\Fonts\tahoma.ttf",
     ]
 
     font_sm = font_md = font_lg = None
     for fp in font_paths:
         try:
-            font_sm = ImageFont.truetype(fp, 11 * SCALE)  # ← naik dari 9
-            font_md = ImageFont.truetype(fp, 13 * SCALE)  # ← naik dari 10
-            
+            font_sm = ImageFont.truetype(fp, 11 * SCALE)
+            font_md = ImageFont.truetype(fp, int(14.3 * SCALE))
+            font_lg = ImageFont.truetype(fp, 15 * SCALE)
             break
         except:
             continue
@@ -268,45 +264,81 @@ def generate_label_image(order_id, data):
         customer = "AVAL SAPUAN"
         produk   = "MIXING"
 
-    # Padding atas ~1.5cm
-    padding_top = 5 * SCALE  # ← naikkan sampai pas
+    padding_top = 7 * SCALE
 
-    # QR — dengan padding atas
-    qr_size = 75 * SCALE
-    qr      = generate_qr(data["code"]).resize((qr_size, qr_size), Image.LANCZOS)
-    img.paste(qr, (0 * SCALE, padding_top))  # ← QR mulai dari padding_top
+    # QR — generate sekali, resize pakai NEAREST
+    qr_size = 85 * SCALE
+    qr      = generate_qr(data["code"]).resize((qr_size, qr_size), Image.NEAREST)
+    img.paste(qr, (0, padding_top))
 
     # Teks — center vertikal sejajar QR
-    x     = (0 + 75 + 3) * SCALE
-    gap   = 15 * SCALE
+    x       = (85 + 3) * SCALE
+    gap     = 17 * SCALE  #space antar baris
     n_rows  = 5
     total_h = (n_rows - 1) * gap + 13 * SCALE
 
-    # y teks dihitung agar center di dalam tinggi QR
     qr_center = padding_top + qr_size // 2
-    y = qr_center - total_h // 2  # ← teks center sejajar QR
+    y         = qr_center - total_h // 2
 
-    # Baris 1: Customer  Produk
-    draw.text((x, y), f"{customer}  {produk}", fill="black", font=font_md)
+    # Hitung n_rows dinamis
+    row3 = bool(beratkg or bobin or berat)
+    n_rows = 4 + (1 if row3 else 0)  # baris 1,2,4,5 selalu ada + baris 3 kalau ada isinya
 
-    # Baris 2: SPK  UK
+    total_h = (n_rows - 1) * gap + 13 * SCALE
+    qr_center = padding_top + qr_size // 2
+    y = qr_center - total_h // 2
+
+    # Baris 1
+    draw.text((x, y), f"{customer}    {produk}", fill=0, font=font_md)
+
+    # Baris 2
     y += gap
-    draw.text((x, y), f"{spk}   {uk}", fill="black", font=font_md)
+    mesin_text = f"M{mesin}" if mesin else ""  # ← tambah ini
+    parts2 = [p for p in [spk, uk, operator, mesin_text] if p.strip()]
+    draw.text((x, y), "    ".join(parts2), fill=0, font=font_md)
 
-    # Baris 3: Berat  Bobin  BeratKg  Operator  Mesin
+    # Baris 3 — hanya kalau ada isinya
+    if divisi_raw == "SISA_PACK":
+        wadah_unit = "Pack"
+    else:
+        wadah_unit = "kg"
+        
+    if row3:
+        y += gap
+        parts3 = []
+        if beratkg:
+            parts3.append(f"{beratkg} kg")
+        if bobin:
+            parts3.append(f"{bobin} {wadah_unit}") 
+        if berat:
+            parts3.append(f"{berat} kg")
+        draw.text((x, y), "     ".join(parts3), fill=0, font=font_md)  # ← indentasi masuk if
+
+    # Baris 4
     y += gap
-    mesin_text = f"  M{mesin}" if mesin else ""
-    draw.text((x, y), f"{berat}  {bobin}  {beratkg}  {operator}{mesin_text}", fill="black", font=font_md)
+    draw.text((x, y), f"{divisi_display}  {tanggal}  ({shift})   {checker}", fill=0, font=font_md)
 
-    # Baris 4: Divisi  Tanggal  Shift  Checker
+    # Baris 5
     y += gap
-    draw.text((x, y), f"{divisi_display}  {tanggal}  ({shift})  {checker}", fill="black", font=font_md)
-
-    # Baris 5: created_at
-    y += gap
-    draw.text((x, y), created, fill="black", font=font_md)
-
+    draw.text((x, y), created, fill=0, font=font_md)
+    
     return img
+
+
+@app.route("/label/<order_id>")
+@login_required
+def label(order_id):
+    entry = record_cache.get(order_id)
+    if not entry:
+        return "Label tidak ditemukan atau sudah expired", 404
+
+    record, _ = entry
+    img = generate_label_image(order_id, record)
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", dpi=(600, 600))
+    buf.seek(0)
+    return send_file(buf, mimetype="image/png")
 
 
 @app.route("/label/print/<order_id>")
@@ -459,7 +491,7 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
         spk TEXT, customer TEXT, produk TEXT, uk TEXT,
-        operator_mix TEXT, checker TEXT,
+        operator_mix TEXT, checker TEXT, berat_kg REAL,
         berat_bersih REAL, karung REAL, created_at TEXT, code TEXT
     )""")
 
@@ -643,46 +675,46 @@ def save_record(data):
         c.execute("""
         INSERT INTO katalogavalmixing (
             tanggal, shift, divisi, spk,
-            operator_amix, checker, mesin, berat_kg, berat_bersih, jenis,
+            operator_amix, checker, mesin, karung, berat_kg, berat_bersih, jenis,
             created_at, code
         ) VALUES (
             :tanggal, :shift, :divisi, :spk,
-            :operator_amix, :checker, :mesin, :berat_kg, :berat_bersih, :jenis,
+            :operator_amix, :checker, :mesin, :karung, :berat_kg, :berat_bersih, :jenis,
             :created_at, :code
         )""", data)
         csv_path = CSV_AVAL_MIXING
         headers  = ["tanggal","shift","divisi","spk",
-                    "operator_amix","checker","mesin","berat_kg","berat_bersih","jenis","created_at","code"]
+                    "operator_amix","checker","mesin","karung","berat_kg","berat_bersih","jenis","created_at","code"]
 
     elif div == "AVAL_HD":
         c.execute("""
         INSERT INTO katalogavalhd (
             tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_hd, checker, mesin, jenis_hd, kategori_hd, berat_kg, berat_bersih, 
+            operator_hd, checker, mesin, jenis_hd, kategori_hd, karung, berat_kg, berat_bersih, 
             created_at, code
         ) VALUES (
             :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_hd, :checker, :mesin, :jenis_hd, :kategori_hd, :berat_kg, :berat_bersih,
+            :operator_hd, :checker, :mesin, :jenis_hd, :kategori_hd, :karung, :berat_kg, :berat_bersih,
             :created_at, :code
         )""", data)
         csv_path = CSV_AVAL_HD
         headers  = ["tanggal","shift","divisi","spk","customer","produk","uk",
-                    "operator_hd","checker","mesin","jenis_hd","kategori_hd","berat_kg","berat_bersih","created_at","code"]
+                    "operator_hd","checker","mesin","jenis_hd","kategori_hd","karung","berat_kg","berat_bersih","created_at","code"]
 
     elif div == "AVAL_POTONG":
         c.execute("""
         INSERT INTO katalogavalpotong (
             tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_cu, checker, mesin, jenis_cu, kategori_cu, berat_kg, berat_bersih, 
+            operator_cu, checker, mesin, jenis_cu, kategori_cu, karung, berat_kg, berat_bersih, 
             created_at, code
         ) VALUES (
             :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_cu, :checker, :mesin, :jenis_cu, :kategori_cu, :berat_kg, :berat_bersih,
+            :operator_cu, :checker, :mesin, :jenis_cu, :kategori_cu, :karung, :berat_kg, :berat_bersih,
             :created_at, :code
         )""", data)
         csv_path = CSV_AVAL_POTONG
         headers  = ["tanggal","shift","divisi","spk","customer","produk","uk",
-                    "operator_cu","checker","mesin","jenis_cu","kategori_cu","berat_kg","berat_bersih","created_at","code"]
+                    "operator_cu","checker","mesin","jenis_cu","kategori_cu","karung","berat_kg","berat_bersih","created_at","code"]
   
     elif div == "AVAL_PACKING":
         c.execute("""
@@ -719,16 +751,16 @@ def save_record(data):
         c.execute("""
         INSERT INTO katalogmixing (
             tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_mix, checker, berat_bersih, karung,
+            operator_mix, checker, berat_kg, berat_bersih, karung,
             created_at, code
         ) VALUES (
             :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_mix, :checker, :berat_bersih, :karung,
+            :operator_mix, :checker, :berat_kg, :berat_bersih, :karung,
             :created_at, :code
         )""", data)
         csv_path = CSV_MIXING
         headers  = ["tanggal","shift","divisi","spk","customer","produk","uk",
-                    "operator_mix","checker","berat_bersih","karung","created_at","code"]
+                    "operator_mix","checker","berat_kg","berat_bersih","karung","created_at","code"]
 
     else:
         conn.close()
@@ -1161,6 +1193,7 @@ def submit():
                 "spk": d.get("spk"),
                 "operator_amix": d.get("operator_amix"), "checker": d.get("checker"),
                 "mesin": d.get("mesin"),
+                "karung": float(d.get("karung") or 0),
                 "berat_kg": float(d.get("berat_kg") or 0),
                 "berat_bersih": float(d.get("berat_bersih") or 0),
                 "jenis": d.get("jenis"),
@@ -1176,6 +1209,7 @@ def submit():
                 "mesin": d.get("mesin"),
                 "jenis_hd": d.get("jenis_hd"),
                 "kategori_hd": d.get("kategori_hd"),
+                "karung": float(d.get("karung") or 0),
                 "berat_kg": float(d.get("berat_kg") or 0),
                 "berat_bersih": float(d.get("berat_bersih") or 0),
                 "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
@@ -1190,6 +1224,7 @@ def submit():
                 "mesin": d.get("mesin"),
                 "jenis_cu": d.get("jenis_cu"),
                 "kategori_cu": d.get("kategori_cu"),
+                "karung": d.get("karung"),
                 "berat_kg": float(d.get("berat_kg") or 0),
                 "berat_bersih": float(d.get("berat_bersih") or 0),
                 "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
@@ -1226,6 +1261,7 @@ def submit():
                 "spk": d.get("spk"), "customer": d.get("customer"),
                 "produk": d.get("produk"), "uk": d.get("uk"),
                 "operator_mix": d.get("operator_mix"), "checker": d.get("checker"),
+                "berat_kg": float(d.get("berat_kg") or 0),
                 "berat_bersih": float(d.get("berat_bersih") or 0),
                 "karung": float(d.get("karung") or 0),
                 "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
@@ -1247,25 +1283,6 @@ def submit():
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
-
-
-# ─── API: LABEL VIEW ────────────────────────────────────────
-
-@app.route("/label/<order_id>")
-@login_required
-def label(order_id):
-    entry = record_cache.get(order_id)
-    if not entry:
-        return "Label tidak ditemukan atau sudah expired", 404
-    
-    record, _ = entry
-    img = generate_label_image(order_id, record)
-    
-    buf = io.BytesIO()
-    img.save(buf, format="PNG", dpi=(300, 300))
-    buf.seek(0)
-    
-    return send_file(buf, mimetype="image/png")
 
 
 # ─── API: RECENT ────────────────────────────────────────────
