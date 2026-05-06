@@ -5,6 +5,14 @@ import csv, os, sqlite3, json, io, base64, uuid, functools
 from datetime import datetime, timedelta
 import pandas as pd
 from pathlib import Path
+import time
+record_cache = {}  # {order_id: (record, timestamp)}
+
+def cleanup_cache():
+    now = time.time()
+    expired = [k for k, (_, t) in record_cache.items() if now - t > 3600]
+    for k in expired:
+        del record_cache[k]
 
 app = Flask(__name__)
 
@@ -16,7 +24,6 @@ app.permanent_session_lifetime = timedelta(minutes=45)
 APP_DIR    = os.path.dirname(os.path.abspath(__file__))
 DB_PATH    = os.path.join(APP_DIR, "data", "production.db")
 
-LABELS_DIR   = r"Z:\Checker\Production\labels_output"
 MAPPING_CSV  = r"Z:\Checker\Production\Mapping.csv"
 SPK_CSV      = r"Z:\Checker\Summary SPK.csv"
 USER_EXCEL   = r"Z:\Checker\Production\other\other.xlsx"
@@ -173,12 +180,7 @@ def admin_required(f):
     return decorated
 
 
-# ─── LABEL SIZE ─────────────────────────────────────────────
-LABEL_W = 302   # 80mm
-LABEL_H = 151   # 40mm  
-SCALE   = 4
-LABEL_W_HI = LABEL_W * SCALE  # 1208px
-LABEL_H_HI = LABEL_H * SCALE  # 604px
+
 
 FIELD_MAP = {
     "MIXING":       {"operator": "operator_mix", "wadah": "karung"},
@@ -204,6 +206,13 @@ def generate_qr(code):
     qr.make(fit=True)
     return qr.make_image(fill_color="black", back_color="white").convert("RGB")
 
+# ─── LABEL SIZE ─────────────────────────────────────────────
+LABEL_W = 302  
+LABEL_H = 200   
+SCALE   = 4
+LABEL_W_HI = LABEL_W * SCALE  
+LABEL_H_HI = LABEL_H * SCALE  
+
 def generate_label_image(order_id, data):
     img  = Image.new("RGB", (LABEL_W_HI, LABEL_H_HI), "white")
     draw = ImageDraw.Draw(img)
@@ -218,9 +227,9 @@ def generate_label_image(order_id, data):
     font_sm = font_md = font_lg = None
     for fp in font_paths:
         try:
-            font_sm = ImageFont.truetype(fp, 9  * SCALE)
-            font_md = ImageFont.truetype(fp, 10 * SCALE)
-            font_lg = ImageFont.truetype(fp, 12 * SCALE)
+            font_sm = ImageFont.truetype(fp, 11 * SCALE)  # ← naik dari 9
+            font_md = ImageFont.truetype(fp, 13 * SCALE)  # ← naik dari 10
+            
             break
         except:
             continue
@@ -233,12 +242,6 @@ def generate_label_image(order_id, data):
     divisi_raw      = str(data.get("divisi", "")).strip().upper()
     prefix, _, _, _ = get_prefix_from_code(data.get("code", ""))
     divisi_display  = prefix if prefix else divisi_raw
-
-    # QR kiri — sejajar dengan tinggi teks
-    qr_size = 90 * SCALE  # ← dari 130 ke 90
-    qr      = generate_qr(data["code"]).resize((qr_size, qr_size), Image.LANCZOS)
-    qr_y    = (LABEL_H_HI - qr_size) // 2
-    img.paste(qr, (4 * SCALE, qr_y))
 
     config         = FIELD_MAP.get(divisi_raw, {})
     operator_field = config.get("operator", "")
@@ -265,16 +268,26 @@ def generate_label_image(order_id, data):
         customer = "AVAL SAPUAN"
         produk   = "MIXING"
 
-    # Teks di kanan QR
-    x   = (4 + 90 + 6) * SCALE  # ← sesuaikan x setelah QR dikecilkan
-    gap = 13 * SCALE
+    # Padding atas ~1.5cm
+    padding_top = 5 * SCALE  # ← naikkan sampai pas
 
+    # QR — dengan padding atas
+    qr_size = 75 * SCALE
+    qr      = generate_qr(data["code"]).resize((qr_size, qr_size), Image.LANCZOS)
+    img.paste(qr, (0 * SCALE, padding_top))  # ← QR mulai dari padding_top
+
+    # Teks — center vertikal sejajar QR
+    x     = (0 + 75 + 3) * SCALE
+    gap   = 15 * SCALE
     n_rows  = 5
-    total_h = (n_rows - 1) * gap + 12 * SCALE
-    y       = (LABEL_H_HI - total_h) // 2
+    total_h = (n_rows - 1) * gap + 13 * SCALE
+
+    # y teks dihitung agar center di dalam tinggi QR
+    qr_center = padding_top + qr_size // 2
+    y = qr_center - total_h // 2  # ← teks center sejajar QR
 
     # Baris 1: Customer  Produk
-    draw.text((x, y), f"{customer}  {produk}", fill="black", font=font_lg)
+    draw.text((x, y), f"{customer}  {produk}", fill="black", font=font_md)
 
     # Baris 2: SPK  UK
     y += gap
@@ -291,7 +304,7 @@ def generate_label_image(order_id, data):
 
     # Baris 5: created_at
     y += gap
-    draw.text((x, y), created, fill="black", font=font_sm)
+    draw.text((x, y), created, fill="black", font=font_md)
 
     return img
 
@@ -336,25 +349,23 @@ def label_print(order_id):
   <div class="label"><img src="/label/{order_id}"></div>
   <script>
     window.onload = function() {{
-      var imgs = document.querySelectorAll('img');
-      var loaded = 0;
+      var img = document.querySelector('img');
       function doPrint() {{
+        window.print();
         setTimeout(function() {{
           window.print();
-          setTimeout(function() {{ window.close(); }}, 500);
-        }}, 400);
+          setTimeout(function() {{
+            window.close();
+          }}, 1000);
+        }}, 1500);
       }}
-      imgs.forEach(function(img) {{
-        if (img.complete) {{
-          loaded++;
-          if (loaded === imgs.length) doPrint();
-        }} else {{
-          img.onload = function() {{
-            loaded++;
-            if (loaded === imgs.length) doPrint();
-          }};
-        }}
-      }});
+      if (img.complete) {{
+        setTimeout(doPrint, 400);
+      }} else {{
+        img.onload = function() {{
+          setTimeout(doPrint, 400);
+        }};
+      }}
     }};
   </script>
 </body>
@@ -1224,9 +1235,8 @@ def submit():
 
         save_record(record)
 
-        img = generate_label_image(order_id, record)
-        os.makedirs(LABELS_DIR, exist_ok=True)
-        img.save(os.path.join(LABELS_DIR, f"{order_id}.png"), dpi=(300, 300))
+        cleanup_cache()
+        record_cache[order_id] = (record, time.time())
 
         return jsonify({
             "success": True,
@@ -1240,11 +1250,22 @@ def submit():
 
 
 # ─── API: LABEL VIEW ────────────────────────────────────────
+
 @app.route("/label/<order_id>")
 @login_required
 def label(order_id):
-    path = os.path.join(LABELS_DIR, f"{order_id}.png")
-    return send_file(path, mimetype="image/png")
+    entry = record_cache.get(order_id)
+    if not entry:
+        return "Label tidak ditemukan atau sudah expired", 404
+    
+    record, _ = entry
+    img = generate_label_image(order_id, record)
+    
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", dpi=(300, 300))
+    buf.seek(0)
+    
+    return send_file(buf, mimetype="image/png")
 
 
 # ─── API: RECENT ────────────────────────────────────────────
