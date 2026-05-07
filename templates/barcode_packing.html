@@ -25,6 +25,12 @@
       border-color: #e8420a;
     }
 
+    .clock {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--gray4);
+    }
+
     .sidebar {
       background: #1a1a1a;
       border-right: 1px solid #2e2e2e;
@@ -86,6 +92,8 @@
     .sidebar-item.active .sidebar-dot {
       background: #e8420a;
     }
+
+
 
     :root {
       --black: #0a0a0a;
@@ -235,12 +243,6 @@
 
     .sidebar-item.active .sidebar-dot {
       background: var(--accent);
-    }
-
-    .clock {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--gray4);
     }
 
     .sidebar-stats {
@@ -730,6 +732,7 @@
 
 <body>
   <div class="shell">
+
     <!-- ── TOPBAR ── -->
     <header class="topbar">
       <span class="topbar-logo">&#9632; Garindra Plastik</span>
@@ -758,7 +761,7 @@
       </a>
 
       <div class="sidebar-section">Hasil</div>
-      <a href="/barcode_mixing" class="sidebar-item {% if active_page == 'barcode_mixing' %}active{% endif %}">
+      <a href="/barcode_mixing" class="sidebar-item {% if active_page == 'barcode_barcode_mixing' %}active{% endif %}">
         <span class="sidebar-dot"></span>Mixing WIP
       </a>
       <a href="/barcode_hd" class="sidebar-item {% if active_page == 'barcode_hd' %}active{% endif %}">
@@ -799,7 +802,7 @@
     <!-- ── MAIN ── -->
     <main class="main">
       <div class="page-header">
-        <h1 class="page-title">Mixing WIP</h1>
+        <h1 class="page-title">Packing WIP</h1>
         <span class="page-sub" id="current-date"></span>
       </div>
 
@@ -821,6 +824,14 @@
               <span class="btn-action-icon">&#9113;</span>
               <span>Cetak Label</span>
             </a>
+            <!-- <a class="btn-action" id="btn-download" href="#">
+            <span class="btn-action-icon">&#8595;</span>
+            <span>Download PNG</span>
+          </a>
+          <div style="font-size:11px;color:var(--gray4);font-family:var(--font-mono);margin:8px 0 4px">STATUS</div>
+          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; Tersimpan ke database</div>
+          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; Dicatat ke CSV</div>
+          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; QR Code generated</div> -->
             <button class="btn-action btn-new" onclick="resetForm()">
               <span class="btn-action-icon">+</span>
               <span>Input baru</span>
@@ -837,7 +848,6 @@
         </div>
         <div class="card-body">
           <div class="form-grid cols-4">
-            <!-- TANGGAL -->
             <div class="field">
               <label class="field-label" for="tanggal">Tanggal &amp; Waktu<span class="req">*</span></label>
               <input type="datetime-local" id="tanggal" required>
@@ -851,8 +861,8 @@
               </select>
             </div>
             <div class="field">
-              <label class="field-label">Operator Mix <span class="req">*</span></label>
-              <input type="text" id="operator_mix" placeholder="Masukkan Nama Operator" required>
+              <label class="field-label">Operator Packing <span class="req">*</span></label>
+              <input type="text" id="operator_pa" placeholder="Masukkan Nama Operator" required>
             </div>
             <div class="field">
               <label class="field-label">Checker<span class="req"></span></label>
@@ -860,7 +870,7 @@
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
-              <input type="text" id="divisi" value="Mixing" readonly>
+              <input type="text" id="divisi" value="Packing" readonly>
             </div>
           </div>
         </div>
@@ -894,20 +904,30 @@
               <label class="field-label">UKURAN</label>
               <input type="text" id="uk" readonly>
             </div>
-            <!-- Berat Total (kg) -->
+            <!-- Mesin -->
             <div class="field">
-              <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_kg" placeholder="Masukkan Berat" required oninput="validateBerat(this)">
+              <label class="field-label">Meja<span class="req">*</span></label>
+              <select id="mesin" required oninput="validateMeja(this)">
+                <option value="">-- Pilih Nomor Meja --</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="17">17</option>
+                <option value="18">18</option>
+              </select>
             </div>
-            <!-- Berat Karung -->
-            <div class="field">
-              <label class="field-label">Berat Karung (kg)</label>
-              <input type="text" id="karung" value="0.09" readonly>
-            </div>
-            <!-- Berat Total (kg) -->
+            <!-- Berat Bersih -->
             <div class="field">
               <label class="field-label">Berat Bersih (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_bersih" readonly>
+              <input type="text" id="berat_bersih" required oninput="validateBerat(this)">
             </div>
           </div>
         </div>
@@ -949,8 +969,8 @@
                     <th>No SPK</th>
                     <th>Produk</th>
                     <th>Customer</th>
-                    <th>Berat</th>
-                    <th>Berat Bersih</th>
+                    <th>Meja</th>
+                    <th>Berat Bersih (kg)</th>
                     <th>Divisi</th>
                     <th>Shift</th>
                     <th>Operator</th>
@@ -958,6 +978,7 @@
                     <th>Code</th>
                   </tr>
                 </thead>
+
                 <tbody id="recent-body">
                   <tr>
                     <td colspan="9" style="text-align:center;color:var(--gray4);padding:24px">
@@ -1054,7 +1075,7 @@
           // LOAD DATA
           async function loadRecent() {
             try {
-              const res = await fetch('/api/recent/mixing');
+              const res = await fetch('/api/recent/packing');
               const rows = await res.json();
 
               console.log(rows);
@@ -1075,7 +1096,7 @@
             if (!data.length) {
               tbody.innerHTML = `
             <tr>
-                <td colspan="10" style="text-align:center;color:#777;padding:20px">
+                <td colspan="12" style="text-align:center;color:#777;padding:20px">
                     Tidak ada data
                 </td>
             </tr>`;
@@ -1088,11 +1109,11 @@
             <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
             <td>${r.produk || ""}</td>
             <td>${r.customer || ""}</td>
-            <td>${r.berat_kg || ""}</td>
+            <td>${r.mesin || ""}</td>
             <td>${r.berat_bersih || ""}</td>
             <td>${r.divisi || ""}</td>
             <td>${r.shift || ""}</td>
-            <td>${r.operator_mix || ""}</td>
+            <td>${r.operator_pa || ""}</td>
             <td>${r.checker || ""}</td>
             <td>${r.code || ""}</td>
         </tr>
@@ -1116,13 +1137,14 @@
 
             // DATE FILTER (DD-MM-YYYY)
             if (date) {
-              const [d, m, y] = date.split("-");
-              const target = `${d}-${m}-${y}`;
+              const [y, m, d] = date.split("-");
+              const target = `${y}-${m}-${d}`;
 
               filtered = filtered.filter(r =>
                 (r.tanggal || "").trim() === target
               );
             }
+
             renderTable(filtered);
           }
 
@@ -1180,36 +1202,49 @@
             const spinner = document.getElementById("spinner");
             const errorMsg = document.getElementById("error-msg");
 
+            // VALIDASI WAJIB
             const requiredFields = [
-              { id: "operator_mix", name: "Operator Mix" },
+              { id: "operator_pa", name: "Operator Packing" },
               { id: "checker", name: "Checker" },
               { id: "spk", name: "No. SPK" },
-              { id: "berat_kg", name: "Berat (kg)" }
+              { id: "mesin", name: "Mesin" },
+              { id: "berat_bersih", name: "Berat Bersih (kg)" }
+
             ];
 
-            // VALIDASI
             for (let f of requiredFields) {
               const el = document.getElementById(f.id);
               const val = (el.value || "").toString().trim();
+
               if (!val) {
                 errorMsg.innerText = `${f.name} wajib diisi`;
                 errorMsg.classList.add("show");
-                el.focus();
-                return;
+
+                el.focus(); // fokus ke field yang kosong
+                return; // ❗ STOP submit
               }
             }
 
-            const beratVal = parseFloat(document.getElementById("berat_kg").value);
+            // TIDAK BOLEH MINUS ATAU ANGKA YANG TIDAK SESUAI
+            const beratVal = parseFloat(document.getElementById("berat_bersih").value);
             if (isNaN(beratVal) || beratVal <= 0) {
               errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
               errorMsg.classList.add("show");
-              document.getElementById("berat_kg").focus();
-              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
+              document.getElementById("berat_bersih").focus();
+              document.getElementById("berat_bersih").style.borderColor = "var(--accent)";
               return;
             }
+            document.getElementById("berat_bersih").style.borderColor = "";
 
-            // Reset border kalau valid
-            document.getElementById("berat_kg").style.borderColor = "";
+            const mejaVal = parseFloat(document.getElementById("mesin").value);
+            if (isNaN(mejaVal) || mejaVal <= 0) {
+              errorMsg.innerText = "Meja tidak boleh minus, nol, atau mesin yang tidak ada";
+              errorMsg.classList.add("show");
+              document.getElementById("mesin").focus();
+              document.getElementById("mesin").style.borderColor = "var(--accent)";
+              return;
+            }
+            document.getElementById("mesin").style.borderColor = "";
 
             errorMsg.classList.remove("show");
             btn.disabled = true;
@@ -1218,16 +1253,15 @@
             const data = {
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
-              operator_mix: document.getElementById("operator_mix").value,
+              operator_pa: document.getElementById("operator_pa").value,
               checker: document.getElementById("checker").value,
               divisi: document.getElementById("divisi").value,
               spk: document.getElementById("spk").value,
               customer: document.getElementById("customer").value,
               produk: document.getElementById("product").value,
               uk: document.getElementById("uk").value,
-              berat_kg: document.getElementById("berat_kg").value,
+              mesin: document.getElementById("mesin").value,
               berat_bersih: document.getElementById("berat_bersih").value,
-              karung: document.getElementById("karung").value
             };
 
             try {
@@ -1237,42 +1271,35 @@
                 body: JSON.stringify(data)
               });
 
-              if (!res.ok) {
-                throw new Error("Gagal koneksi ke server");
-              }
-
               const result = await res.json();
 
-              if (!result.success) {
-                throw new Error(result.message || "Gagal menyimpan data");
-              }
+              if (!result.success) throw new Error(result.message);
 
-              // TAMPILKAN RESULT
               document.getElementById("result-panel").classList.add("show");
               document.getElementById("result-order-id").innerText = result.order_id;
+
               document.getElementById("label-img").src = result.label_url;
-              document.getElementById("btn-print").href = `/label/print/${result.order_id}`;
+              document.getElementById("btn-print").href = result.print_url;
 
               // PRINT TANPA PINDAH HALAMAN
-              const frame = document.getElementById("print-frame");
+              let frame = document.getElementById("print-frame");
+              if (!frame) {
+                frame = document.createElement("iframe");
+                frame.id = "print-frame";
+                frame.style.display = "none";
+                document.body.appendChild(frame);
+              }
               frame.src = `/label/print/${result.order_id}`;
 
               loadRecent();
-              // Auto clear input
+
+              //auto reset
               setTimeout(() => {
-                ['spk', 'customer', 'product', 'uk', 'berat_kg', 'berat_bersih'].forEach(id => {
-                  const el = document.getElementById(id);
-                  if (el) el.value = '';
-                });
-                const opSelect = document.getElementById("operator_mix");
-                if (opSelect) opSelect.selectedIndex = 0;
-                document.getElementById('result-panel').classList.remove('show');
-                document.getElementById("spk").focus();
+                resetForm();
               }, 2000);
 
             } catch (err) {
-              console.error(err);
-              errorMsg.innerText = err.message || "Terjadi kesalahan";
+              errorMsg.innerText = err.message;
               errorMsg.classList.add("show");
             } finally {
               btn.disabled = false;
@@ -1280,40 +1307,28 @@
             }
           }
 
-          function hitungBersih() {
-            const berat = parseFloat(document.getElementById("berat_kg").value) || 0;
-            const karung = parseFloat(document.getElementById("karung").value) || 0;
-
-            let hasil = berat - karung;
-
-            // biar tidak minus
-            if (hasil < 0) hasil = 0;
-
-            document.getElementById("berat_bersih").value = hasil.toFixed(2);
-          }
-
-          // trigger saat input berubah
-          document.getElementById("berat_kg").addEventListener("input", hitungBersih);
-          document.getElementById("karung").addEventListener("input", hitungBersih);
-
-          // ── RESET ──
+          // ── RESET ────────────────────────────────────────────────
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
 
-            ['operator_mix', 'spk', 'customer', 'product', 'uk', 'berat_kg', 'berat_bersih']
+            ['perator_pa', 'spk', 'customer', 'product', 'uk', 'mesin', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
               });
 
-            const opSelect = document.getElementById("operator_mix");
+            // Reset dropdown operator ke default
+            const opSelect = document.getElementById("operator_pa");
             if (opSelect) opSelect.selectedIndex = 0;
 
+            // Scroll ke atas
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
+            // Fokus ke SPK biar langsung bisa input
             document.getElementById("spk").focus();
           }
 
+          //TIDAK BOLEH MINUS
           function validateBerat(el) {
             const val = parseFloat(el.value);
             const errorMsg = document.getElementById("error-msg");
@@ -1327,8 +1342,22 @@
               el.style.borderColor = "";
             }
           }
+
+          function validateMeja(el) {
+            const val = parseFloat(el.value);
+            const errorMsg = document.getElementById("error-msg");
+
+            if (el.value !== "" && (isNaN(val) || val <= 0)) {
+              errorMsg.innerText = "Meja tidak boleh minus atau nol";
+              errorMsg.classList.add("show");
+              el.style.borderColor = "var(--accent)";
+            } else {
+              errorMsg.classList.remove("show");
+              el.style.borderColor = "";
+            }
+          }
         </script>
-        <iframe id="print-frame" style="display:none;"></iframe>
+        <iframe id="print-frame" style="display:none"></iframe>
 </body>
 
 </html>

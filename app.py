@@ -891,6 +891,7 @@ def check_session():
 
 
 # ─── PAGES ──────────────────────────────────────────────────
+# CHECKER
 @app.route("/mixing")
 @login_required
 def mixing():
@@ -941,6 +942,7 @@ def aval_packing():
 def aval_qc():
     return render_template("aval_qc.html", active_page="aval_qc", current_user=session.get("name"))
 
+# ADMIN WIP
 @app.route("/scan_salah")
 @admin_required
 @adminwip_required
@@ -959,6 +961,59 @@ def scan_pemakaian():
 def barcode_mixing():
     return render_template("barcode_mixing.html", active_page="barcode_mixing", current_user=session.get("name"))
 
+@app.route("/barcode_hd")
+@admin_required
+@adminwip_required
+def barcode_hd():
+    return render_template("barcode_hd.html", active_page="barcode_hd", current_user=session.get("name"))
+
+@app.route("/barcode_potong")
+@admin_required
+@adminwip_required
+def barcode_potong():
+    return render_template("barcode_potong.html", active_page="barcode_potong", current_user=session.get("name"))
+
+@app.route("/barcode_packing")
+@admin_required
+@adminwip_required
+def barcode_packing():
+    return render_template("barcode_packing.html", active_page="barcode_packing", current_user=session.get("name"))
+
+@app.route("/barcode_sisa_pack")
+@admin_required
+@adminwip_required
+def barcode_sisa_pack():
+    return render_template("barcode_sisa_pack.html", active_page="barcode_sisa_pack", current_user=session.get("name"))
+
+@app.route("/barcode_aval_mixing")
+@admin_required
+@adminwip_required
+def barcode_aval_mixing():
+    return render_template("barcode_aval_mixing.html", active_page="barcode_aval_mixing", current_user=session.get("name"))
+
+@app.route("/barcode_aval_hd")
+@admin_required
+@adminwip_required
+def barcode_aval_hd():
+    return render_template("barcode_aval_hd.html", active_page="barcode_aval_hd", current_user=session.get("name"))
+
+@app.route("/barcode_aval_potong")
+@admin_required
+@adminwip_required
+def barcode_aval_potong():
+    return render_template("barcode_aval_potong.html", active_page="barcode_aval_potong", current_user=session.get("name"))
+
+@app.route("/barcode_aval_packing")
+@admin_required
+@adminwip_required
+def barcode_aval_packing():
+    return render_template("barcode_aval_packing.html", active_page="barcode_aval_packing", current_user=session.get("name"))
+
+@app.route("/barcode_aval_qc")
+@admin_required
+@adminwip_required
+def barcode_aval_qc():
+    return render_template("barcode_aval_qc.html", active_page="barcode_aval_qc", current_user=session.get("name"))
 
 
 # ─── API: OPERATORS ─────────────────────────────────────────
