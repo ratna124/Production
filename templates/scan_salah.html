@@ -887,16 +887,18 @@
     document.addEventListener("DOMContentLoaded", () => {
       updateClock();
       setInterval(updateClock, 1000);
-      document.getElementById("current-date").textContent =
-        new Date().toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
       document.getElementById("scan-input").focus();
     });
 
     function updateClock() {
       const now = new Date();
       const pad = n => String(n).padStart(2, "0");
+
       document.getElementById("clock").textContent =
         `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+      document.getElementById("current-date").textContent =
+        now.toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
     }
 
     // ── ADD CODE — tanpa perlu pilih divisi ──

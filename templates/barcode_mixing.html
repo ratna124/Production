@@ -237,6 +237,12 @@
       background: var(--accent);
     }
 
+    .clock {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--gray4);
+    }
+
     .sidebar-stats {
       margin-top: auto;
       padding: 16px 20px;
@@ -730,6 +736,7 @@
       <span class="topbar-sep"></span>
       <span class="topbar-title">Sistem Label & Output Produksi</span>
       <div class="topbar-right">
+        <span class="clock" id="clock"></span>
         <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">
           &#128100; {{ current_user }}
         </span>
@@ -741,49 +748,47 @@
 
     <!-- ── SIDEBAR ── -->
     <aside class="sidebar">
-      <div class="sidebar-section">Divisi</div>
-      <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Mixing
-      </a>
-      <a href="/hd" class="sidebar-item {% if active_page == 'hd' %}active{% endif %}">
-        <span class="sidebar-dot"></span>HD
-      </a>
-      <a href="/potong" class="sidebar-item {% if active_page == 'potong' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Potong
-      </a>
-      <a href="/packing" class="sidebar-item {% if active_page == 'packing' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Packing
-      </a>
-      <a href="/sisa_pack" class="sidebar-item {% if active_page == 'sisa_pack' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Sisa Pack
-      </a>
-
-      <div class="sidebar-section">Aval</div>
-      <a href="/aval_mixing" class="sidebar-item {% if active_page == 'aval_mixing' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Aval Mixing
-      </a>
-      <a href="/aval_hd" class="sidebar-item {% if active_page == 'aval_hd' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Aval HD
-      </a>
-      <a href="/aval_potong" class="sidebar-item {% if active_page == 'aval_potong' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Aval Potong
-      </a>
-      <a href="/aval_packing" class="sidebar-item {% if active_page == 'aval_packing' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Aval Packing
-      </a>
-      <a href="/aval_qc" class="sidebar-item {% if active_page == 'aval_qc' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Aval QC
-      </a>
-      {% if session.get('role') == 'administrator' %}
-      <div class="sidebar-section">Admin WIP</div>
-      <a href="/barcode_mixing" class="sidebar-item {% if active_page == 'barcode_mixing' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Input Barcode
+      {% if session.get('role') in ('administrator', 'adminwip') %}
+      <div class="sidebar-section">Scan</div>
+      <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Scan Pemakaian
       </a>
       <a href="/scan_salah" class="sidebar-item {% if active_page == 'scan_salah' %}active{% endif %}">
         <span class="sidebar-dot"></span>Scan Salah
       </a>
-      <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Scan Pemakaian
+
+      <div class="sidebar-section">Hasil</div>
+      <a href="/barcode_mixing" class="sidebar-item {% if active_page == 'barcode_barcode_mixing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Mixing
+      </a>
+      <a href="/barcode_hd" class="sidebar-item {% if active_page == 'barcode_hd' %}active{% endif %}">
+        <span class="sidebar-dot"></span>HD
+      </a>
+      <a href="/barcode_potong" class="sidebar-item {% if active_page == 'barcode_potong' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Potong
+      </a>
+      <a href="/barcode_packing" class="sidebar-item {% if active_page == 'barcode_packing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Packing
+      </a>
+      <a href="/barcode_sisa_pack" class="sidebar-item {% if active_page == 'barcode_sisa_pack' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Sisa Pack
+      </a>
+
+      <div class="sidebar-section">Aval</div>
+      <a href="/barcode_aval_mixing" class="sidebar-item {% if active_page == 'barcode_aval_mixing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval Mixing
+      </a>
+      <a href="/barcode_aval_hd" class="sidebar-item {% if active_page == 'barcode_aval_hd' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval HD
+      </a>
+      <a href="/barcode_aval_potong" class="sidebar-item {% if active_page == 'barcode_aval_potong' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval Potong
+      </a>
+      <a href="/barcode_aval_packing" class="sidebar-item {% if active_page == 'barcode_aval_packing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval Packing
+      </a>
+      <a href="/barcode_aval_qc" class="sidebar-item {% if active_page == 'barcode_aval_qc' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval QC
       </a>
       {% endif %}
     </aside>
@@ -791,7 +796,7 @@
     <!-- ── MAIN ── -->
     <main class="main">
       <div class="page-header">
-        <h1 class="page-title">HD</h1>
+        <h1 class="page-title">Mixing WIP</h1>
         <span class="page-sub" id="current-date"></span>
       </div>
 
@@ -809,6 +814,10 @@
           <div class="result-actions">
             <div style="font-size:11px;color:var(--gray4);font-family:var(--font-mono);margin-bottom:4px">AKSI LABEL
             </div>
+            <a class="btn-action primary" id="btn-print" href="#" target="_blank">
+              <span class="btn-action-icon">&#9113;</span>
+              <span>Cetak Label</span>
+            </a>
             <button class="btn-action btn-new" onclick="resetForm()">
               <span class="btn-action-icon">+</span>
               <span>Input baru</span>
@@ -825,19 +834,22 @@
         </div>
         <div class="card-body">
           <div class="form-grid cols-4">
+            <!-- TANGGAL -->
             <div class="field">
-              <label class="field-label">Tanggal </label>
-              <input type="datetime-local" id="tanggal" readonly>
+              <label class="field-label" for="tanggal">Tanggal &amp; Waktu<span class="req">*</span></label>
+              <input type="datetime-local" id="tanggal" required>
             </div>
             <div class="field">
-              <label class="field-label">Shift</label>
-              <input type="text" id="shift" readonly>
-            </div>
-            <div class="field">
-              <label class="field-label">Operator HD <span class="req">*</span></label>
-              <select id="operator_hd" required>
-                <option value="">-- Loading... --</option>
+              <label class="field-label">Shift<span class="req">*</span></label>
+              <select id="shift" required>
+                <option value="">-- Pilih Shift --</option>
+                <option value="P">P</option>
+                <option value="M">M</option>
               </select>
+            </div>
+            <div class="field">
+              <label class="field-label">Operator Mix <span class="req">*</span></label>
+              <input type="text" id="operator_mix" placeholder="Masukkan Nama Operator" required>
             </div>
             <div class="field">
               <label class="field-label">Checker<span class="req"></span></label>
@@ -845,7 +857,7 @@
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
-              <input type="text" id="divisi" value="HD" readonly>
+              <input type="text" id="divisi" value="Mixing" readonly>
             </div>
           </div>
         </div>
@@ -879,36 +891,17 @@
               <label class="field-label">UKURAN</label>
               <input type="text" id="uk" readonly>
             </div>
-            <!-- Mesin -->
-              <div class="field">
-              <label class="field-label">Mesin<span class="req">*</span></label>
-              <select id="mesin" required oninput="validateMesin(this)">
-                <option value="">-- Pilih Nomor Mesin --</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-                <option value="11">11</option>
-                <option value="12">12</option>
-              </select>
-            </div>
-            <!-- Berat Total -->
+            <!-- Berat Total (kg) -->
             <div class="field">
               <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_kg" required oninput="validateBerat(this)">
+              <input type="text" id="berat_kg" placeholder="Masukkan Berat" required oninput="validateBerat(this)">
             </div>
-            <!-- Berat Bobin -->
+            <!-- Berat Karung -->
             <div class="field">
-              <label class="field-label">Berat Bobin (kg)<span class="req">*</span></label>
-              <input type="text" id="bobin" required oninput="validateBobin(this)">
+              <label class="field-label">Berat Karung (kg)</label>
+              <input type="text" id="karung" value="0.09" readonly>
             </div>
-            <!-- Berat Bersih -->
+            <!-- Berat Total (kg) -->
             <div class="field">
               <label class="field-label">Berat Bersih (kg)<span class="req">*</span></label>
               <input type="text" id="berat_bersih" readonly>
@@ -953,9 +946,8 @@
                     <th>No SPK</th>
                     <th>Produk</th>
                     <th>Customer</th>
-                    <th>Mesin</th>
-                    <th>Berat Total (kg)</th>
-                    <th>Berat Bersih (kg)</th>
+                    <th>Berat</th>
+                    <th>Berat Bersih</th>
                     <th>Divisi</th>
                     <th>Shift</th>
                     <th>Operator</th>
@@ -972,7 +964,6 @@
                 </tbody>
               </table>
             </div>
-
           </div>
         </div>
 
@@ -1039,35 +1030,10 @@
             document.getElementById("uk").value = "";
           }
 
-          // TIME + SHIFT
-          function updateTime() {
-            let now = new Date();
-            let hour = now.getHours();
-            // SHIFT
-            let shift = (hour >= 7 && hour < 19) ? "P" : "M";
-            document.getElementById("shift").value = shift;
-            // TANGGAL PRODUKSI
-            let prodDate = new Date(now);
-            // 🔥 kalau jam 00:00 - 06:59 → mundur 1 hari
-            if (hour < 7) {
-              prodDate.setDate(prodDate.getDate() - 1);
-            }
-
-            // FORMAT datetime-local
-            let formatted =
-              prodDate.getFullYear() + "-" +
-              String(prodDate.getMonth() + 1).padStart(2, '0') + "-" +
-              String(prodDate.getDate()).padStart(2, '0') + "T" +
-              String(now.getHours()).padStart(2, '0') + ":" +
-              String(now.getMinutes()).padStart(2, '0');
-
-            document.getElementById("tanggal").value = formatted;
-          }
-
           // LOAD DATA
           async function loadRecent() {
             try {
-              const res = await fetch('/api/recent/hd');
+              const res = await fetch('/api/recent/mixing');
               const rows = await res.json();
 
               console.log(rows);
@@ -1088,7 +1054,7 @@
             if (!data.length) {
               tbody.innerHTML = `
             <tr>
-                <td colspan="12" style="text-align:center;color:#777;padding:20px">
+                <td colspan="10" style="text-align:center;color:#777;padding:20px">
                     Tidak ada data
                 </td>
             </tr>`;
@@ -1101,12 +1067,11 @@
             <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
             <td>${r.produk || ""}</td>
             <td>${r.customer || ""}</td>
-            <td>${r.mesin || ""}</td>
             <td>${r.berat_kg || ""}</td>
             <td>${r.berat_bersih || ""}</td>
             <td>${r.divisi || ""}</td>
             <td>${r.shift || ""}</td>
-            <td>${r.operator_hd || ""}</td>
+            <td>${r.operator_mix || ""}</td>
             <td>${r.checker || ""}</td>
             <td>${r.code || ""}</td>
         </tr>
@@ -1130,14 +1095,13 @@
 
             // DATE FILTER (DD-MM-YYYY)
             if (date) {
-              const [y, m, d] = date.split("-");
-              const target = `${y}-${m}-${d}`;
+              const [d, m, y] = date.split("-");
+              const target = `${d}-${m}-${y}`;
 
               filtered = filtered.filter(r =>
                 (r.tanggal || "").trim() === target
               );
             }
-
             renderTable(filtered);
           }
 
@@ -1190,6 +1154,29 @@
           });
         </script>
         <script>
+          document.addEventListener("DOMContentLoaded", () => {
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            const now = new Date();
+            const pad = n => String(n).padStart(2, "0");
+            const localDT = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+            document.getElementById("tanggal").value = localDT;
+
+            document.getElementById("scan-input").focus();
+          });
+
+          function updateClock() {
+            const now = new Date();
+            const pad = n => String(n).padStart(2, "0");
+
+            document.getElementById("clock").textContent =
+              `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+            document.getElementById("current-date").textContent =
+              now.toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+          }
+
           async function loadOperators() {
             const divisi = document.getElementById("divisi").value;
 
@@ -1197,7 +1184,7 @@
               const res = await fetch(`/api/operators/${divisi}`);
               const operators = await res.json();
 
-              const select = document.getElementById("operator_hd");
+              const select = document.getElementById("operator_mix");
               select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
 
               operators.forEach(op => {
@@ -1219,30 +1206,25 @@
             const spinner = document.getElementById("spinner");
             const errorMsg = document.getElementById("error-msg");
 
-            // VALIDASI WAJIB
             const requiredFields = [
-              { id: "operator_hd", name: "Operator HD" },
+              { id: "operator_mix", name: "Operator Mix" },
               { id: "checker", name: "Checker" },
               { id: "spk", name: "No. SPK" },
-              { id: "mesin", name: "Mesin" },
-              { id: "berat_kg", name: "Berat (kg)" },
-              { id: "bobin", name: "Berat Bobin (kg)" }
+              { id: "berat_kg", name: "Berat (kg)" }
             ];
 
+            // VALIDASI
             for (let f of requiredFields) {
               const el = document.getElementById(f.id);
               const val = (el.value || "").toString().trim();
-
               if (!val) {
                 errorMsg.innerText = `${f.name} wajib diisi`;
                 errorMsg.classList.add("show");
-
-                el.focus(); // fokus ke field yang kosong
-                return; // ❗ STOP submit
+                el.focus();
+                return;
               }
             }
 
-            // TIDAK BOLEH MINUS ATAU ANGKA YANG TIDAK SESUAI
             const beratVal = parseFloat(document.getElementById("berat_kg").value);
             if (isNaN(beratVal) || beratVal <= 0) {
               errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
@@ -1251,35 +1233,9 @@
               document.getElementById("berat_kg").style.borderColor = "var(--accent)";
               return;
             }
+
+            // Reset border kalau valid
             document.getElementById("berat_kg").style.borderColor = "";
-
-            const mesinVal = parseFloat(document.getElementById("mesin").value);
-            if (isNaN(mesinVal) || mesinVal <= 0) {
-              errorMsg.innerText = "Mesin tidak boleh minus, nol, atau mesin yang tidak ada";
-              errorMsg.classList.add("show");
-              document.getElementById("mesin").focus();
-              document.getElementById("mesin").style.borderColor = "var(--accent)";
-              return;
-            }
-            document.getElementById("mesin").style.borderColor = "";
-
-            const bobinVal = parseFloat(document.getElementById("bobin").value);
-            if (isNaN(bobinVal) || bobinVal <= 0) {
-              errorMsg.innerText = "Bobin tidak boleh minus, nol, atau bukan angka";
-              errorMsg.classList.add("show");
-              document.getElementById("bobin").focus();
-              document.getElementById("bobin").style.borderColor = "var(--accent)";
-              return;
-            }
-            document.getElementById("bobin").style.borderColor = "";
-
-            if (parseFloat(document.getElementById("berat_kg").value) <
-              parseFloat(document.getElementById("bobin").value)) {
-
-              errorMsg.innerText = "Berat tidak boleh lebih kecil dari bobin";
-              errorMsg.classList.add("show");
-              return;
-            }
 
             errorMsg.classList.remove("show");
             btn.disabled = true;
@@ -1288,17 +1244,16 @@
             const data = {
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
-              operator_hd: document.getElementById("operator_hd").value,
+              operator_mix: document.getElementById("operator_mix").value,
               checker: document.getElementById("checker").value,
               divisi: document.getElementById("divisi").value,
               spk: document.getElementById("spk").value,
               customer: document.getElementById("customer").value,
               produk: document.getElementById("product").value,
               uk: document.getElementById("uk").value,
-              mesin: document.getElementById("mesin").value,
               berat_kg: document.getElementById("berat_kg").value,
-              bobin: document.getElementById("bobin").value,
               berat_bersih: document.getElementById("berat_bersih").value,
+              karung: document.getElementById("karung").value
             };
 
             try {
@@ -1308,28 +1263,42 @@
                 body: JSON.stringify(data)
               });
 
+              if (!res.ok) {
+                throw new Error("Gagal koneksi ke server");
+              }
+
               const result = await res.json();
 
-              if (!result.success) throw new Error(result.message);
+              if (!result.success) {
+                throw new Error(result.message || "Gagal menyimpan data");
+              }
 
+              // TAMPILKAN RESULT
               document.getElementById("result-panel").classList.add("show");
               document.getElementById("result-order-id").innerText = result.order_id;
               document.getElementById("label-img").src = result.label_url;
+              document.getElementById("btn-print").href = `/label/print/${result.order_id}`;
 
               // PRINT TANPA PINDAH HALAMAN
               const frame = document.getElementById("print-frame");
-
               frame.src = `/label/print/${result.order_id}`;
 
               loadRecent();
-
-              //auto reset
+              // Auto clear input
               setTimeout(() => {
-                resetForm();
+                ['spk', 'customer', 'product', 'uk', 'berat_kg', 'berat_bersih'].forEach(id => {
+                  const el = document.getElementById(id);
+                  if (el) el.value = '';
+                });
+                const opSelect = document.getElementById("operator_mix");
+                if (opSelect) opSelect.selectedIndex = 0;
+                document.getElementById('result-panel').classList.remove('show');
+                document.getElementById("spk").focus();
               }, 2000);
 
             } catch (err) {
-              errorMsg.innerText = err.message;
+              console.error(err);
+              errorMsg.innerText = err.message || "Terjadi kesalahan";
               errorMsg.classList.add("show");
             } finally {
               btn.disabled = false;
@@ -1337,33 +1306,11 @@
             }
           }
 
-          // ── RESET ────────────────────────────────────────────────
-          function resetForm() {
-            document.getElementById('result-panel').classList.remove('show');
-
-            ['spk', 'customer', 'product', 'uk', 'mesin', 'berat_kg', 'bobin', 'berat_bersih']
-              .forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-              });
-
-            // Reset dropdown operator ke default
-            const opSelect = document.getElementById("operator_hd");
-            if (opSelect) opSelect.selectedIndex = 0;
-
-            // Scroll ke atas
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-
-            // Fokus ke SPK biar langsung bisa input
-            document.getElementById("spk").focus();
-          }
-        </script>
-        <script>
           function hitungBersih() {
             const berat = parseFloat(document.getElementById("berat_kg").value) || 0;
-            const bobin = parseFloat(document.getElementById("bobin").value) || 0;
+            const karung = parseFloat(document.getElementById("karung").value) || 0;
 
-            let hasil = berat - bobin;
+            let hasil = berat - karung;
 
             // biar tidak minus
             if (hasil < 0) hasil = 0;
@@ -1373,9 +1320,26 @@
 
           // trigger saat input berubah
           document.getElementById("berat_kg").addEventListener("input", hitungBersih);
-          document.getElementById("bobin").addEventListener("input", hitungBersih);
+          document.getElementById("karung").addEventListener("input", hitungBersih);
 
-          //TIDAK BOLEH MINUS
+          // ── RESET ──
+          function resetForm() {
+            document.getElementById('result-panel').classList.remove('show');
+
+            ['operator_mix', 'spk', 'customer', 'product', 'uk', 'berat_kg', 'berat_bersih']
+              .forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+              });
+
+            const opSelect = document.getElementById("operator_mix");
+            if (opSelect) opSelect.selectedIndex = 0;
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            document.getElementById("spk").focus();
+          }
+
           function validateBerat(el) {
             const val = parseFloat(el.value);
             const errorMsg = document.getElementById("error-msg");
@@ -1389,36 +1353,8 @@
               el.style.borderColor = "";
             }
           }
-
-          function validateMesin(el) {
-            const val = parseFloat(el.value);
-            const errorMsg = document.getElementById("error-msg");
-
-            if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Mesin tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
-              el.style.borderColor = "var(--accent)";
-            } else {
-              errorMsg.classList.remove("show");
-              el.style.borderColor = "";
-            }
-          }
-
-          function validateBobin(el) {
-            const val = parseFloat(el.value);
-            const errorMsg = document.getElementById("error-msg");
-
-            if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Bobin tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
-              el.style.borderColor = "var(--accent)";
-            } else {
-              errorMsg.classList.remove("show");
-              el.style.borderColor = "";
-            }
-          }
         </script>
-        <iframe id="print-frame" style="display:none"></iframe>
+        <iframe id="print-frame" style="display:none;"></iframe>
 </body>
 
 </html>

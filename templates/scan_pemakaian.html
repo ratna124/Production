@@ -1026,10 +1026,7 @@
     document.addEventListener("DOMContentLoaded", () => {
       updateClock();
       setInterval(updateClock, 1000);
-      document.getElementById("current-date").textContent =
-        new Date().toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-      // Set datetime-local default ke sekarang
       const now = new Date();
       const pad = n => String(n).padStart(2, "0");
       const localDT = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -1041,8 +1038,12 @@
     function updateClock() {
       const now = new Date();
       const pad = n => String(n).padStart(2, "0");
+
       document.getElementById("clock").textContent =
         `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+      document.getElementById("current-date").textContent =
+        now.toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
     }
 
     // ── ADD CODE ──
@@ -1278,26 +1279,26 @@
           })
         });
 
-    const ct = res.headers.get("content-type") || "";
-    if (!ct.includes("application/json")) {
-      const text = await res.text();
-      throw new Error("Server error: " + text.substring(0, 100));
-    }
+        const ct = res.headers.get("content-type") || "";
+        if (!ct.includes("application/json")) {
+          const text = await res.text();
+          throw new Error("Server error: " + text.substring(0, 100));
+        }
 
-    const result = await res.json();
-    if (!result.success) throw new Error(result.error);
+        const result = await res.json();
+        if (!result.success) throw new Error(result.error);
 
-    alert("✅ " + codes.length + " kode berhasil disimpan.");
-    codes = [];
-    renderList();
-    updateStats();
+        alert("✅ " + codes.length + " kode berhasil disimpan.");
+        codes = [];
+        renderList();
+        updateStats();
 
       } catch (err) {
-      alert("❌ Gagal: " + err.message);
-    }
+        alert("❌ Gagal: " + err.message);
+      }
 
-    btn.disabled = false;
-    spinner.style.display = "none";
+      btn.disabled = false;
+      spinner.style.display = "none";
     }
 
     // ── RESET ──

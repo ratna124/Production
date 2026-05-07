@@ -778,11 +778,13 @@
         <span class="sidebar-dot"></span>Aval QC
       </a>
       {% if session.get('role') == 'administrator' %}
-      <div class="sidebar-section">Scan</div>
+      <div class="sidebar-section">Admin WIP</div>
+      <a href="/barcode_mixing" class="sidebar-item {% if active_page == 'barcode_mixing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Input Barcode
+      </a>
       <a href="/scan_salah" class="sidebar-item {% if active_page == 'scan_salah' %}active{% endif %}">
         <span class="sidebar-dot"></span>Scan Salah
       </a>
-      <div class="sidebar-section">Scan Pemakaian</div>
       <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
         <span class="sidebar-dot"></span>Scan Pemakaian
       </a>
@@ -876,7 +878,7 @@
             <!-- SPK -->
             <div class="field">
               <label class="field-label">No. SPK</label>
-              <input type="text" id="spk" value="0" readonly>
+              <input type="text" id="spk" value="17" readonly>
             </div>
             <!-- Mesin -->
             <div class="field">

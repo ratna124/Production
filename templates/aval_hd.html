@@ -744,6 +744,7 @@
 
     <!-- ── SIDEBAR ── -->
     <aside class="sidebar">
+      {% if session.get('role') in ('administrator', 'checker') %}
       <div class="sidebar-section">Divisi</div>
       <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
         <span class="sidebar-dot"></span>Mixing
@@ -777,12 +778,15 @@
       <a href="/aval_qc" class="sidebar-item {% if active_page == 'aval_qc' %}active{% endif %}">
         <span class="sidebar-dot"></span>Aval QC
       </a>
-      {% if session.get('role') == 'administrator' %}
-      <div class="sidebar-section">Scan</div>
+      {% endif %}
+      {% if session.get('role') in ('administrator', 'adminwip') %}
+      <div class="sidebar-section">Admin WIP</div>
+      <a href="/barcode_mixing" class="sidebar-item {% if active_page == 'barcode_mixing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Input Barcode
+      </a>
       <a href="/scan_salah" class="sidebar-item {% if active_page == 'scan_salah' %}active{% endif %}">
         <span class="sidebar-dot"></span>Scan Salah
       </a>
-      <div class="sidebar-section">Scan Pemakaian</div>
       <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
         <span class="sidebar-dot"></span>Scan Pemakaian
       </a>
@@ -895,7 +899,21 @@
             <!-- Mesin -->
             <div class="field">
               <label class="field-label">Mesin<span class="req">*</span></label>
-              <input type="number" id="mesin" min="1" max="12" required oninput="validateMesin(this)">
+              <select id="mesin" required oninput="validateMesin(this)">
+                <option value="">-- Pilih Nomor Mesin --</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+              </select>
             </div>
             <!-- Jenis Aval -->
             <div class="field">

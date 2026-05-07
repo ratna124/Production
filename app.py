@@ -179,6 +179,16 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def adminwip_required(f):
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect("/login")
+        if session.get("role") not in ("administrator", "adminwip"):
+            return redirect("/scan_pemakaian")
+        return f(*args, **kwargs)
+    return decorated
+
 
 FIELD_MAP = {
     "MIXING":       {"operator": "operator_mix", "wadah": "karung"},
@@ -225,7 +235,6 @@ def generate_label_image(order_id, data):
     try:
         celtic_font = ImageFont.truetype(CELTIC_FONT_PATH, 20 * SCALE)
     except:
-        # Fallback ke calibri kalau font tidak ditemukan
         for fp in font_paths:
             try:
                 celtic_font = ImageFont.truetype(fp, 20 * SCALE)
@@ -277,12 +286,11 @@ def generate_label_image(order_id, data):
         customer = "AVAL SAPUAN"
         produk   = "MIXING"
 
-    # ─── Celtic Astrologer Code ───────────────────────────────
     CELTIC_MAP = {
-        "0": "0", "1": "1", "2": "E", "3": "F", "4": "4",
-        "5": "5", "6": "6", "7": "X", "8": "8", "9": "Y",
-        "10": "U", "11": "V", "12": "S", "17": "z", "18": "m",
-        "P": "b", "M": "v",
+    "0": "0", "1": "1", "2": "E", "3": "F", "4": "4",
+    "5": "5", "6": "6", "7": "X", "8": "8", "9": "Y",
+    "10": "U", "11": "V", "12": "S", "17": "z", "18": "m",
+    "P": "b", "M": "v",
     }
 
     def to_celtic(val):
@@ -291,17 +299,21 @@ def generate_label_image(order_id, data):
             return CELTIC_MAP[s]
         return "".join(CELTIC_MAP.get(c, c) for c in s)
 
-    spk_last2 = str(spk).strip()[-2:] if len(str(spk).strip()) >= 2 else str(spk).strip()
-
     DIVISI_NO_MESIN = {"MIXING", "AVAL_MIXING", "AVAL_QC"}
 
+    spk_str = str(spk).strip()
+    spk_last2 = spk_str[-2:] if len(spk_str) >= 2 else spk_str
+
+    if len(spk_last2) == 1:
+        d1 = to_celtic(spk_last2)
+        d2 = to_celtic(spk_last2)
+    else:
+        d1 = to_celtic(spk_last2[0])
+        d2 = to_celtic(spk_last2[1])
+
     if divisi_raw in DIVISI_NO_MESIN:
-        d1 = to_celtic(spk_last2[0]) if len(spk_last2) > 1 else ""
-        d2 = to_celtic(spk_last2[-1])
         d3 = to_celtic(shift)
     else:
-        d1 = to_celtic(spk_last2[0]) if len(spk_last2) > 1 else ""
-        d2 = to_celtic(spk_last2[-1])
         d3 = to_celtic(str(mesin).strip()) if mesin else ""
 
     celtic_str = " ".join(filter(None, [d1, d2, d3]))
@@ -325,7 +337,7 @@ def generate_label_image(order_id, data):
     qr_center = padding_top + qr_size // 2
     y         = qr_center - total_h // 2
 
-    # Celtic — kanan atas
+    # Celtic
     CELTIC_FONT_PATH = r"Z:\Checker\Production\Production\templates\celtic-astrologer\CelticAstrologer.ttf"
     
     try:
@@ -367,7 +379,7 @@ def generate_label_image(order_id, data):
     y += gap
     draw.text((x, y), created, fill=0, font=font_md)
 
-     # Baris 6: Celtic — sejajar baris 5, rata kanan
+    # Baris 6: Celtic — sejajar baris 5, rata kanan
     celtic_bbox = draw.textbbox((0, 0), celtic_str, font=celtic_font)
     celtic_w    = celtic_bbox[2] - celtic_bbox[0]
     celtic_x    = LABEL_W_HI - celtic_w - (4 * SCALE)
@@ -931,13 +943,21 @@ def aval_qc():
 
 @app.route("/scan_salah")
 @admin_required
+@adminwip_required
 def scan_salah():
     return render_template("scan_salah.html", active_page="scan_salah", current_user=session.get("name"))
 
 @app.route("/scan_pemakaian")
 @admin_required
+@adminwip_required
 def scan_pemakaian():
     return render_template("scan_pemakaian.html", active_page="scan_pemakaian", current_user=session.get("name"))
+
+@app.route("/barcode_mixing")
+@admin_required
+@adminwip_required
+def barcode_mixing():
+    return render_template("barcode_mixing.html", active_page="barcode_mixing", current_user=session.get("name"))
 
 
 
