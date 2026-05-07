@@ -740,7 +740,7 @@
 
     <!-- ── SIDEBAR ── -->
     <aside class="sidebar">
-      <div class="sidebar-section">Divisi</div>
+      <div class="sidebar-section">Hasil</div>
       <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
         <span class="sidebar-dot"></span>Mixing
       </a>
@@ -909,12 +909,12 @@
             <!-- Berat Total -->
             <div class="field">
               <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_kg" required oninput="validateBerat(this)">
+              <input type="text" id="berat_kg" placeholder="Masukkan Berat Total"  required oninput="validateBerat(this)">
             </div>
             <!-- Berat Keranjang -->
             <div class="field">
               <label class="field-label">Berat Keranjang (kg)<span class="req">*</span></label>
-              <input type="text" id="keranjang" required oninput="validateKeranjang(this)">
+              <input type="text" id="keranjang" placeholder="Masukkan Berat Keranjang" required oninput="validateKeranjang(this)">
             </div>
             <!-- Berat Bersih -->
             <div class="field">

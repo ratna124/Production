@@ -38,6 +38,10 @@
       display: flex;
       flex-direction: column;
       gap: 2px;
+
+      height: calc(100vh - 56px);
+      position: sticky;
+      top: 56px;
     }
 
     /* TITLE */
@@ -751,7 +755,10 @@
 
     <!-- ── SIDEBAR ── -->
     <aside class="sidebar">
-        {% if session.get('role') in ('administrator', 'adminwip') %}
+      {% if session.get('role') in ('administrator', 'adminwip') %}
+
+      <!-- Menu navigasi — bisa scroll -->
+      <div style="flex:1; overflow-y:auto; min-height:0;">
         <div class="sidebar-section">Scan</div>
         <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
           <span class="sidebar-dot"></span>Scan Pemakaian
@@ -797,8 +804,9 @@
         <a href="/barcode_aval_qc" class="sidebar-item {% if active_page == 'barcode_aval_qc' %}active{% endif %}">
           <span class="sidebar-dot"></span>Aval QC WIP
         </a>
-        {% endif %}
-      </aside>
+      </div>
+      {% endif %}
+    </aside>
 
     <!-- ── MAIN ── -->
     <main class="main">
@@ -928,12 +936,12 @@
             <!-- Berat Bersih -->
             <div class="field">
               <label class="field-label">Berat Bersih (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_bersih" required oninput="validateBerat(this)">
+              <input type="text" id="berat_bersih" placeholder="Masukkan Berat Bersih" required oninput="validateBerat(this)">
             </div>
             <!-- Sisa Pack -->
             <div class="field">
               <label class="field-label">Hasil Pack (Pack / Ikat)<span class="req">*</span></label>
-              <input type="text" id="sisa" required oninput="validateSisa(this)">
+              <input type="text" id="sisa" placeholder="Masukkan Hasil Pack/Ikat" required oninput="validateSisa(this)">
             </div>
           </div>
         </div>
@@ -1292,6 +1300,7 @@
             spinner.style.display = "block";
 
             const data = {
+              input_page: "barcode",
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
               operator_sp: document.getElementById("operator_sp").value,

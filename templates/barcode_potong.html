@@ -32,6 +32,10 @@
       display: flex;
       flex-direction: column;
       gap: 2px;
+
+      height: calc(100vh - 56px);
+      position: sticky;
+      top: 56px;
     }
 
     /* TITLE */
@@ -747,7 +751,10 @@
 
     <!-- ── SIDEBAR ── -->
       <aside class="sidebar">
-        {% if session.get('role') in ('administrator', 'adminwip') %}
+      {% if session.get('role') in ('administrator', 'adminwip') %}
+
+      <!-- Menu navigasi — bisa scroll -->
+      <div style="flex:1; overflow-y:auto; min-height:0;">
         <div class="sidebar-section">Scan</div>
         <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
           <span class="sidebar-dot"></span>Scan Pemakaian
@@ -793,8 +800,9 @@
         <a href="/barcode_aval_qc" class="sidebar-item {% if active_page == 'barcode_aval_qc' %}active{% endif %}">
           <span class="sidebar-dot"></span>Aval QC WIP
         </a>
-        {% endif %}
-      </aside>
+      </div>
+      {% endif %}
+    </aside>
 
     <!-- ── MAIN ── -->
     <main class="main">
@@ -920,12 +928,12 @@
             <!-- Berat Total -->
             <div class="field">
               <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_kg" required oninput="validateBerat(this)">
+              <input type="text" id="berat_kg" placeholder="Masukkan Berat Total" required oninput="validateBerat(this)">
             </div>
             <!-- Berat Keranjang -->
             <div class="field">
               <label class="field-label">Berat Keranjang (kg)<span class="req">*</span></label>
-              <input type="text" id="keranjang" required oninput="validateKeranjang(this)">
+              <input type="text" id="keranjang" placeholder="Masukkan Berat Keranjang" required oninput="validateKeranjang(this)">
             </div>
             <!-- Berat Bersih -->
             <div class="field">
@@ -1274,6 +1282,7 @@
             spinner.style.display = "block";
 
             const data = {
+              input_page: "barcode",
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
               operator_cu: document.getElementById("operator_cu").value,

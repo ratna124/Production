@@ -189,6 +189,26 @@ def adminwip_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def checker_required(f):
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect("/login")
+        if session.get("role") not in ("administrator", "checker"):
+            return redirect("/login")
+        return f(*args, **kwargs)
+    return decorated
+
+def staff_required(f):
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect("/login")
+        if session.get("role") not in ("administrator", "staff"):
+            return redirect("/login")
+        return f(*args, **kwargs)
+    return decorated
+
 
 FIELD_MAP = {
     "MIXING":       {"operator": "operator_mix", "wadah": "karung"},
@@ -221,7 +241,7 @@ SCALE   = 4
 LABEL_W_HI = LABEL_W * SCALE  
 LABEL_H_HI = LABEL_H * SCALE  
 
-def generate_label_image(order_id, data):
+def generate_label_image(order_id, data, source_route=None):
     img  = Image.new("RGB", (LABEL_W_HI, LABEL_H_HI), "white")
     draw = ImageDraw.Draw(img)
 
@@ -229,6 +249,14 @@ def generate_label_image(order_id, data):
         r"C:\Windows\Fonts\calibrib.ttf",
         r"C:\Windows\Fonts\tahoma.ttf",
     ]
+    
+    TIKET_SEMENTARA_ROUTES = {
+    "barcode_mixing", "barcode_hd", "barcode_potong", "barcode_packing",
+    "barcode_sisa_pack", "barcode_aval_mixing", "barcode_aval_hd",
+    "barcode_aval_potong", "barcode_aval_packing", "barcode_aval_qc"
+}
+
+    show_tiket_sementara = (source_route == "barcode")
     
     CELTIC_FONT_PATH = r"Z:\Checker\Production\Production\templates\celtic-astrologer\CelticAstrologer.ttf"  # sesuaikan namanya
 
@@ -349,10 +377,18 @@ def generate_label_image(order_id, data):
     draw.text((x, y), f"{customer}    {produk}", fill=0, font=font_md)
 
     # Baris 2: SPK  UK  Operator  Mesin
+    # Baris 2: SPK  UK  Operator  Mesin
     y += gap
     mesin_text = f"M{mesin}" if mesin else ""
     parts2 = [p for p in [spk, uk, operator, mesin_text] if p.strip()]
-    draw.text((x, y), "    ".join(parts2), fill=0, font=font_md)
+    line2 = "    ".join(parts2)
+    draw.text((x, y), line2, fill=0, font=font_md)
+
+    # TIKET SEMENTARA — sejajar baris 2, setelah teks baris 2
+    if show_tiket_sementara:
+        line2_bbox = draw.textbbox((0, 0), line2, font=font_md)
+        line2_w    = line2_bbox[2] - line2_bbox[0]
+        draw.text((x + line2_w + 8 * SCALE, y), "'TS'", fill=0, font=font_md)
 
     # Baris 3 — hanya kalau ada isinya
     if divisi_raw == "SISA_PACK":
@@ -378,8 +414,8 @@ def generate_label_image(order_id, data):
     # Baris 5: created_at
     y += gap
     draw.text((x, y), created, fill=0, font=font_md)
-
-    # Baris 6: Celtic — sejajar baris 5, rata kanan
+        
+    # Celtic — sejajar baris terakhir, rata kanan
     celtic_bbox = draw.textbbox((0, 0), celtic_str, font=celtic_font)
     celtic_w    = celtic_bbox[2] - celtic_bbox[0]
     celtic_x    = LABEL_W_HI - celtic_w - (4 * SCALE)
@@ -396,7 +432,8 @@ def label(order_id):
         return "Label tidak ditemukan atau sudah expired", 404
 
     record, _ = entry
-    img = generate_label_image(order_id, record)
+    source_route = record.get("_source_route", "")  # ← ambil dari cache
+    img = generate_label_image(order_id, record, source_route=source_route)
 
     buf = io.BytesIO()
     img.save(buf, format="PNG", dpi=(600, 600))
@@ -670,6 +707,7 @@ def ensure_csv_scan(path):
 
 # ─── SAVE RECORD ────────────────────────────────────────────
 def save_record(data):
+    
     conn = sqlite3.connect(DB_PATH)
     c    = conn.cursor()
     div  = (data.get("divisi") or "").strip().upper()
@@ -870,7 +908,23 @@ def login_post():
             session["name"]      = str(match.iloc[0].get("name", username))
             session["role"]      = str(match.iloc[0].get("role", "user"))
             session["last_active"] = datetime.now().isoformat()
-            return jsonify(success=True, redirect="/mixing")
+        if not match.empty:
+            session.permanent      = True
+            session["logged_in"]   = True
+            session["username"]    = username
+            session["name"]        = str(match.iloc[0].get("name", username))
+            session["role"]        = str(match.iloc[0].get("role", "user"))
+            session["last_active"] = datetime.now().isoformat()
+
+            role = session["role"]
+            redirect_map = {
+                "administrator": "/mixing",
+                "checker":       "/mixing",
+                "adminwip":      "/scan_pemakaian",
+                "staff":         "/ongoing",
+            }
+            redirect_url = redirect_map.get(role, "/login")
+            return jsonify(success=True, redirect=redirect_url)
         else:
             return jsonify(success=False, message="Username atau password salah.")
     except FileNotFoundError:
@@ -894,123 +948,121 @@ def check_session():
 # CHECKER
 @app.route("/mixing")
 @login_required
+@checker_required
 def mixing():
     return render_template("index.html", active_page="mixing", current_user=session.get("name"))
 
 @app.route("/hd")
 @login_required
+@checker_required
 def hd():
     return render_template("hd.html", active_page="hd", current_user=session.get("name"))
 
 @app.route("/potong")
 @login_required
+@checker_required
 def potong():
     return render_template("potong.html", active_page="potong", current_user=session.get("name"))
 
 @app.route("/packing")
 @login_required
+@checker_required
 def packing():
     return render_template("packing.html", active_page="packing", current_user=session.get("name"))
 
 @app.route("/sisa_pack")
 @login_required
+@checker_required
 def sisa_pack():
     return render_template("sisa_pack.html", active_page="sisa_pack", current_user=session.get("name"))
 
 @app.route("/aval_mixing")
 @login_required
+@checker_required
 def aval_mixing():
     return render_template("aval_mixing.html", active_page="aval_mixing", current_user=session.get("name"))
 
 @app.route("/aval_hd")
 @login_required
+@checker_required
 def aval_hd():
     return render_template("aval_hd.html", active_page="aval_hd", current_user=session.get("name"))
 
 @app.route("/aval_potong")
 @login_required
+@checker_required
 def aval_potong():
     return render_template("aval_potong.html", active_page="aval_potong", current_user=session.get("name"))
 
 @app.route("/aval_packing")
 @login_required
+@checker_required
 def aval_packing():
     return render_template("aval_packing.html", active_page="aval_packing", current_user=session.get("name"))
 
 @app.route("/aval_qc")
 @login_required
+@checker_required
 def aval_qc():
     return render_template("aval_qc.html", active_page="aval_qc", current_user=session.get("name"))
 
 # ADMIN WIP
 @app.route("/scan_salah")
-@admin_required
 @adminwip_required
 def scan_salah():
     return render_template("scan_salah.html", active_page="scan_salah", current_user=session.get("name"))
 
 @app.route("/scan_pemakaian")
-@admin_required
 @adminwip_required
 def scan_pemakaian():
     return render_template("scan_pemakaian.html", active_page="scan_pemakaian", current_user=session.get("name"))
 
 @app.route("/barcode_mixing")
-@admin_required
 @adminwip_required
 def barcode_mixing():
     return render_template("barcode_mixing.html", active_page="barcode_mixing", current_user=session.get("name"))
 
 @app.route("/barcode_hd")
-@admin_required
 @adminwip_required
 def barcode_hd():
     return render_template("barcode_hd.html", active_page="barcode_hd", current_user=session.get("name"))
 
 @app.route("/barcode_potong")
-@admin_required
 @adminwip_required
 def barcode_potong():
     return render_template("barcode_potong.html", active_page="barcode_potong", current_user=session.get("name"))
 
 @app.route("/barcode_packing")
-@admin_required
 @adminwip_required
 def barcode_packing():
     return render_template("barcode_packing.html", active_page="barcode_packing", current_user=session.get("name"))
 
 @app.route("/barcode_sisa_pack")
-@admin_required
 @adminwip_required
 def barcode_sisa_pack():
     return render_template("barcode_sisa_pack.html", active_page="barcode_sisa_pack", current_user=session.get("name"))
 
 @app.route("/barcode_aval_mixing")
-@admin_required
 @adminwip_required
 def barcode_aval_mixing():
     return render_template("barcode_aval_mixing.html", active_page="barcode_aval_mixing", current_user=session.get("name"))
 
 @app.route("/barcode_aval_hd")
-@admin_required
 @adminwip_required
 def barcode_aval_hd():
     return render_template("barcode_aval_hd.html", active_page="barcode_aval_hd", current_user=session.get("name"))
 
 @app.route("/barcode_aval_potong")
-@admin_required
 @adminwip_required
 def barcode_aval_potong():
     return render_template("barcode_aval_potong.html", active_page="barcode_aval_potong", current_user=session.get("name"))
 
 @app.route("/barcode_aval_packing")
-@admin_required
 @adminwip_required
 def barcode_aval_packing():
     return render_template("barcode_aval_packing.html", active_page="barcode_aval_packing", current_user=session.get("name"))
 
 @app.route("/barcode_aval_qc")
-@admin_required
 @adminwip_required
 def barcode_aval_qc():
     return render_template("barcode_aval_qc.html", active_page="barcode_aval_qc", current_user=session.get("name"))
@@ -1396,6 +1448,19 @@ def submit():
             return jsonify({"success": False, "message": "Divisi tidak dikenali"})
 
         save_record(record)
+
+        _div_to_route = {
+            "mixing": "barcode_mixing", "hd": "barcode_hd",
+            "potong": "barcode_potong", "packing": "barcode_packing",
+            "sisa_pack": "barcode_sisa_pack", "aval_mixing": "barcode_aval_mixing",
+            "aval_hd": "barcode_aval_hd", "aval_potong": "barcode_aval_potong",
+            "aval_packing": "barcode_aval_packing", "aval_qc": "barcode_aval_qc",
+        }
+        input_page = (d.get("input_page") or "").strip()
+        record["_source_route"] = "barcode" if input_page == "barcode" else ""
+        cleanup_cache()
+        record_cache[order_id] = (record, time.time())  # cache SETELAH _source_route ditambah
+        
 
         cleanup_cache()
         record_cache[order_id] = (record, time.time())

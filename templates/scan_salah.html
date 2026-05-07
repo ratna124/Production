@@ -128,6 +128,10 @@
       flex-direction: column;
       gap: 2px;
       overflow-y: auto;
+
+      height: calc(100vh - 56px);
+      position: sticky;
+      top: 56px;
     }
 
     .sidebar-section {
@@ -734,11 +738,58 @@
 
     <!-- SIDEBAR -->
     <aside class="sidebar">
-      <div class="sidebar-section">Production Input</div>
-      <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Production Input
-      </a>
+      {% if session.get('role') in ('administrator', 'adminwip') %}
 
+      <!-- Menu navigasi — bisa scroll -->
+      <div style="flex:1; overflow-y:auto; min-height:0;">
+        <div class="sidebar-section">Scan</div>
+        <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Scan Pemakaian
+        </a>
+        <a href="/scan_salah" class="sidebar-item {% if active_page == 'scan_salah' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Scan Salah
+        </a>
+
+        <div class="sidebar-section">Hasil</div>
+        <a href="/barcode_mixing"
+          class="sidebar-item {% if active_page == 'barcode_barcode_mixing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Mixing WIP
+        </a>
+        <a href="/barcode_hd" class="sidebar-item {% if active_page == 'barcode_hd' %}active{% endif %}">
+          <span class="sidebar-dot"></span>HD WIP
+        </a>
+        <a href="/barcode_potong" class="sidebar-item {% if active_page == 'barcode_potong' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Potong WIP
+        </a>
+        <a href="/barcode_packing" class="sidebar-item {% if active_page == 'barcode_packing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Packing WIP
+        </a>
+        <a href="/barcode_sisa_pack" class="sidebar-item {% if active_page == 'barcode_sisa_pack' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Sisa Pack WIP
+        </a>
+
+        <div class="sidebar-section">Aval</div>
+        <a href="/barcode_aval_mixing"
+          class="sidebar-item {% if active_page == 'barcode_aval_mixing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Aval Mixing WIP
+        </a>
+        <a href="/barcode_aval_hd" class="sidebar-item {% if active_page == 'barcode_aval_hd' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Aval HD WIP
+        </a>
+        <a href="/barcode_aval_potong"
+          class="sidebar-item {% if active_page == 'barcode_aval_potong' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Aval Potong WIP
+        </a>
+        <a href="/barcode_aval_packing"
+          class="sidebar-item {% if active_page == 'barcode_aval_packing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Aval Packing WIP
+        </a>
+        <a href="/barcode_aval_qc" class="sidebar-item {% if active_page == 'barcode_aval_qc' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Aval QC WIP
+        </a>
+      </div>
+
+      <!-- Stats — selalu terlihat di bawah -->
       <div class="sidebar-stats">
         <div class="stat-row">
           <span class="stat-label">Kode discan</span>
@@ -752,9 +803,14 @@
           <span class="stat-label">Divisi aktif</span>
           <span class="stat-val" id="stat-divisi" style="font-size:13px;color:var(--gray5)">—</span>
         </div>
+        <div class="stat-row">
+          <span class="stat-label">Shift</span>
+          <span class="stat-val" id="stat-shift" style="font-size:16px;color:var(--accent2)">—</span>
+        </div>
       </div>
-    </aside>
 
+      {% endif %}
+    </aside>
     <!-- MAIN -->
     <main class="main">
 
