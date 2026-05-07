@@ -219,6 +219,19 @@ def generate_label_image(order_id, data):
         r"C:\Windows\Fonts\calibrib.ttf",
         r"C:\Windows\Fonts\tahoma.ttf",
     ]
+    
+    CELTIC_FONT_PATH = r"Z:\Checker\Production\Production\templates\celtic-astrologer\CelticAstrologer.ttf"  # sesuaikan namanya
+
+    try:
+        celtic_font = ImageFont.truetype(CELTIC_FONT_PATH, 20 * SCALE)
+    except:
+        # Fallback ke calibri kalau font tidak ditemukan
+        for fp in font_paths:
+            try:
+                celtic_font = ImageFont.truetype(fp, 20 * SCALE)
+                break
+            except:
+                continue
 
     font_sm = font_md = font_lg = None
     for fp in font_paths:
@@ -264,36 +277,68 @@ def generate_label_image(order_id, data):
         customer = "AVAL SAPUAN"
         produk   = "MIXING"
 
+    # ─── Celtic Astrologer Code ───────────────────────────────
+    CELTIC_MAP = {
+        "0": "0", "1": "1", "2": "E", "3": "F", "4": "4",
+        "5": "5", "6": "6", "7": "X", "8": "8", "9": "Y",
+        "10": "U", "11": "V", "12": "S", "17": "z", "18": "m",
+        "P": "b", "M": "v",
+    }
+
+    def to_celtic(val):
+        s = str(val).strip()
+        if s in CELTIC_MAP:
+            return CELTIC_MAP[s]
+        return "".join(CELTIC_MAP.get(c, c) for c in s)
+
+    spk_last2 = str(spk).strip()[-2:] if len(str(spk).strip()) >= 2 else str(spk).strip()
+
+    DIVISI_NO_MESIN = {"MIXING", "AVAL_MIXING", "AVAL_QC"}
+
+    if divisi_raw in DIVISI_NO_MESIN:
+        d1 = to_celtic(spk_last2[0]) if len(spk_last2) > 1 else ""
+        d2 = to_celtic(spk_last2[-1])
+        d3 = to_celtic(shift)
+    else:
+        d1 = to_celtic(spk_last2[0]) if len(spk_last2) > 1 else ""
+        d2 = to_celtic(spk_last2[-1])
+        d3 = to_celtic(str(mesin).strip()) if mesin else ""
+
+    celtic_str = " ".join(filter(None, [d1, d2, d3]))
+
     padding_top = 7 * SCALE
 
-    # QR — generate sekali, resize pakai NEAREST
+    # QR
     qr_size = 85 * SCALE
     qr      = generate_qr(data["code"]).resize((qr_size, qr_size), Image.NEAREST)
     img.paste(qr, (0, padding_top))
 
-    # Teks — center vertikal sejajar QR
-    x       = (85 + 3) * SCALE
-    gap     = 17 * SCALE  #space antar baris
-    n_rows  = 5
+    # Teks
+    x   = (85 + 3) * SCALE
+    gap = 17 * SCALE
+
+    # Hitung n_rows dinamis
+    row3    = bool(beratkg or bobin or berat)
+    n_rows  = 4 + (1 if row3 else 0)
     total_h = (n_rows - 1) * gap + 13 * SCALE
 
     qr_center = padding_top + qr_size // 2
     y         = qr_center - total_h // 2
 
-    # Hitung n_rows dinamis
-    row3 = bool(beratkg or bobin or berat)
-    n_rows = 4 + (1 if row3 else 0)  # baris 1,2,4,5 selalu ada + baris 3 kalau ada isinya
+    # Celtic — kanan atas
+    CELTIC_FONT_PATH = r"Z:\Checker\Production\Production\templates\celtic-astrologer\CelticAstrologer.ttf"
+    
+    try:
+        celtic_font = ImageFont.truetype(CELTIC_FONT_PATH, 20 * SCALE)
+    except:
+        celtic_font = font_md
 
-    total_h = (n_rows - 1) * gap + 13 * SCALE
-    qr_center = padding_top + qr_size // 2
-    y = qr_center - total_h // 2
-
-    # Baris 1
+    # Baris 1: Customer  Produk
     draw.text((x, y), f"{customer}    {produk}", fill=0, font=font_md)
 
-    # Baris 2
+    # Baris 2: SPK  UK  Operator  Mesin
     y += gap
-    mesin_text = f"M{mesin}" if mesin else ""  # ← tambah ini
+    mesin_text = f"M{mesin}" if mesin else ""
     parts2 = [p for p in [spk, uk, operator, mesin_text] if p.strip()]
     draw.text((x, y), "    ".join(parts2), fill=0, font=font_md)
 
@@ -302,26 +347,32 @@ def generate_label_image(order_id, data):
         wadah_unit = "Pack"
     else:
         wadah_unit = "kg"
-        
+
     if row3:
         y += gap
         parts3 = []
         if beratkg:
             parts3.append(f"{beratkg} kg")
         if bobin:
-            parts3.append(f"{bobin} {wadah_unit}") 
+            parts3.append(f"{bobin} {wadah_unit}")
         if berat:
             parts3.append(f"{berat} kg")
-        draw.text((x, y), "     ".join(parts3), fill=0, font=font_md)  # ← indentasi masuk if
+        draw.text((x, y), "     ".join(parts3), fill=0, font=font_md)
 
-    # Baris 4
+    # Baris 4: Divisi  Tanggal  Shift  Checker
     y += gap
-    draw.text((x, y), f"{divisi_display}  {tanggal}  ({shift})   {checker}", fill=0, font=font_md)
+    draw.text((x, y), f"{divisi_display}  {tanggal} ({shift})   {checker}", fill=0, font=font_md)
 
-    # Baris 5
+    # Baris 5: created_at
     y += gap
     draw.text((x, y), created, fill=0, font=font_md)
-    
+
+     # Baris 6: Celtic — sejajar baris 5, rata kanan
+    celtic_bbox = draw.textbbox((0, 0), celtic_str, font=celtic_font)
+    celtic_w    = celtic_bbox[2] - celtic_bbox[0]
+    celtic_x    = LABEL_W_HI - celtic_w - (4 * SCALE)
+    draw.text((celtic_x, y), celtic_str, fill=0, font=celtic_font)
+
     return img
 
 
