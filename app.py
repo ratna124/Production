@@ -921,7 +921,7 @@ def login_post():
                 "administrator": "/mixing",
                 "checker":       "/mixing",
                 "adminwip":      "/scan_pemakaian",
-                "staff":         "/ongoing",
+                "staff":         "/hasil_produksi",
             }
             redirect_url = redirect_map.get(role, "/login")
             return jsonify(success=True, redirect=redirect_url)
@@ -1066,6 +1066,144 @@ def barcode_aval_packing():
 @adminwip_required
 def barcode_aval_qc():
     return render_template("barcode_aval_qc.html", active_page="barcode_aval_qc", current_user=session.get("name"))
+
+@app.route("/hasil_produksi")
+@adminwip_required
+def hasil_produksi():
+    return render_template("hasil_produksi.html", active_page="hasil_produksi", current_user=session.get("name"))
+
+# HASIL PRODUKSI
+# ─── API: HASIL PRODUKSI ────────────────────────────────────
+@app.route("/api/hasil_produksi")
+@staff_required
+def api_hasil_produksi():
+    try:
+        # 1. Load master SPK
+        df_spk = pd.read_csv(SPK_CSV, encoding="utf-8-sig")
+        df_spk.columns = df_spk.columns.str.strip()
+        df_spk["No. SPK"] = df_spk["No. SPK"].astype(str).str.strip()
+        raw_order = df_spk.iloc[:, 15].astype(str).str.strip()
+        raw_order = raw_order.str.replace(r'[^\d,\.]', '', regex=True)
+        raw_order = raw_order.str.replace('.', '', regex=False)
+        raw_order = raw_order.str.replace(',', '.', regex=False)
+        df_spk["order_qty"] = pd.to_numeric(raw_order, errors="coerce").fillna(0)
+        # Ambil 1000 data terakhir
+        df_spk = df_spk.tail(1000)
+
+        # 2. Helper: baca katalog → dict {spk: {code: berat_bersih}}
+        def load_catalog_by_code(path, spk_col, berat_col):
+            """Return dict: spk -> {code -> berat}"""
+            result = {}
+            if not os.path.exists(path):
+                return result
+            df = pd.read_csv(path, encoding="utf-8-sig")
+            df.columns = df.columns.str.strip()
+            col_spk   = df.columns[spk_col]
+            col_berat = df.columns[berat_col]
+            col_code  = df.columns[-1]  # kolom code selalu terakhir
+            # cari kolom code by nama
+            code_candidates = [c for c in df.columns if c.lower() == "code"]
+            col_code = code_candidates[0] if code_candidates else df.columns[-1]
+
+            df[col_spk]   = df[col_spk].astype(str).str.strip()
+            df[col_berat] = pd.to_numeric(df[col_berat], errors="coerce").fillna(0)
+            df[col_code]  = df[col_code].astype(str).str.strip()
+
+            for _, row in df.iterrows():
+                spk   = row[col_spk]
+                code  = row[col_code]
+                berat = row[col_berat]
+                if spk not in result:
+                    result[spk] = {}
+                result[spk][code] = berat
+            return result
+
+        # 3. Helper: baca scan_salah → dict {spk: set(codes)}
+        def load_salah_codes(path, spk_col, code_col):
+            """Return dict: spk -> set of codes yang salah"""
+            result = {}
+            if not os.path.exists(path):
+                return result
+            df = pd.read_csv(path, encoding="utf-8-sig")
+            df.columns = df.columns.str.strip()
+            col_spk  = df.columns[spk_col]
+            col_code = df.columns[code_col]
+            df[col_spk]  = df[col_spk].astype(str).str.strip()
+            df[col_code] = df[col_code].astype(str).str.strip()
+            for _, row in df.iterrows():
+                spk  = row[col_spk]
+                code = row[col_code]
+                if spk not in result:
+                    result[spk] = set()
+                result[spk].add(code)
+            return result
+
+        # 4. Helper: hitung total bersih = sum semua - sum yang salah
+        def calc_net(catalog, salah, spk):
+            """catalog = {spk: {code: berat}}, salah = {spk: set(codes)}"""
+            all_codes   = catalog.get(spk, {})
+            salah_codes = salah.get(spk, set())
+            total_all   = sum(all_codes.values())
+            total_salah = sum(v for k, v in all_codes.items() if k in salah_codes)
+            return round(total_all - total_salah, 2), len(salah_codes) > 0
+
+        # 5. Load katalog per divisi
+        # SPK=D(3), mixing=K(10), hd=L(11), potong=M(12), packing=K(10), sisa=K(10)
+        cat_mixing  = load_catalog_by_code(CSV_MIXING,    3, 10)
+        cat_hd      = load_catalog_by_code(CSV_HD,        3, 12)
+        cat_potong  = load_catalog_by_code(CSV_POTONG,    3, 12)
+        cat_packing = load_catalog_by_code(CSV_PACKING,   3, 10)
+        cat_sisa    = load_catalog_by_code(CSV_SISA_PACK, 3, 10)
+
+        # 6. Load scan salah — SPK=E(4), code=K(10)
+        salah_mixing  = load_salah_codes(SCAN_DIR / "scansalahmixing.csv",  4, 10)
+        salah_hd      = load_salah_codes(SCAN_DIR / "scansalahhd.csv",      4, 10)
+        salah_potong  = load_salah_codes(SCAN_DIR / "scansalahpotong.csv",  4, 10)
+        salah_packing = load_salah_codes(SCAN_DIR / "scansalahpacking.csv", 4, 10)
+
+        # 7. Gabungkan per SPK
+        rows = []
+        for _, r in df_spk.iterrows():
+            spk = str(r["No. SPK"]).strip()
+
+            mixing_net,  has_salah_mix  = calc_net(cat_mixing,  salah_mixing,  spk)
+            hd_net,      has_salah_hd   = calc_net(cat_hd,      salah_hd,      spk)
+            potong_net,  has_salah_pot  = calc_net(cat_potong,  salah_potong,  spk)
+            packing_net, has_salah_pack = calc_net(cat_packing, salah_packing, spk)
+            sisa_net,    has_salah_sisa = calc_net(cat_sisa,    salah_packing, spk)  # sisa pakai file packing
+
+            rows.append({
+                "spk":      spk,
+                "customer": str(r.get("CUSTOMER", "") or ""),
+                "produk":   str(r.get("PRODUCT",  "") or ""),
+                "uk":       str(r.get("UK",        "") or ""),
+                "order":    round(float(r.get("order_qty", 0) or 0), 2),
+                "mixing":   mixing_net,
+                "hd":       hd_net,
+                "potong":   potong_net,
+                "packing":  packing_net,
+                "sisa":     sisa_net,
+                "salah_mixing":  has_salah_mix,
+                "salah_hd":      has_salah_hd,
+                "salah_potong":  has_salah_pot,
+                "salah_packing": has_salah_pack,
+                "salah_sisa":    has_salah_sisa,
+            })
+
+        # 8. Filter query param
+        f_spk      = request.args.get("spk",      "").strip().lower()
+        f_customer = request.args.get("customer", "").strip().lower()
+        f_produk   = request.args.get("produk",   "").strip().lower()
+
+        if f_spk:      rows = [r for r in rows if f_spk      in r["spk"].lower()]
+        if f_customer: rows = [r for r in rows if f_customer in r["customer"].lower()]
+        if f_produk:   rows = [r for r in rows if f_produk   in r["produk"].lower()]
+
+        rows.sort(key=lambda r: r["spk"])
+        return jsonify({"rows": rows})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # ─── API: OPERATORS ─────────────────────────────────────────

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scan Salah — Checker Production</title>
+  <title>Scan Salah</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
@@ -738,10 +738,17 @@
 
     <!-- SIDEBAR -->
     <aside class="sidebar">
-      {% if session.get('role') in ('administrator', 'adminwip') %}
-
       <!-- Menu navigasi — bisa scroll -->
       <div style="flex:1; overflow-y:auto; min-height:0;">
+        {% if session.get('role') in 'administrator' %}
+        <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Checker Input
+        </a>
+        <a href="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Hasil Produksi
+        </a>
+        {% endif %}
+        {% if session.get('role') in ('administrator', 'adminwip') %}
         <div class="sidebar-section">Scan</div>
         <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
           <span class="sidebar-dot"></span>Scan Pemakaian

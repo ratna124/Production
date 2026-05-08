@@ -752,10 +752,15 @@
 
     <!-- ── SIDEBAR ── -->
     <aside class="sidebar">
-      {% if session.get('role') in ('administrator', 'adminwip') %}
-
       <!-- Menu navigasi — bisa scroll -->
       <div style="flex:1; overflow-y:auto; min-height:0;">
+        {% if session.get('role') in 'administrator' %}
+        <div class="sidebar-section">Checker</div>
+        <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Checker Input
+        </a>
+        {% endif %}
+        {% if session.get('role') in ('administrator', 'adminwip') %}
         <div class="sidebar-section">Scan</div>
         <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
           <span class="sidebar-dot"></span>Scan Pemakaian
