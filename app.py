@@ -18,7 +18,7 @@ app = Flask(__name__)
 
 # ─── CONFIG ─────────────────────────────────────────────────
 app.secret_key = "GarindraPlastik@2026#Produksi!"
-app.permanent_session_lifetime = timedelta(minutes=45)
+app.permanent_session_lifetime = timedelta(minutes=7)
 
 # ─── PATHS ──────────────────────────────────────────────────
 APP_DIR    = os.path.dirname(os.path.abspath(__file__))
@@ -209,6 +209,19 @@ def staff_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def hasil_required(f):
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect("/login")
+
+        if session.get("role") not in ("administrator", "adminwip", "staff"):
+            return redirect("/login")
+
+        return f(*args, **kwargs)
+
+    return decorated
+
 
 FIELD_MAP = {
     "MIXING":       {"operator": "operator_mix", "wadah": "karung"},
@@ -261,11 +274,11 @@ def generate_label_image(order_id, data, source_route=None):
     CELTIC_FONT_PATH = r"Z:\Checker\Production\Production\templates\celtic-astrologer\CelticAstrologer.ttf"  # sesuaikan namanya
 
     try:
-        celtic_font = ImageFont.truetype(CELTIC_FONT_PATH, 20 * SCALE)
+        celtic_font = ImageFont.truetype(CELTIC_FONT_PATH, 18 * SCALE)
     except:
         for fp in font_paths:
             try:
-                celtic_font = ImageFont.truetype(fp, 20 * SCALE)
+                celtic_font = ImageFont.truetype(fp, 18 * SCALE)
                 break
             except:
                 continue
@@ -369,14 +382,13 @@ def generate_label_image(order_id, data, source_route=None):
     CELTIC_FONT_PATH = r"Z:\Checker\Production\Production\templates\celtic-astrologer\CelticAstrologer.ttf"
     
     try:
-        celtic_font = ImageFont.truetype(CELTIC_FONT_PATH, 20 * SCALE)
+        celtic_font = ImageFont.truetype(CELTIC_FONT_PATH, 18 * SCALE)
     except:
         celtic_font = font_md
 
     # Baris 1: Customer  Produk
     draw.text((x, y), f"{customer}    {produk}", fill=0, font=font_md)
 
-    # Baris 2: SPK  UK  Operator  Mesin
     # Baris 2: SPK  UK  Operator  Mesin
     y += gap
     mesin_text = f"M{mesin}" if mesin else ""
@@ -419,7 +431,8 @@ def generate_label_image(order_id, data, source_route=None):
     celtic_bbox = draw.textbbox((0, 0), celtic_str, font=celtic_font)
     celtic_w    = celtic_bbox[2] - celtic_bbox[0]
     celtic_x    = LABEL_W_HI - celtic_w - (4 * SCALE)
-    draw.text((celtic_x, y), celtic_str, fill=0, font=celtic_font)
+    celtic_y = y - (2 * SCALE)
+    draw.text((celtic_x, celtic_y), celtic_str, fill=0, font=celtic_font)
 
     return img
 
@@ -1068,14 +1081,14 @@ def barcode_aval_qc():
     return render_template("barcode_aval_qc.html", active_page="barcode_aval_qc", current_user=session.get("name"))
 
 @app.route("/hasil_produksi")
-@adminwip_required
+@hasil_required
 def hasil_produksi():
     return render_template("hasil_produksi.html", active_page="hasil_produksi", current_user=session.get("name"))
 
 # HASIL PRODUKSI
 # ─── API: HASIL PRODUKSI ────────────────────────────────────
 @app.route("/api/hasil_produksi")
-@staff_required
+@hasil_required
 def api_hasil_produksi():
     try:
         # 1. Load master SPK
@@ -1148,7 +1161,7 @@ def api_hasil_produksi():
             return round(total_all - total_salah, 2), len(salah_codes) > 0
 
         # 5. Load katalog per divisi
-        # SPK=D(3), mixing=K(10), hd=L(11), potong=M(12), packing=K(10), sisa=K(10)
+        # Columb
         cat_mixing  = load_catalog_by_code(CSV_MIXING,    3, 10)
         cat_hd      = load_catalog_by_code(CSV_HD,        3, 12)
         cat_potong  = load_catalog_by_code(CSV_POTONG,    3, 12)
