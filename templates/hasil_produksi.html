@@ -262,6 +262,33 @@
             font-weight: 500;
         }
 
+        .btn-reset {
+            height: 38px;
+            padding: 0 16px;
+            background: none;
+            color: var(--gray4);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            cursor: pointer;
+            transition: border-color .15s, color .15s, background .15s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .btn-reset:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+            background: rgba(239, 68, 68, .06);
+        }
+
+        .btn-reset:active {
+            background: rgba(239, 68, 68, .12);
+        }
+
         .divisi-badge {
             font-family: var(--font-mono);
             font-size: 11px;
@@ -731,9 +758,26 @@
                 </a>
                 {% endif %}
                 {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
+                <div class="sidebar-section">Hasil Produksi</div>
                 <a href="/hasil_produksi"
                     class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
-                    <span class="sidebar-dot"></span>Hasil Produksi
+                    <span class="sidebar-dot"></span>Summary
+                </a>
+                <a href="/hasil_produksi_mixing"
+                    class="sidebar-item {% if active_page == 'hasil_produksi_mixing' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Hasil Mixing
+                </a>
+                <a href="/hasil_produksi_hd"
+                    class="sidebar-item {% if active_page == 'hasil_produksi_hd' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Hasil HD
+                </a>
+                <a href="/hasil_produksi_potong"
+                    class="sidebar-item {% if active_page == 'hasil_produksi_potong' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Hasil Potong
+                </a>
+                <a href="/hasil_produksi_packing"
+                    class="sidebar-item {% if active_page == 'hasil_produksi_packing' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Hasil Packing
                 </a>
                 {% endif %}
             </div>
@@ -791,10 +835,14 @@
                         </div>
 
                         <!-- Tombol Load -->
-                        <div class="field" style="justify-content: flex-end;">
+                        <div class="field"
+                            style="justify-content: flex-end; flex-direction: row; gap: 8px; align-items: flex-end;">
                             <button class="btn-load" onclick="loadData()">
                                 <div class="spinner" id="load-spinner"></div>
                                 &#8635; Muat Data
+                            </button>
+                            <button class="btn-reset" onclick="resetFilter()" title="Reset semua filter dan data">
+                                &#10005; Reset
                             </button>
                         </div>
 
@@ -802,116 +850,86 @@
                     <div class="toast hidden" id="toast" style="margin-top:10px"></div>
                 </div>
 
-                <!-- Status bar -->
-                <div class="status-bar" id="status-bar" style="display:none">
-                    <div class="status-item">
-                        <span class="status-item-label">SPK Ditampilkan</span>
-                        <span class="status-item-val" id="st-spk">0</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-item-label">Total Order (kg)</span>
-                        <span class="status-item-val" id="st-order">0</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-item-label">Total Mixing (kg)</span>
-                        <span class="status-item-val" style="color:#60a5fa" id="st-mixing">0</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-item-label">Total HD (kg)</span>
-                        <span class="status-item-val" style="color:#a78bfa" id="st-hd">0</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-item-label">Total Potong (kg)</span>
-                        <span class="status-item-val" style="color:#34d399" id="st-potong">0</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-item-label">Total Packing (kg)</span>
-                        <span class="status-item-val" style="color:#f59e0b" id="st-packing">0</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-item-label">Total Sisa Pack (kg)</span>
-                        <span class="status-item-val" style="color:#f87171" id="st-sisa">0</span>
-                    </div>
-                </div>
-            </div>
 
-            <!-- CARD TABLE -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-header-num">2</span>
-                    <span class="card-header-title">Hasil Produksi</span>
-                    <span class="card-header-extra">
-                        <div class="legend">
-                            <div class="legend-item">
-                                <div class="legend-dot" style="background:var(--warn)"></div>
-                                <span>Ada scan salah</span>
+
+                <!-- CARD TABLE -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-header-num">2</span>
+                        <span class="card-header-title">Hasil Produksi</span>
+                        <span class="card-header-extra">
+                            <div class="legend">
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background:var(--warn)"></div>
+                                    <span>Ada scan salah</span>
+                                </div>
                             </div>
-                        </div>
-                    </span>
-                </div>
-
-                <!-- Search & search input -->
-                <div
-                    style="padding: 10px 18px; border-bottom: 1px solid var(--border); background: var(--gray2); display:flex; gap:10px; align-items:center;">
-                    <div class="search-wrap">
-                        <span class="search-icon">&#128269;</span>
-                        <input type="text" id="tbl-search" placeholder="Cari SPK / produk…" oninput="filterTable()"
-                            style="padding-left:28px; width:220px">
+                        </span>
                     </div>
-                    <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);margin-left:auto">
-                        <span id="tbl-count">0</span> baris
-                    </span>
-                </div>
 
-                <div class="prod-table-wrap">
-                    <table class="prod-table" id="prod-table">
-                        <colgroup>
-                            <col style="width:70px"> <!-- SPK -->
-                            <col style="width:120px"> <!-- Customer -->
-                            <col> <!-- Produk — ambil sisa -->
-                            <col style="width:70px"> <!-- Ukuran -->
-                            <col style="width:90px"> <!-- Order -->
-                            <col style="width:90px"> <!-- Mixing -->
-                            <col style="width:80px"> <!-- HD -->
-                            <col style="width:80px"> <!-- Potong -->
-                            <col style="width:85px"> <!-- Packing -->
-                            <col style="width:85px"> <!-- Sisa Pack -->
-                        </colgroup>
-                        <thead>
-                            <tr>
-                                <th>SPK</th>
-                                <th>Customer</th>
-                                <th>Produk</th>
-                                <th>Ukuran</th>
-                                <th class="num">Order</th>
-                                <th class="num col-mixing">Mixing</th>
-                                <th class="num col-hd">HD</th>
-                                <th class="num col-potong">Potong</th>
-                                <th class="num col-packing">Packing</th>
-                                <th class="num col-sisa">Sisa Pack</th>
-                            </tr>
-                        </thead>
-                        <tbody id="prod-tbody">
-                            <tr>
-                                <td colspan="10" class="table-empty">Klik "Muat Data" untuk menampilkan hasil produksi…
-                                </td>
-                            </tr>
-                        </tbody>
-                        <tfoot id="prod-tfoot" style="display:none">
-                            <tr>
-                                <td colspan="4"
-                                    style="color:var(--gray4);font-size:10px;letter-spacing:.08em;text-transform:uppercase">
-                                    TOTAL</td>
-                                <td class="num" id="ft-order">—</td>
-                                <td class="num col-mixing" id="ft-mixing">—</td>
-                                <td class="num col-hd" id="ft-hd">—</td>
-                                <td class="num col-potong" id="ft-potong">—</td>
-                                <td class="num col-packing" id="ft-packing">—</td>
-                                <td class="num col-sisa" id="ft-sisa">—</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
+                    <!-- Search & search input -->
+                    <div
+                        style="padding: 10px 18px; border-bottom: 1px solid var(--border); background: var(--gray2); display:flex; gap:10px; align-items:center;">
+                        <div class="search-wrap">
+                            <span class="search-icon">&#128269;</span>
+                            <input type="text" id="tbl-search" placeholder="Cari SPK / produk…" oninput="filterTable()"
+                                style="padding-left:28px; width:220px">
+                        </div>
+                        <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);margin-left:auto">
+                            <span id="tbl-count">0</span> baris
+                        </span>
+                    </div>
+
+                    <div class="prod-table-wrap">
+                        <table class="prod-table" id="prod-table">
+                            <colgroup>
+                                <col style="width:70px"> <!-- SPK -->
+                                <col style="width:120px"> <!-- Customer -->
+                                <col> <!-- Produk — ambil sisa -->
+                                <col style="width:70px"> <!-- Ukuran -->
+                                <col style="width:90px"> <!-- Order -->
+                                <col style="width:90px"> <!-- Mixing -->
+                                <col style="width:80px"> <!-- HD -->
+                                <col style="width:80px"> <!-- Potong -->
+                                <col style="width:85px"> <!-- Packing -->
+                                <col style="width:85px"> <!-- Sisa Pack -->
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>SPK</th>
+                                    <th>Customer</th>
+                                    <th>Produk</th>
+                                    <th>Ukuran</th>
+                                    <th class="num">Order</th>
+                                    <th class="num col-mixing">Mixing</th>
+                                    <th class="num col-hd">HD</th>
+                                    <th class="num col-potong">Potong</th>
+                                    <th class="num col-packing">Packing</th>
+                                    <th class="num col-sisa">Sisa Pack</th>
+                                </tr>
+                            </thead>
+                            <tbody id="prod-tbody">
+                                <tr>
+                                    <td colspan="10" class="table-empty">Klik "Muat Data" untuk menampilkan hasil
+                                        produksi…
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot id="prod-tfoot" style="display:none">
+                                <tr>
+                                    <td colspan="4"
+                                        style="color:var(--gray4);font-size:10px;letter-spacing:.08em;text-transform:uppercase">
+                                        TOTAL</td>
+                                    <td class="num" id="ft-order">—</td>
+                                    <td class="num col-mixing" id="ft-mixing">—</td>
+                                    <td class="num col-hd" id="ft-hd">—</td>
+                                    <td class="num col-potong" id="ft-potong">—</td>
+                                    <td class="num col-packing" id="ft-packing">—</td>
+                                    <td class="num col-sisa" id="ft-sisa">—</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
 
         </main>
     </div>
@@ -973,10 +991,9 @@
                 filtered = [...allRows];
 
                 renderTable(filtered);
-                updateStats(filtered);
                 updateSidebar(filtered);
 
-                document.getElementById("status-bar").style.display = "";
+
                 showToast(`✔ ${allRows.length} SPK berhasil dimuat`, "success");
 
                 const now = new Date();
@@ -993,20 +1010,24 @@
 
         // ── CLIENT-SIDE SEARCH (tbl-search) ──
         function filterTable() {
-            const q = document.getElementById("tbl-search").value.toLowerCase();
-            if (!q) {
-                filtered = [...allRows];
-            } else {
-                filtered = allRows.filter(r =>
-                    String(r.spk).toLowerCase().includes(q) ||
-                    String(r.customer).toLowerCase().includes(q) ||
-                    String(r.produk).toLowerCase().includes(q) ||
-                    String(r.uk || "").toLowerCase().includes(q)
-                );
-            }
-            renderTable(filtered);
-            updateStats(filtered);
-        }
+    const q = document.getElementById("tbl-search").value.toLowerCase();
+
+    // Kalau data belum dimuat, load dulu otomatis
+    if (allRows.length === 0 && q) {
+        loadData().then(() => {
+            filterTable();
+        });
+        return;
+    }
+
+    filtered = !q ? [...allRows] : allRows.filter(r =>
+        String(r.spk).toLowerCase().includes(q) ||
+        String(r.customer).toLowerCase().includes(q) ||
+        String(r.produk).toLowerCase().includes(q) ||
+        String(r.uk || "").toLowerCase().includes(q)
+    );
+    renderTable(filtered);
+}
 
         // ── RENDER TABLE ──
         function renderTable(rows) {
@@ -1047,27 +1068,16 @@
                 tbody.appendChild(tr);
             });
 
-            tfoot.style.display = "";
-        }
-
-        // ── UPDATE STATUS BAR ──
-        function updateStats(rows) {
+            // ── hitung dan isi footer total ──
             const sum = (key) => rows.reduce((a, r) => a + (parseFloat(r[key]) || 0), 0);
-            document.getElementById("st-spk").textContent = rows.length;
-            document.getElementById("st-order").textContent = fmtNum(sum("order"));
-            document.getElementById("st-mixing").textContent = fmtNum(sum("mixing"));
-            document.getElementById("st-hd").textContent = fmtNum(sum("hd"));
-            document.getElementById("st-potong").textContent = fmtNum(sum("potong"));
-            document.getElementById("st-packing").textContent = fmtNum(sum("packing"));
-            document.getElementById("st-sisa").textContent = fmtNum(sum("sisa"));
-
-            // footer totals
             document.getElementById("ft-order").textContent = fmtNum(sum("order"));
             document.getElementById("ft-mixing").textContent = fmtNum(sum("mixing"));
             document.getElementById("ft-hd").textContent = fmtNum(sum("hd"));
             document.getElementById("ft-potong").textContent = fmtNum(sum("potong"));
             document.getElementById("ft-packing").textContent = fmtNum(sum("packing"));
             document.getElementById("ft-sisa").textContent = fmtNum(sum("sisa"));
+
+            tfoot.style.display = "";
         }
 
         // ── UPDATE SIDEBAR ──
@@ -1087,6 +1097,28 @@
 
         function esc(s) {
             return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function resetFilter() {
+            document.getElementById("filter-spk").value = "";
+            document.getElementById("filter-customer").value = "";
+            document.getElementById("filter-produk").value = "";
+            document.getElementById("tbl-search").value = "";
+
+            allRows = [];
+            filtered = [];
+
+
+            document.getElementById("prod-tbody").innerHTML =
+                `<tr><td colspan="10" class="table-empty">Klik "Muat Data" untuk menampilkan hasil produksi…</td></tr>`;
+            document.getElementById("prod-tfoot").style.display = "none";
+            document.getElementById("tbl-count").textContent = "0";
+
+            document.getElementById("sb-spk").textContent = "—";
+            document.getElementById("sb-warn").textContent = "—";
+            document.getElementById("sb-time").textContent = "—";
+
+            showToast("✔ Filter dan data berhasil direset", "success");
         }
     </script>
 </body>
