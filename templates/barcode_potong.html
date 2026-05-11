@@ -768,7 +768,7 @@
           <span class="sidebar-dot"></span>Hasil Produksi
         </a>
         {% endif %}
-        
+
         {% if session.get('role') in ('administrator', 'adminwip') %}
         <div class="sidebar-section">Scan</div>
         <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
@@ -943,12 +943,14 @@
             <!-- Berat Total -->
             <div class="field">
               <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_kg" placeholder="Masukkan Berat Total" required oninput="validateBerat(this)">
+              <input type="text" id="berat_kg" placeholder="Masukkan Berat Total" required
+                oninput="validateBerat(this)">
             </div>
             <!-- Berat Keranjang -->
             <div class="field">
               <label class="field-label">Berat Keranjang (kg)<span class="req">*</span></label>
-              <input type="text" id="keranjang" placeholder="Masukkan Berat Keranjang" required oninput="validateKeranjang(this)">
+              <input type="text" id="keranjang" placeholder="Masukkan Berat Keranjang" required
+                oninput="validateKeranjang(this)">
             </div>
             <!-- Berat Bersih -->
             <div class="field">
@@ -1045,15 +1047,15 @@
               now.toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
           }
 
-            loadRecent();
+          loadRecent();
 
-            // SEARCH
-            document.getElementById("search-date").addEventListener("input", autoFilter);
-            document.getElementById("search-spk").addEventListener("input", autoFilter);
+          // SEARCH
+          document.getElementById("search-date").addEventListener("input", autoFilter);
+          document.getElementById("search-spk").addEventListener("input", autoFilter);
 
-            // SPK AUTOFILL
-            const spkInput = document.getElementById("spk");
-            spkInput.addEventListener("input", debounce(handleSpkInput, 300));
+          // SPK AUTOFILL
+          const spkInput = document.getElementById("spk");
+          spkInput.addEventListener("input", debounce(handleSpkInput, 300));
 
           // DEBOUNCE
           function debounce(func, delay) {
@@ -1439,6 +1441,45 @@
               el.style.borderColor = "";
             }
           }
+        </script>
+        <script>
+          document.addEventListener("keydown", function (e) {
+
+            // hanya Enter atau Tab
+            if (e.key !== "Enter" && e.key !== "Tab") return;
+
+            const active = document.activeElement;
+
+            // ambil field yang bisa diisi saja
+            const fields = [...document.querySelectorAll(
+              'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
+            )].filter(el => el.offsetParent !== null); // skip hidden
+
+            const index = fields.indexOf(active);
+            if (index === -1) return;
+
+            e.preventDefault();
+
+            // mundur jika Shift ditekan
+            let targetIndex;
+
+            if (e.shiftKey) {
+              targetIndex = index - 1;
+            } else {
+              targetIndex = index + 1;
+            }
+
+            const target = fields[targetIndex];
+
+            if (target) {
+              target.focus();
+
+              // auto select text kalau input text
+              if (target.select) {
+                target.select();
+              }
+            }
+          });
         </script>
         <iframe id="print-frame" style="display:none"></iframe>
 </body>

@@ -925,7 +925,8 @@
             <!-- Berat Bersih -->
             <div class="field">
               <label class="field-label">Berat Bersih (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_bersih" placeholder="Masukkan Berat Bersih" required oninput="validateBerat(this)">
+              <input type="text" id="berat_bersih" placeholder="Masukkan Berat Bersih" required
+                oninput="validateBerat(this)">
             </div>
             <!-- Sisa Pack -->
             <div class="field">
@@ -1357,7 +1358,7 @@
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
 
-            ['shift','operator_sp', 'spk', 'customer', 'product', 'uk', 'mesin', 'berat_bersih', 'sisa']
+            ['shift', 'operator_sp', 'spk', 'customer', 'product', 'uk', 'mesin', 'berat_bersih', 'sisa']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
@@ -1416,6 +1417,45 @@
               el.style.borderColor = "";
             }
           }
+        </script>
+        <script>
+          document.addEventListener("keydown", function (e) {
+
+            // hanya Enter atau Tab
+            if (e.key !== "Enter" && e.key !== "Tab") return;
+
+            const active = document.activeElement;
+
+            // ambil field yang bisa diisi saja
+            const fields = [...document.querySelectorAll(
+              'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
+            )].filter(el => el.offsetParent !== null); // skip hidden
+
+            const index = fields.indexOf(active);
+            if (index === -1) return;
+
+            e.preventDefault();
+
+            // mundur jika Shift ditekan
+            let targetIndex;
+
+            if (e.shiftKey) {
+              targetIndex = index - 1;
+            } else {
+              targetIndex = index + 1;
+            }
+
+            const target = fields[targetIndex];
+
+            if (target) {
+              target.focus();
+
+              // auto select text kalau input text
+              if (target.select) {
+                target.select();
+              }
+            }
+          });
         </script>
         <iframe id="print-frame" style="display:none"></iframe>
 </body>

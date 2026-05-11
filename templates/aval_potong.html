@@ -903,7 +903,7 @@
             <!-- Mesin -->
             <div class="field">
               <label class="field-label">Mesin<span class="req">*</span></label>
-              <select id="mesin" required oninput="validateMesin(this)">
+              <select id="mesin" required>
                 <option value="">-- Pilih Nomor Mesin --</option>
                 <option value="1">1</option>
                 <option value="2">2</option>
@@ -914,6 +914,7 @@
                 <option value="7">7</option>
                 <option value="8">8</option>
                 <option value="9">9</option>
+                <option value="20">20</option>
               </select>
             </div>
             <!-- Jenis Aval -->
@@ -1340,15 +1341,7 @@
             }
             document.getElementById("berat_kg").style.borderColor = "";
 
-            const mesinVal = parseFloat(document.getElementById("mesin").value);
-            if (isNaN(mesinVal) || mesinVal <= 0) {
-              errorMsg.innerText = "Mesin tidak boleh minus, nol, atau mesin yang tidak ada";
-              errorMsg.classList.add("show");
-              document.getElementById("mesin").focus();
-              document.getElementById("mesin").style.borderColor = "var(--accent)";
-              return;
-            }
-            document.getElementById("mesin").style.borderColor = "";
+
 
             errorMsg.classList.remove("show");
             btn.disabled = true;
@@ -1467,19 +1460,45 @@
             }
           }
 
-          function validateMesin(el) {
-            const val = parseFloat(el.value);
-            const errorMsg = document.getElementById("error-msg");
+        </script>
+        <script>
+          document.addEventListener("keydown", function (e) {
 
-            if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Mesin tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
-              el.style.borderColor = "var(--accent)";
+            // hanya Enter atau Tab
+            if (e.key !== "Enter" && e.key !== "Tab") return;
+
+            const active = document.activeElement;
+
+            // ambil field yang bisa diisi saja
+            const fields = [...document.querySelectorAll(
+              'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
+            )].filter(el => el.offsetParent !== null); // skip hidden
+
+            const index = fields.indexOf(active);
+            if (index === -1) return;
+
+            e.preventDefault();
+
+            // mundur jika Shift ditekan
+            let targetIndex;
+
+            if (e.shiftKey) {
+              targetIndex = index - 1;
             } else {
-              errorMsg.classList.remove("show");
-              el.style.borderColor = "";
+              targetIndex = index + 1;
             }
-          }
+
+            const target = fields[targetIndex];
+
+            if (target) {
+              target.focus();
+
+              // auto select text kalau input text
+              if (target.select) {
+                target.select();
+              }
+            }
+          });
         </script>
         <iframe id="print-frame" style="display:none"></iframe>
 </body>

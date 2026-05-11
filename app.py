@@ -326,7 +326,7 @@ def generate_label_image(order_id, data, source_route=None):
     "0": "0", "1": "1", "2": "E", "3": "F", "4": "4",
     "5": "5", "6": "6", "7": "X", "8": "8", "9": "Y",
     "10": "U", "11": "V", "12": "S", "17": "z", "18": "m",
-    "P": "b", "M": "v",
+    "P": "b", "M": "v", "20": "T",
     }
 
     def to_celtic(val):
@@ -1083,6 +1083,16 @@ def hasil_produksi_hd():
 def hasil_produksi_mixing():
     return render_template("hasil_produksi_mixing.html", active_page="hasil_produksi_mixing", current_user=session.get("name"))
 
+@app.route("/hasil_produksi_potong")
+@hasil_required
+def hasil_produksi_potong():
+    return render_template("hasil_produksi_potong.html", active_page="hasil_produksi_potong", current_user=session.get("name"))
+
+@app.route("/hasil_produksi_packing")
+@hasil_required
+def hasil_produksi_packing():
+    return render_template("hasil_produksi_packing.html", active_page="hasil_produksi_packing", current_user=session.get("name"))
+
 # HASIL PRODUKSI
 @app.route("/api/hasil_produksi")
 @hasil_required
@@ -1212,19 +1222,16 @@ def api_hasil_produksi():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-    
 @app.route("/api/hasil_produksi_hd")
 @hasil_required
 def api_hasil_produksi_hd():
     try:
-        # ── Baca kataloghd.csv ──
         if not os.path.exists(CSV_HD):
             return jsonify({"rows": [], "newest_created": ""})
 
         df = pd.read_csv(CSV_HD, encoding="utf-8-sig")
         df.columns = df.columns.str.strip()
 
-        # Kolom by index (0-based): A=0 tgl, B=1 shift, D=3 spk, E=4 cust,
         c_tanggal  = df.columns[0]
         c_shift    = df.columns[1]
         c_spk      = df.columns[3]
@@ -1244,7 +1251,6 @@ def api_hasil_produksi_hd():
         df[c_code]    = df[c_code].astype(str).str.strip()
         df[c_created] = df[c_created].astype(str).str.strip()
 
-        # ── Ambil created_at terbaru (sebelum filter) ──
         newest_created = df[c_created].dropna().iloc[-1] if len(df) > 0 else ""
 
         # ── Baca scansalahhd.csv → set kode salah ──
@@ -1253,13 +1259,21 @@ def api_hasil_produksi_hd():
         if scan_salah_path.exists():
             ds = pd.read_csv(scan_salah_path, encoding="utf-8-sig")
             ds.columns = ds.columns.str.strip()
-            code_col = ds.columns[-1]
             code_candidates = [c for c in ds.columns if c.lower() == "code"]
-            if code_candidates:
-                code_col = code_candidates[0]
+            code_col = code_candidates[0] if code_candidates else ds.columns[-1]
             bad_codes = set(ds[code_col].astype(str).str.strip().dropna())
 
         df["_salah"] = df[c_code].isin(bad_codes)
+
+        # ── Count SPK unik per (tanggal, shift) — hanya dari baris yang tidak salah ──
+        # Sebuah SPK dianggap "valid" di (tanggal, shift) jika punya
+        # minimal 1 baris tidak salah
+        spk_valid = (
+            df[~df["_salah"]]
+            .groupby([c_tanggal, c_shift])[c_spk]
+            .nunique()
+            .to_dict()
+        )  # key: (tanggal, shift) → jumlah SPK unik tidak salah
 
         # ── Filter request ──
         def flt(col, param):
@@ -1286,8 +1300,11 @@ def api_hasil_produksi_hd():
             })
         ).reset_index()
 
-        # ── Baca katalogavalhd.csv → Afal per (tanggal, spk, shift, mesin) ──
-        aval_daun = aval_prong = aval_sapuan = {}
+        # ── Baca katalogavalhd.csv ──
+        aval_daun    = {}
+        aval_prong   = {}
+        aval_sapuan  = {}
+
         if os.path.exists(CSV_AVAL_HD):
             da = pd.read_csv(CSV_AVAL_HD, encoding="utf-8-sig")
             da.columns = da.columns.str.strip()
@@ -1305,7 +1322,6 @@ def api_hasil_produksi_hd():
             da[ca_mesin] = da[ca_mesin].astype(str).str.strip()
             da[ca_jenis] = da[ca_jenis].astype(str).str.strip()
 
-            # Exclude kode aval yang ada di scan salah
             aval_code_candidates = [c for c in da.columns if c.lower() == "code"]
             if aval_code_candidates:
                 ca_code = aval_code_candidates[0]
@@ -1314,6 +1330,7 @@ def api_hasil_produksi_hd():
             else:
                 da["_salah"] = False
 
+            # Daun & Prong: group normal per (tanggal, spk, shift, mesin)
             def aval_sum(jenis_val):
                 sub = da[
                     (da[ca_jenis].str.lower() == jenis_val.lower()) &
@@ -1321,9 +1338,31 @@ def api_hasil_produksi_hd():
                 ]
                 return sub.groupby([ca_tgl, ca_spk, ca_shift, ca_mesin])[ca_berat].sum().to_dict()
 
-            aval_daun   = aval_sum("Daun")
-            aval_prong  = aval_sum("Prong")
-            aval_sapuan = aval_sum("Sapuan")
+            aval_daun  = aval_sum("daun")
+            aval_prong = aval_sum("prong")
+
+            # ── Sapuan: total per (tanggal, shift) lalu bagi count SPK tidak salah ──
+            sub_sap = da[
+                (da[ca_jenis].str.lower() == "sapuan") &
+                (~da["_salah"])
+            ]
+            sapuan_per_tgl_shift = (
+                sub_sap.groupby([ca_tgl, ca_shift])[ca_berat]
+                .sum()
+                .to_dict()
+            )  # key: (tanggal, shift) → total berat sapuan
+
+            # Bangun aval_sapuan per key (tanggal, spk, shift, mesin)
+            for _, r in agg.iterrows():
+                tgl   = str(r[c_tanggal])
+                spk   = str(r[c_spk])
+                shift = str(r[c_shift])
+                mesin = str(r[c_mesin])
+                key   = (tgl, spk, shift, mesin)
+
+                total_sap = sapuan_per_tgl_shift.get((tgl, shift), 0)
+                count_spk = spk_valid.get((tgl, shift), 1)
+                aval_sapuan[key] = round(total_sap / count_spk, 2) if count_spk > 0 else 0
 
         # ── Bangun respons ──
         rows = []
@@ -1345,7 +1384,6 @@ def api_hasil_produksi_hd():
                 "has_salah":    r["has_salah"],
             })
 
-        # ── Sort tanggal terbaru → terlama ──
         from datetime import datetime
         def parse_tgl(t):
             for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y"):
@@ -1366,7 +1404,6 @@ def api_hasil_produksi_hd():
 @hasil_required
 def api_hasil_produksi_mixing():
     try:
-        # ── Baca katalogmixing.csv (BUKAN CSV_HD) ──
         if not os.path.exists(CSV_MIXING):
             return jsonify({"rows": [], "newest_created": ""})
 
@@ -1382,7 +1419,7 @@ def api_hasil_produksi_mixing():
         c_customer = df.columns[4]
         c_produk   = df.columns[5]
         c_uk       = df.columns[6]
-        c_berat    = df.columns[10]   # berat_bersih
+        c_berat    = df.columns[10]
         c_created  = df.columns[12]
         c_code     = df.columns[13]
 
@@ -1407,6 +1444,15 @@ def api_hasil_produksi_mixing():
 
         df["_salah"] = df[c_code].isin(bad_codes)
 
+        # ── Count SPK unik per (tanggal, shift) — hanya dari baris tidak salah ──
+        # Dihitung SEBELUM filter request agar tidak terpengaruh filter user
+        spk_valid = (
+            df[~df["_salah"]]
+            .groupby([c_tanggal, c_shift])[c_spk]
+            .nunique()
+            .to_dict()
+        )  # key: (tanggal, shift) → jumlah SPK unik tidak salah
+
         # ── Filter request ──
         def flt(col, param):
             val = request.args.get(param, "").strip()
@@ -1419,7 +1465,7 @@ def api_hasil_produksi_mixing():
                 flt(c_shift, "shift"))
         df = df[mask]
 
-        # ── Group by (tanggal, spk, shift) — mixing tidak punya mesin ──
+        # ── Group by (tanggal, spk, shift) ──
         grp_key = [c_tanggal, c_spk, c_shift]
         agg = df.groupby(grp_key, sort=False).apply(
             lambda g: pd.Series({
@@ -1436,17 +1482,15 @@ def api_hasil_produksi_mixing():
         # Struktur: tanggal(0) shift(1) divisi(2) spk(3)
         # operator_amix(4) checker(5) mesin(6) karung(7) berat_kg(8)
         # berat_bersih(9) jenis(10) created_at(11) code(12)
-        aval_total = {}
+        aval_sapuan = {}
         if os.path.exists(CSV_AVAL_MIXING):
             da = pd.read_csv(CSV_AVAL_MIXING, encoding="utf-8-sig")
             da.columns = da.columns.str.strip()
             ca_tgl   = da.columns[0]
             ca_shift = da.columns[1]
-            ca_spk   = da.columns[3]
-            ca_berat = da.columns[9]   # berat_bersih
+            ca_berat = da.columns[9]
 
             da[ca_berat] = pd.to_numeric(da[ca_berat], errors="coerce").fillna(0)
-            da[ca_spk]   = da[ca_spk].astype(str).str.strip()
             da[ca_tgl]   = da[ca_tgl].astype(str).str.strip()
             da[ca_shift] = da[ca_shift].astype(str).str.strip()
 
@@ -1459,12 +1503,24 @@ def api_hasil_produksi_mixing():
             else:
                 da["_salah"] = False
 
-            aval_total = (
+            # Total sapuan per (tanggal, shift) — tidak digroup per spk
+            sapuan_per_tgl_shift = (
                 da[~da["_salah"]]
-                .groupby([ca_tgl, ca_spk, ca_shift])[ca_berat]
+                .groupby([ca_tgl, ca_shift])[ca_berat]
                 .sum()
                 .to_dict()
-            )
+            )  # key: (tanggal, shift) → total berat sapuan
+
+            # Bangun aval_sapuan per key (tanggal, spk, shift)
+            for _, r in agg.iterrows():
+                tgl   = str(r[c_tanggal])
+                spk   = str(r[c_spk])
+                shift = str(r[c_shift])
+                key   = (tgl, spk, shift)
+
+                total_sap = sapuan_per_tgl_shift.get((tgl, shift), 0)
+                count_spk = spk_valid.get((tgl, shift), 1)
+                aval_sapuan[key] = round(total_sap / count_spk, 2) if count_spk > 0 else 0
 
         # ── Bangun respons ──
         rows = []
@@ -1479,7 +1535,7 @@ def api_hasil_produksi_mixing():
                 "berat_bersih": float(r["berat_bersih"]),
                 "total_karung": int(r["total_karung"]),
                 "shift":        r[c_shift],
-                "aval_mixing":  round(float(aval_total.get(key, 0)), 2),
+                "aval_mixing":  round(float(aval_sapuan.get(key, 0)), 2),
                 "has_salah":    r["has_salah"],
             })
 
@@ -1498,6 +1554,400 @@ def api_hasil_produksi_mixing():
     except Exception as e:
         import traceback
         return jsonify({"error": str(e), "detail": traceback.format_exc()}), 500
+    
+@app.route("/api/hasil_produksi_potong")
+@hasil_required
+def api_hasil_produksi_potong():
+    try:
+        if not os.path.exists(CSV_POTONG):
+            return jsonify({"rows": [], "newest_created": ""})
+
+        df = pd.read_csv(CSV_POTONG, encoding="utf-8-sig")
+        df.columns = df.columns.str.strip()
+
+        # Struktur katalogpotong: tanggal(0) shift(1) divisi(2) spk(3)
+        # customer(4) produk(5) uk(6) operator_cu(7) checker(8)
+        # mesin(9) berat_kg(10) keranjang(11) berat_bersih(12) created_at(13) code(14)
+        c_tanggal  = df.columns[0]
+        c_shift    = df.columns[1]
+        c_spk      = df.columns[3]
+        c_customer = df.columns[4]
+        c_produk   = df.columns[5]
+        c_uk       = df.columns[6]
+        c_mesin    = df.columns[9]
+        c_berat    = df.columns[12]
+        c_created  = df.columns[13]
+        c_code     = df.columns[14]
+
+        df[c_berat]   = pd.to_numeric(df[c_berat], errors="coerce").fillna(0)
+        df[c_spk]     = df[c_spk].astype(str).str.strip()
+        df[c_tanggal] = df[c_tanggal].astype(str).str.strip()
+        df[c_shift]   = df[c_shift].astype(str).str.strip()
+        df[c_mesin]   = df[c_mesin].astype(str).str.strip()
+        df[c_code]    = df[c_code].astype(str).str.strip()
+        df[c_created] = df[c_created].astype(str).str.strip()
+
+        newest_created = df[c_created].dropna().iloc[-1] if len(df) > 0 else ""
+
+        # ── Baca scansalahpotong.csv → set kode salah ──
+        bad_codes = set()
+        scan_salah_path = SCAN_DIR / "scansalahpotong.csv"
+        if scan_salah_path.exists():
+            ds = pd.read_csv(scan_salah_path, encoding="utf-8-sig")
+            ds.columns = ds.columns.str.strip()
+            code_candidates = [c for c in ds.columns if c.lower() == "code"]
+            code_col = code_candidates[0] if code_candidates else ds.columns[-1]
+            bad_codes = set(ds[code_col].astype(str).str.strip().dropna())
+
+        df["_salah"] = df[c_code].isin(bad_codes)
+
+        # ── Count SPK unik per (tanggal, shift) — hanya baris tidak salah ──
+        # Dihitung SEBELUM filter request
+        spk_valid = (
+            df[~df["_salah"]]
+            .groupby([c_tanggal, c_shift])[c_spk]
+            .nunique()
+            .to_dict()
+        )
+
+        # ── Filter request ──
+        def flt(col, param):
+            val = request.args.get(param, "").strip()
+            if val:
+                return df[col].astype(str).str.contains(val, case=False, na=False)
+            return pd.Series([True] * len(df), index=df.index)
+
+        mask = (flt(c_tanggal, "tanggal") & flt(c_spk, "spk") &
+                flt(c_customer, "customer") & flt(c_produk, "produk") &
+                flt(c_mesin, "mesin") & flt(c_shift, "shift"))
+        df = df[mask]
+
+        # ── Group by (tanggal, spk, shift, mesin) ──
+        grp_key = [c_tanggal, c_spk, c_shift, c_mesin]
+        agg = df.groupby(grp_key, sort=False).apply(
+            lambda g: pd.Series({
+                "customer":     g[c_customer].iloc[0],
+                "produk":       g[c_produk].iloc[0],
+                "uk":           g[c_uk].iloc[0],
+                "berat_bersih": round(g.loc[~g["_salah"], c_berat].sum(), 2),
+                "total_roll":   int((~g["_salah"]).sum()),
+                "has_salah":    bool(g["_salah"].any()),
+            })
+        ).reset_index()
+
+        # ── Baca katalogavalpotong.csv ──
+        # Struktur: tanggal(0) shift(1) divisi(2) spk(3) customer(4) produk(5) uk(6)
+        # operator_cu(7) checker(8) mesin(9) jenis_cu(10) kategori_cu(11)
+        # karung(12) berat_kg(13) berat_bersih(14) created_at(15) code(16)
+        aval_plong   = {}
+        aval_mesin   = {}
+        aval_silet   = {}
+        aval_mutasi  = {}
+        aval_reject  = {}
+        aval_sapuan  = {}
+
+        if os.path.exists(CSV_AVAL_POTONG):
+            da = pd.read_csv(CSV_AVAL_POTONG, encoding="utf-8-sig")
+            da.columns = da.columns.str.strip()
+            ca_tgl   = da.columns[0]
+            ca_shift = da.columns[1]
+            ca_spk   = da.columns[3]
+            ca_mesin = da.columns[9]
+            ca_jenis = da.columns[10]
+            ca_berat = da.columns[14]
+
+            da[ca_berat] = pd.to_numeric(da[ca_berat], errors="coerce").fillna(0)
+            da[ca_spk]   = da[ca_spk].astype(str).str.strip()
+            da[ca_tgl]   = da[ca_tgl].astype(str).str.strip()
+            da[ca_shift] = da[ca_shift].astype(str).str.strip()
+            da[ca_mesin] = da[ca_mesin].astype(str).str.strip()
+            da[ca_jenis] = da[ca_jenis].astype(str).str.strip()
+
+            aval_code_candidates = [c for c in da.columns if c.lower() == "code"]
+            if aval_code_candidates:
+                ca_code = aval_code_candidates[0]
+                da[ca_code] = da[ca_code].astype(str).str.strip()
+                da["_salah"] = da[ca_code].isin(bad_codes)
+            else:
+                da["_salah"] = False
+
+            # Plong, Mesin, Silet, Mutasi, Reject — match normal per (tanggal, spk, shift, mesin)
+            def aval_sum(jenis_val):
+                sub = da[
+                    (da[ca_jenis].str.lower() == jenis_val.lower()) &
+                    (~da["_salah"])
+                ]
+                return sub.groupby([ca_tgl, ca_spk, ca_shift, ca_mesin])[ca_berat].sum().to_dict()
+
+            aval_plong  = aval_sum("plong")
+            aval_mesin  = aval_sum("mesin")
+            aval_silet  = aval_sum("silet")
+            aval_mutasi = aval_sum("mutasi")
+            aval_reject = aval_sum("reject")
+
+            # Sapuan — total per (tanggal, shift) dibagi count SPK unik tidak salah
+            sub_sap = da[
+                (da[ca_jenis].str.lower() == "sapuan") &
+                (~da["_salah"])
+            ]
+            sapuan_per_tgl_shift = (
+                sub_sap.groupby([ca_tgl, ca_shift])[ca_berat]
+                .sum()
+                .to_dict()
+            )
+
+            for _, r in agg.iterrows():
+                tgl   = str(r[c_tanggal])
+                spk   = str(r[c_spk])
+                shift = str(r[c_shift])
+                mesin = str(r[c_mesin])
+                key   = (tgl, spk, shift, mesin)
+
+                total_sap = sapuan_per_tgl_shift.get((tgl, shift), 0)
+                count_spk = spk_valid.get((tgl, shift), 1)
+                aval_sapuan[key] = round(total_sap / count_spk, 2) if count_spk > 0 else 0
+
+        # ── Bangun respons ──
+        rows = []
+        for _, r in agg.iterrows():
+            key = (str(r[c_tanggal]), str(r[c_spk]), str(r[c_shift]), str(r[c_mesin]))
+            rows.append({
+                "tanggal":      r[c_tanggal],
+                "mesin":        r[c_mesin],
+                "spk":          r[c_spk],
+                "customer":     r["customer"],
+                "produk":       r["produk"],
+                "uk":           r["uk"],
+                "berat_bersih": float(r["berat_bersih"]),
+                "total_roll":   int(r["total_roll"]),
+                "shift":        r[c_shift],
+                "afal_plong":   round(float(aval_plong.get(key, 0)), 2),
+                "afal_mesin":   round(float(aval_mesin.get(key, 0)), 2),
+                "afal_silet":   round(float(aval_silet.get(key, 0)), 2),
+                "afal_mutasi":  round(float(aval_mutasi.get(key, 0)), 2),
+                "afal_reject":  round(float(aval_reject.get(key, 0)), 2),
+                "afal_sapuan":  round(float(aval_sapuan.get(key, 0)), 2),
+                "has_salah":    r["has_salah"],
+            })
+
+        from datetime import datetime
+        def parse_tgl(t):
+            for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y"):
+                try:
+                    return datetime.strptime(str(t), fmt)
+                except:
+                    continue
+            return datetime.min
+
+        rows.sort(key=lambda r: parse_tgl(r["tanggal"]), reverse=True)
+        return jsonify({"rows": rows, "newest_created": newest_created})
+
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "detail": traceback.format_exc()}), 500
+    
+@app.route("/api/hasil_produksi_packing")
+@hasil_required
+def api_hasil_produksi_packing():
+    try:
+        if not os.path.exists(CSV_PACKING):
+            return jsonify({"rows": [], "newest_created": ""})
+
+        df = pd.read_csv(CSV_PACKING, encoding="utf-8-sig")
+        df.columns = df.columns.str.strip()
+
+        # Struktur katalogpacking: tanggal(0) shift(1) divisi(2) spk(3)
+        # customer(4) produk(5) uk(6) operator_pa(7) checker(8)
+        # mesin(9) berat_bersih(10) created_at(11) code(12)
+        c_tanggal  = df.columns[0]
+        c_shift    = df.columns[1]
+        c_spk      = df.columns[3]
+        c_customer = df.columns[4]
+        c_produk   = df.columns[5]
+        c_uk       = df.columns[6]
+        c_mesin    = df.columns[9]
+        c_berat    = df.columns[10]
+        c_created  = df.columns[11]
+        c_code     = df.columns[12]
+
+        df[c_berat]   = pd.to_numeric(df[c_berat], errors="coerce").fillna(0)
+        df[c_spk]     = df[c_spk].astype(str).str.strip()
+        df[c_tanggal] = df[c_tanggal].astype(str).str.strip()
+        df[c_shift]   = df[c_shift].astype(str).str.strip()
+        df[c_mesin]   = df[c_mesin].astype(str).str.strip()
+        df[c_code]    = df[c_code].astype(str).str.strip()
+        df[c_created] = df[c_created].astype(str).str.strip()
+
+        newest_created = df[c_created].dropna().iloc[-1] if len(df) > 0 else ""
+
+        # ── Baca scansalahpacking.csv → set kode salah ──
+        bad_codes = set()
+        scan_salah_path = SCAN_DIR / "scansalahpacking.csv"
+        if scan_salah_path.exists():
+            ds = pd.read_csv(scan_salah_path, encoding="utf-8-sig")
+            ds.columns = ds.columns.str.strip()
+            code_candidates = [c for c in ds.columns if c.lower() == "code"]
+            code_col = code_candidates[0] if code_candidates else ds.columns[-1]
+            bad_codes = set(ds[code_col].astype(str).str.strip().dropna())
+
+        df["_salah"] = df[c_code].isin(bad_codes)
+
+        # ── Filter request — SEBELUM spk_valid dihitung ──
+        # spk_valid tidak diperlukan (tidak ada sapuan), tapi filter tetap sebelum group
+        def flt(col, param):
+            val = request.args.get(param, "").strip()
+            if val:
+                return df[col].astype(str).str.contains(val, case=False, na=False)
+            return pd.Series([True] * len(df), index=df.index)
+
+        mask = (flt(c_tanggal, "tanggal") & flt(c_spk, "spk") &
+                flt(c_customer, "customer") & flt(c_produk, "produk") &
+                flt(c_mesin, "mesin") & flt(c_shift, "shift"))
+        df = df[mask]
+
+        # ── Group by (tanggal, spk, shift, mesin) ──
+        grp_key = [c_tanggal, c_spk, c_shift, c_mesin]
+        agg = df.groupby(grp_key, sort=False).apply(
+            lambda g: pd.Series({
+                "customer":     g[c_customer].iloc[0],
+                "produk":       g[c_produk].iloc[0],
+                "uk":           g[c_uk].iloc[0],
+                "berat_bersih": round(g.loc[~g["_salah"], c_berat].sum(), 2),
+                "total_karung": int((~g["_salah"]).sum()),
+                "has_salah":    bool(g["_salah"].any()),
+            })
+        ).reset_index()
+
+        # ── Baca katalogsisapack.csv ──
+        # Struktur: tanggal(0) shift(1) divisi(2) spk(3) customer(4) produk(5) uk(6)
+        # operator_sp(7) checker(8) mesin(9) berat_bersih(10) sisa(11) created_at(12) code(13)
+        sisa_berat = {}  # key: (tanggal, spk, shift, mesin) → total berat_bersih sisa
+        sisa_pack  = {}  # key: (tanggal, spk, shift, mesin) → total sisa (jumlah pack)
+
+        if os.path.exists(CSV_SISA_PACK):
+            ds = pd.read_csv(CSV_SISA_PACK, encoding="utf-8-sig")
+            ds.columns = ds.columns.str.strip()
+            cs_tgl   = ds.columns[0]
+            cs_shift = ds.columns[1]
+            cs_spk   = ds.columns[3]
+            cs_mesin = ds.columns[9]
+            cs_berat = ds.columns[10]
+            cs_sisa  = ds.columns[11]
+            cs_code  = ds.columns[12]
+
+            ds[cs_berat] = pd.to_numeric(ds[cs_berat], errors="coerce").fillna(0)
+            ds[cs_sisa]  = pd.to_numeric(ds[cs_sisa],  errors="coerce").fillna(0)
+            ds[cs_spk]   = ds[cs_spk].astype(str).str.strip()
+            ds[cs_tgl]   = ds[cs_tgl].astype(str).str.strip()
+            ds[cs_shift] = ds[cs_shift].astype(str).str.strip()
+            ds[cs_mesin] = ds[cs_mesin].astype(str).str.strip()
+
+            # Exclude kode salah dari sisa pack (pakai bad_codes yang sama)
+            sisa_code_candidates = [c for c in ds.columns if c.lower() == "code"]
+            if sisa_code_candidates:
+                cs_code = sisa_code_candidates[0]
+                ds[cs_code]   = ds[cs_code].astype(str).str.strip()
+                ds["_salah"]  = ds[cs_code].isin(bad_codes)
+            else:
+                ds["_salah"] = False
+
+            ds_valid = ds[~ds["_salah"]]
+
+            sisa_berat = (
+                ds_valid.groupby([cs_tgl, cs_spk, cs_shift, cs_mesin])[cs_berat]
+                .sum().to_dict()
+            )
+            sisa_pack = (
+                ds_valid.groupby([cs_tgl, cs_spk, cs_shift, cs_mesin])[cs_sisa]
+                .sum().to_dict()
+            )
+
+        # ── Baca katalogavalpacking.csv ──
+        # Struktur: tanggal(0) shift(1) divisi(2) spk(3) customer(4) produk(5) uk(6)
+        # operator_pa(7) checker(8) mesin(9) jenis_pa(10) kategori_pa(11)
+        # berat_bersih(12) created_at(13) code(14)
+        aval_plastik  = {}
+        aval_rafia    = {}
+        aval_blongsong = {}
+        aval_mutasi   = {}
+
+        if os.path.exists(CSV_AVAL_PACKING):
+            da = pd.read_csv(CSV_AVAL_PACKING, encoding="utf-8-sig")
+            da.columns = da.columns.str.strip()
+            ca_tgl   = da.columns[0]
+            ca_shift = da.columns[1]
+            ca_spk   = da.columns[3]
+            ca_mesin = da.columns[9]
+            ca_jenis = da.columns[10]
+            ca_berat = da.columns[12]
+
+            da[ca_berat] = pd.to_numeric(da[ca_berat], errors="coerce").fillna(0)
+            da[ca_spk]   = da[ca_spk].astype(str).str.strip()
+            da[ca_tgl]   = da[ca_tgl].astype(str).str.strip()
+            da[ca_shift] = da[ca_shift].astype(str).str.strip()
+            da[ca_mesin] = da[ca_mesin].astype(str).str.strip()
+            da[ca_jenis] = da[ca_jenis].astype(str).str.strip()
+
+            aval_code_candidates = [c for c in da.columns if c.lower() == "code"]
+            if aval_code_candidates:
+                ca_code = aval_code_candidates[0]
+                da[ca_code] = da[ca_code].astype(str).str.strip()
+                da["_salah"] = da[ca_code].isin(bad_codes)
+            else:
+                da["_salah"] = False
+
+            def aval_sum(jenis_val):
+                sub = da[
+                    (da[ca_jenis].str.lower() == jenis_val.lower()) &
+                    (~da["_salah"])
+                ]
+                return sub.groupby([ca_tgl, ca_spk, ca_shift, ca_mesin])[ca_berat].sum().to_dict()
+
+            aval_plastik   = aval_sum("plastik")
+            aval_rafia     = aval_sum("rafia")
+            aval_blongsong = aval_sum("blongsong")
+            aval_mutasi    = aval_sum("mutasi")
+
+        # ── Bangun respons ──
+        rows = []
+        for _, r in agg.iterrows():
+            key = (str(r[c_tanggal]), str(r[c_spk]), str(r[c_shift]), str(r[c_mesin]))
+            rows.append({
+                "tanggal":       r[c_tanggal],
+                "mesin":         r[c_mesin],
+                "spk":           r[c_spk],
+                "customer":      r["customer"],
+                "produk":        r["produk"],
+                "uk":            r["uk"],
+                "berat_bersih":  float(r["berat_bersih"]),
+                "total_karung":  int(r["total_karung"]),
+                "sisa_berat":    round(float(sisa_berat.get(key, 0)), 2),
+                "sisa_pack":     round(float(sisa_pack.get(key, 0)), 2),
+                "shift":         r[c_shift],
+                "afal_plastik":  round(float(aval_plastik.get(key, 0)), 2),
+                "afal_rafia":    round(float(aval_rafia.get(key, 0)), 2),
+                "afal_blongsong":round(float(aval_blongsong.get(key, 0)), 2),
+                "afal_mutasi":   round(float(aval_mutasi.get(key, 0)), 2),
+                "has_salah":     r["has_salah"],
+            })
+
+        from datetime import datetime
+        def parse_tgl(t):
+            for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y"):
+                try:
+                    return datetime.strptime(str(t), fmt)
+                except:
+                    continue
+            return datetime.min
+
+        rows.sort(key=lambda r: parse_tgl(r["tanggal"]), reverse=True)
+        return jsonify({"rows": rows, "newest_created": newest_created})
+
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "detail": traceback.format_exc()}), 500
+
+
 
 # ─── API: OPERATORS ─────────────────────────────────────────
 @app.route("/api/operators/<divisi>")

@@ -772,7 +772,7 @@
           <span class="sidebar-dot"></span>Hasil Produksi
         </a>
         {% endif %}
-        
+
         {% if session.get('role') in ('administrator', 'adminwip') %}
         <div class="sidebar-section">Scan</div>
         <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
@@ -976,7 +976,8 @@
             <!-- Berat Bersih -->
             <div class="field">
               <label class="field-label">Afal Qty (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_bersih" placeholder="Masukkan Aval Qty" required oninput="validateBerat(this)">
+              <input type="text" id="berat_bersih" placeholder="Masukkan Aval Qty" required
+                oninput="validateBerat(this)">
             </div>
             <!-- Kategori Aval -->
             <div class="field">
@@ -1450,6 +1451,45 @@
               el.style.borderColor = "";
             }
           }
+        </script>
+        <script>
+          document.addEventListener("keydown", function (e) {
+
+            // hanya Enter atau Tab
+            if (e.key !== "Enter" && e.key !== "Tab") return;
+
+            const active = document.activeElement;
+
+            // ambil field yang bisa diisi saja
+            const fields = [...document.querySelectorAll(
+              'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
+            )].filter(el => el.offsetParent !== null); // skip hidden
+
+            const index = fields.indexOf(active);
+            if (index === -1) return;
+
+            e.preventDefault();
+
+            // mundur jika Shift ditekan
+            let targetIndex;
+
+            if (e.shiftKey) {
+              targetIndex = index - 1;
+            } else {
+              targetIndex = index + 1;
+            }
+
+            const target = fields[targetIndex];
+
+            if (target) {
+              target.focus();
+
+              // auto select text kalau input text
+              if (target.select) {
+                target.select();
+              }
+            }
+          });
         </script>
         <iframe id="print-frame" style="display:none"></iframe>
 </body>

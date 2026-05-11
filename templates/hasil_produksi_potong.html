@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hasil Produksi Mixing</title>
+    <title>Hasil Produksi Potong</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
         href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
@@ -35,8 +35,13 @@
             --radius: 4px;
             --font-sans: 'IBM Plex Sans', sans-serif;
             --font-mono: 'IBM Plex Mono', monospace;
-            --col-daun: #4ade80;
-            --col-prong: #f87171;
+            --col-berat: #a78bfa;
+            --col-roll: #60a5fa;
+            --col-plong: #4ade80;
+            --col-mesin: #f87171;
+            --col-silet: #fb923c;
+            --col-mutasi: #e879f9;
+            --col-reject: #f43f5e;
             --col-sapuan: #60a5fa;
         }
 
@@ -56,7 +61,6 @@
             min-height: 100vh;
         }
 
-        /* TOPBAR */
         .topbar {
             grid-column: 1/-1;
             background: var(--gray1);
@@ -122,7 +126,6 @@
             color: var(--white);
         }
 
-        /* SIDEBAR */
         .sidebar {
             background: var(--gray1);
             border-right: 1px solid var(--border);
@@ -209,7 +212,6 @@
             font-family: var(--font-mono);
         }
 
-        /* MAIN */
         .main {
             overflow-y: auto;
             padding: 32px 40px;
@@ -240,7 +242,6 @@
             color: var(--gray5);
         }
 
-        /* CARD */
         .card {
             background: var(--gray1);
             border: 1px solid var(--border);
@@ -286,7 +287,6 @@
             padding: 18px 20px;
         }
 
-        /* FILTER */
         .filter-bar {
             display: flex;
             gap: 12px;
@@ -388,7 +388,6 @@
             background: rgba(239, 68, 68, .06);
         }
 
-        /* TOAST */
         .toast {
             font-family: var(--font-mono);
             font-size: 11px;
@@ -412,7 +411,6 @@
             opacity: 0;
         }
 
-        /* TABLE */
         .prod-table-wrap {
             overflow-x: auto;
             overflow-y: auto;
@@ -424,7 +422,7 @@
             border-collapse: collapse;
             font-family: var(--font-mono);
             font-size: 12px;
-            min-width: 1100px;
+            min-width: 1400px;
         }
 
         .prod-table thead tr {
@@ -454,6 +452,7 @@
         .prod-table tbody tr {
             border-bottom: 1px solid rgba(46, 46, 46, .5);
             transition: background .1s;
+            animation: fadeRow .15s ease;
         }
 
         .prod-table tbody tr:nth-child(odd) {
@@ -507,25 +506,39 @@
             z-index: 1;
         }
 
-        /* COLUMN COLORS */
         th.col-berat,
         td.col-berat {
-            color: #a78bfa !important;
+            color: var(--col-berat) !important;
         }
 
         th.col-roll,
         td.col-roll {
-            color: #60a5fa !important;
+            color: var(--col-roll) !important;
         }
 
-        th.col-daun,
-        td.col-daun {
-            color: var(--col-daun) !important;
+        th.col-plong,
+        td.col-plong {
+            color: var(--col-plong) !important;
         }
 
-        th.col-prong,
-        td.col-prong {
-            color: var(--col-prong) !important;
+        th.col-mesin,
+        td.col-mesin {
+            color: var(--col-mesin) !important;
+        }
+
+        th.col-silet,
+        td.col-silet {
+            color: var(--col-silet) !important;
+        }
+
+        th.col-mutasi,
+        td.col-mutasi {
+            color: var(--col-mutasi) !important;
+        }
+
+        th.col-reject,
+        td.col-reject {
+            color: var(--col-reject) !important;
         }
 
         th.col-sapuan,
@@ -533,7 +546,6 @@
             color: var(--col-sapuan) !important;
         }
 
-        /* warn dot */
         .warn-dot {
             display: inline-block;
             width: 6px;
@@ -548,7 +560,6 @@
             color: var(--gray4);
         }
 
-        /* SEARCH */
         .search-wrap {
             position: relative;
         }
@@ -568,10 +579,9 @@
             pointer-events: none;
         }
 
-        /* LEGEND */
         .legend {
             display: flex;
-            gap: 16px;
+            gap: 14px;
             flex-wrap: wrap;
             font-family: var(--font-mono);
             font-size: 10px;
@@ -591,7 +601,6 @@
             border-radius: 50%;
         }
 
-        /* SPINNER */
         .spinner {
             width: 14px;
             height: 14px;
@@ -620,10 +629,6 @@
             }
         }
 
-        .prod-table tbody tr {
-            animation: fadeRow .15s ease;
-        }
-
         @media (max-width: 860px) {
             .shell {
                 grid-template-columns: 1fr;
@@ -645,14 +650,13 @@
 
         <!-- TOPBAR -->
         <header class="topbar">
-            <span class="topbar-logo">&#9632; HASIL PRODUKSI MIXING</span>
+            <span class="topbar-logo">&#9632; HASIL PRODUKSI POTONG</span>
             <span class="topbar-sep"></span>
-            <span class="topbar-title">Rekap per SPK / Shift</span>
+            <span class="topbar-title">Rekap per SPK / Shift / Mesin</span>
             <div class="topbar-right">
                 <span class="clock" id="clock"></span>
-                <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">
-                    &#128100; {{ current_user }}
-                </span>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">&#128100; {{ current_user
+                    }}</span>
                 <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
             </div>
         </header>
@@ -661,64 +665,53 @@
         <aside class="sidebar">
             <div style="flex:1;overflow-y:auto;min-height:0;">
                 {% if session.get('role') in ('administrator','adminwip') %}
-                <a href="/scan_pemakaian" class="sidebar-item {% if active_page=='scan_pemakaian' %}active{% endif %}">
-                    <span class="sidebar-dot"></span>Admin Input
-                </a>
+                <a href="/scan_pemakaian"
+                    class="sidebar-item {% if active_page=='scan_pemakaian' %}active{% endif %}"><span
+                        class="sidebar-dot"></span>Admin Input</a>
                 {% endif %}
                 {% if session.get('role') == 'administrator' %}
-                <a href="/mixing" class="sidebar-item {% if active_page=='mixing' %}active{% endif %}">
-                    <span class="sidebar-dot"></span>Checker Input
-                </a>
+                <a href="/mixing" class="sidebar-item {% if active_page=='mixing' %}active{% endif %}"><span
+                        class="sidebar-dot"></span>Checker Input</a>
                 {% endif %}
                 {% if session.get('role') in ('administrator','staff','adminwip') %}
                 <div class="sidebar-section">Hasil Produksi</div>
                 <a href="/hasil_produksi"
-                    class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
-                    <span class="sidebar-dot"></span>Summary
-                </a>
+                    class="sidebar-item {% if active_page=='hasil_produksi' %}active{% endif %}"><span
+                        class="sidebar-dot"></span>Summary</a>
                 <a href="/hasil_produksi_mixing"
-                    class="sidebar-item {% if active_page == 'hasil_produksi_mixing' %}active{% endif %}">
-                    <span class="sidebar-dot"></span>Hasil Mixing
-                </a>
+                    class="sidebar-item {% if active_page=='hasil_produksi_mixing' %}active{% endif %}"><span
+                        class="sidebar-dot"></span>Hasil Mixing</a>
                 <a href="/hasil_produksi_hd"
-                    class="sidebar-item {% if active_page == 'hasil_produksi_hd' %}active{% endif %}">
-                    <span class="sidebar-dot"></span>Hasil HD
-                </a>
+                    class="sidebar-item {% if active_page=='hasil_produksi_hd' %}active{% endif %}"><span
+                        class="sidebar-dot"></span>Hasil HD</a>
                 <a href="/hasil_produksi_potong"
-                    class="sidebar-item {% if active_page == 'hasil_produksi_potong' %}active{% endif %}">
-                    <span class="sidebar-dot"></span>Hasil Potong
-                </a>
+                    class="sidebar-item {% if active_page=='hasil_produksi_potong' %}active{% endif %}"><span
+                        class="sidebar-dot"></span>Hasil Potong</a>
                 <a href="/hasil_produksi_packing"
-                    class="sidebar-item {% if active_page == 'hasil_produksi_packing' %}active{% endif %}">
-                    <span class="sidebar-dot"></span>Hasil Packing
-                </a>
+                    class="sidebar-item {% if active_page=='hasil_produksi_packing' %}active{% endif %}"><span
+                        class="sidebar-dot"></span>Hasil Packing</a>
                 {% endif %}
             </div>
             <div class="sidebar-stats">
-                <div class="stat-row">
-                    <span class="stat-label">Total Baris</span>
-                    <span class="stat-val" id="sb-spk">—</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Ada Scan Salah</span>
-                    <span class="stat-val" id="sb-warn" style="font-size:14px;color:var(--warn)">—</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-val" id="sb-time" style="font-size:11px;color:var(--gray5)">—</span>
-                </div>
+                <div class="stat-row"><span class="stat-label">Total Baris</span><span class="stat-val"
+                        id="sb-spk">—</span></div>
+                <div class="stat-row"><span class="stat-label">Ada Scan Salah</span><span class="stat-val" id="sb-warn"
+                        style="font-size:14px;color:var(--warn)">—</span></div>
+                <div class="stat-row"><span class="stat-val" id="sb-time"
+                        style="font-size:11px;color:var(--gray5)">—</span></div>
             </div>
         </aside>
 
         <!-- MAIN -->
         <main class="main">
             <div class="page-header">
-                <h1 class="page-title">HASIL PRODUKSI Mixing</h1>
+                <h1 class="page-title">HASIL PRODUKSI POTONG</h1>
                 <span class="divisi-badge">Rekap</span>
                 <span style="margin-left:auto;font-size:11px;color:var(--gray4);font-family:var(--font-mono)"
                     id="current-date"></span>
             </div>
 
-            <!-- FILTER CARD -->
+            <!-- FILTER -->
             <div class="card">
                 <div class="card-header">
                     <span class="card-header-num">1</span>
@@ -726,28 +719,17 @@
                 </div>
                 <div class="card-body">
                     <div class="filter-bar">
-                        <div class="field">
-                            <label class="field-label" for="f-tanggal">Tanggal</label>
-                            <input type="date" id="f-tanggal" style="width:160px">
-                        </div>
-                        <div class="field">
-                            <label class="field-label" for="f-mesin">Mesin</label>
-                            <input type="text" id="f-mesin" placeholder="e.g. mixing-01" style="width:110px">
-                        </div>
-                        <div class="field">
-                            <label class="field-label" for="f-spk">No. SPK</label>
-                            <input type="text" id="f-spk" placeholder="e.g. 10100" style="width:120px">
-                        </div>
-                        <div class="field">
-                            <label class="field-label" for="f-customer">Customer</label>
-                            <input type="text" id="f-customer" placeholder="Nama customer…" style="width:170px">
-                        </div>
-                        <div class="field">
-                            <label class="field-label" for="f-produk">Produk</label>
-                            <input type="text" id="f-produk" placeholder="Nama produk…" style="width:170px">
-                        </div>
-                        <div class="field">
-                            <label class="field-label" for="f-shift">Shift</label>
+                        <div class="field"><label class="field-label" for="f-tanggal">Tanggal</label><input type="date"
+                                id="f-tanggal" style="width:160px"></div>
+                        <div class="field"><label class="field-label" for="f-mesin">Mesin</label><input type="text"
+                                id="f-mesin" placeholder="e.g. POTONG-01" style="width:120px"></div>
+                        <div class="field"><label class="field-label" for="f-spk">No. SPK</label><input type="text"
+                                id="f-spk" placeholder="e.g. 10100" style="width:110px"></div>
+                        <div class="field"><label class="field-label" for="f-customer">Customer</label><input
+                                type="text" id="f-customer" placeholder="Nama customer…" style="width:160px"></div>
+                        <div class="field"><label class="field-label" for="f-produk">Produk</label><input type="text"
+                                id="f-produk" placeholder="Nama produk…" style="width:160px"></div>
+                        <div class="field"><label class="field-label" for="f-shift">Shift</label>
                             <select id="f-shift" style="width:90px">
                                 <option value="">Semua</option>
                                 <option value="P">P</option>
@@ -756,8 +738,7 @@
                         </div>
                         <div class="field" style="flex-direction:row;align-items:flex-end;gap:8px;">
                             <button class="btn-load" onclick="loadData()">
-                                <div class="spinner" id="load-spinner"></div>
-                                &#8635; Muat Data
+                                <div class="spinner" id="load-spinner"></div>&#8635; Muat Data
                             </button>
                             <button class="btn-reset" onclick="resetFilter()">&#10005; Reset</button>
                         </div>
@@ -766,13 +747,33 @@
                 </div>
             </div>
 
-            <!-- TABLE CARD -->
+            <!-- TABLE -->
             <div class="card">
                 <div class="card-header">
                     <span class="card-header-num">2</span>
-                    <span class="card-header-title">Tabel Produksi Mixing</span>
+                    <span class="card-header-title">Tabel Produksi POTONG</span>
                     <span class="card-header-extra">
                         <div class="legend">
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background:var(--col-plong)"></div><span>Afal
+                                    Plong</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background:var(--col-mesin)"></div><span>Afal
+                                    Mesin</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background:var(--col-silet)"></div><span>Afal
+                                    Silet</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background:var(--col-mutasi)"></div><span>Afal
+                                    Mutasi</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background:var(--col-reject)"></div><span>Afal
+                                    Reject</span>
+                            </div>
                             <div class="legend-item">
                                 <div class="legend-dot" style="background:var(--col-sapuan)"></div><span>Afal
                                     Sapuan</span>
@@ -791,24 +792,28 @@
                         <input type="text" id="tbl-search" placeholder="Cari SPK / produk / customer…"
                             oninput="filterTable()">
                     </div>
-                    <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);margin-left:auto">
-                        <span id="tbl-count">0</span> baris
-                    </span>
+                    <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);margin-left:auto"><span
+                            id="tbl-count">0</span> baris</span>
                 </div>
 
                 <div class="prod-table-wrap">
                     <table class="prod-table" id="prod-table">
                         <colgroup>
-                            <col style="width:100px"> <!-- Tanggal -->
-                            <col style="width:80px"> <!-- Mesin -->
+                            <col style="width:100px"><!-- Tanggal -->
+                            <col style="width:110px"><!-- Mesin -->
                             <col style="width:55px"> <!-- Shift -->
                             <col style="width:75px"> <!-- SPK -->
-                            <col style="width:130px"> <!-- Customer -->
+                            <col style="width:130px"><!-- Customer -->
                             <col> <!-- Produk -->
-                            <col style="width:65px"> <!-- UK -->
-                            <col style="width:95px"> <!-- Berat Bersih -->
-                            <col style="width:80px"> <!-- Total Roll -->
-                            <col style="width:95px"> <!-- Afal Sapuan -->
+                            <col style="width:60px"> <!-- UK -->
+                            <col style="width:100px"><!-- Berat Bersih -->
+                            <col style="width:75px"> <!-- Total Roll -->
+                            <col style="width:85px"> <!-- Afal Plong -->
+                            <col style="width:85px"> <!-- Afal Mesin -->
+                            <col style="width:85px"> <!-- Afal Silet -->
+                            <col style="width:85px"> <!-- Afal Mutasi -->
+                            <col style="width:85px"> <!-- Afal Reject -->
+                            <col style="width:90px"> <!-- Afal Sapuan -->
                         </colgroup>
                         <thead>
                             <tr>
@@ -821,13 +826,17 @@
                                 <th>UK</th>
                                 <th class="num col-berat">Berat Bersih</th>
                                 <th class="num col-roll">Total Karung</th>
-
+                                <th class="num col-plong">Afal Plong</th>
+                                <th class="num col-mesin">Afal Mesin</th>
+                                <th class="num col-silet">Afal Silet</th>
+                                <th class="num col-mutasi">Afal Mutasi</th>
+                                <th class="num col-reject">Afal Reject</th>
                                 <th class="num col-sapuan">Afal Sapuan</th>
                             </tr>
                         </thead>
                         <tbody id="prod-tbody">
                             <tr>
-                                <td colspan="10"
+                                <td colspan="15"
                                     style="padding:48px;text-align:center;color:var(--gray4);font-family:var(--font-mono);font-size:12px;">
                                     Klik "Muat Data" untuk menampilkan hasil produksi…</td>
                             </tr>
@@ -839,6 +848,11 @@
                                     TOTAL</td>
                                 <td class="num col-berat" id="ft-berat">—</td>
                                 <td class="num col-roll" id="ft-roll">—</td>
+                                <td class="num col-plong" id="ft-plong">—</td>
+                                <td class="num col-mesin" id="ft-mesin">—</td>
+                                <td class="num col-silet" id="ft-silet">—</td>
+                                <td class="num col-mutasi" id="ft-mutasi">—</td>
+                                <td class="num col-reject" id="ft-reject">—</td>
                                 <td class="num col-sapuan" id="ft-sapuan">—</td>
                             </tr>
                         </tfoot>
@@ -849,10 +863,8 @@
     </div>
 
     <script>
-        let allRows = [];
-        let filtered = [];
+        let allRows = [], filtered = [];
 
-        // Clock & date
         document.addEventListener("DOMContentLoaded", () => {
             updateClock();
             setInterval(updateClock, 1000);
@@ -866,7 +878,6 @@
                 `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
         }
 
-        // Toast
         let toastTimer;
         function showToast(msg, type = "success") {
             const t = document.getElementById("toast");
@@ -875,7 +886,6 @@
             toastTimer = setTimeout(() => t.className = "toast hidden", 4500);
         }
 
-        // Load data
         async function loadData() {
             const params = new URLSearchParams();
             const v = id => document.getElementById(id).value.trim();
@@ -886,13 +896,12 @@
             if (v("f-customer")) params.set("customer", v("f-customer"));
             if (v("f-produk")) params.set("produk", v("f-produk"));
 
-
             document.getElementById("load-spinner").style.display = "block";
-            showToast("⏳ Memuat data produksi Mixing…", "success");
+            showToast("⏳ Memuat data produksi Potong…", "success");
 
             try {
-                const res = await fetch("/api/hasil_produksi_mixing?" + params.toString());
-                if (!res.ok) throw new Error("HTTP " + res.status + " — " + await res.text());
+                const res = await fetch("/api/hasil_produksi_potong?" + params.toString());
+                if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
                 if (data.error) throw new Error(data.error);
 
@@ -901,19 +910,15 @@
                 renderTable(filtered);
                 updateSidebar(filtered);
                 showToast(`✔ ${allRows.length} baris berhasil dimuat`, "success");
-
                 document.getElementById("sb-time").textContent = data.newest_created || "—";
             } catch (e) {
                 showToast("❌ Gagal memuat: " + e.message, "error");
             }
-
             document.getElementById("load-spinner").style.display = "none";
         }
 
-        // Client-side search
         function filterTable() {
             const q = document.getElementById("tbl-search").value.toLowerCase();
-            if (allRows.length === 0 && q) { loadData().then(filterTable); return; }
             filtered = !q ? [...allRows] : allRows.filter(r =>
                 [r.spk, r.customer, r.produk, r.mesin, r.tanggal, r.uk, r.shift]
                     .some(v => String(v || "").toLowerCase().includes(q))
@@ -921,14 +926,13 @@
             renderTable(filtered);
         }
 
-        // Render table
         function renderTable(rows) {
             const tbody = document.getElementById("prod-tbody");
             const tfoot = document.getElementById("prod-tfoot");
             document.getElementById("tbl-count").textContent = rows.length;
 
             if (!rows.length) {
-                tbody.innerHTML = `<tr><td colspan="10" style="padding:48px;text-align:center;color:var(--gray4);font-family:var(--font-mono);font-size:12px;">Tidak ada data ditemukan…</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="15" style="padding:48px;text-align:center;color:var(--gray4);font-family:var(--font-mono);font-size:12px;">Tidak ada data ditemukan…</td></tr>`;
                 tfoot.style.display = "none";
                 return;
             }
@@ -936,14 +940,11 @@
             tbody.innerHTML = "";
             rows.forEach(r => {
                 const tr = document.createElement("tr");
-
-                const numCell = (val, cls, zero2dp = true) => {
+                const numCell = (val, cls) => {
                     const n = parseFloat(val) || 0;
-                    const fmt = zero2dp ? fmtNum(n) : String(n);
-                    const inner = n === 0 ? `<span class="zero">${fmt}</span>` : `<span>${fmt}</span>`;
+                    const inner = n === 0 ? `<span class="zero">${fmtNum(n)}</span>` : fmtNum(n);
                     return `<td class="num ${cls}">${inner}</td>`;
                 };
-
                 tr.innerHTML = `
                 <td>${esc(r.tanggal)}</td>
                 <td>${esc(r.mesin || "—")}</td>
@@ -957,15 +958,24 @@
                     ${r.has_salah ? '<span class="warn-dot" title="Ada scan salah"></span>' : ""}
                 </td>
                 ${numCell(r.total_roll, "col-roll")}
+                ${numCell(r.afal_plong, "col-plong")}
+                ${numCell(r.afal_mesin, "col-mesin")}
+                ${numCell(r.afal_silet, "col-silet")}
+                ${numCell(r.afal_mutasi, "col-mutasi")}
+                ${numCell(r.afal_reject, "col-reject")}
                 ${numCell(r.afal_sapuan, "col-sapuan")}
             `;
                 tbody.appendChild(tr);
             });
 
-            // Footer totals
             const sum = k => rows.reduce((a, r) => a + (parseFloat(r[k]) || 0), 0);
             document.getElementById("ft-berat").textContent = fmtNum(sum("berat_bersih"));
             document.getElementById("ft-roll").textContent = sum("total_roll");
+            document.getElementById("ft-plong").textContent = fmtNum(sum("afal_plong"));
+            document.getElementById("ft-mesin").textContent = fmtNum(sum("afal_mesin"));
+            document.getElementById("ft-silet").textContent = fmtNum(sum("afal_silet"));
+            document.getElementById("ft-mutasi").textContent = fmtNum(sum("afal_mutasi"));
+            document.getElementById("ft-reject").textContent = fmtNum(sum("afal_reject"));
             document.getElementById("ft-sapuan").textContent = fmtNum(sum("afal_sapuan"));
             tfoot.style.display = "";
         }
@@ -989,7 +999,7 @@
             document.getElementById("tbl-search").value = "";
             allRows = []; filtered = [];
             document.getElementById("prod-tbody").innerHTML =
-                `<tr><td colspan="10" style="padding:48px;text-align:center;color:var(--gray4);font-family:var(--font-mono);font-size:12px;">Klik "Muat Data" untuk menampilkan hasil produksi…</td></tr>`;
+                `<tr><td colspan="15" style="padding:48px;text-align:center;color:var(--gray4);font-family:var(--font-mono);font-size:12px;">Klik "Muat Data" untuk menampilkan hasil produksi…</td></tr>`;
             document.getElementById("prod-tfoot").style.display = "none";
             document.getElementById("tbl-count").textContent = "0";
             document.getElementById("sb-spk").textContent = "—";

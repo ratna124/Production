@@ -734,10 +734,10 @@
       <span class="topbar-title">Sistem Label & Output Produksi</span>
       <div class="topbar-right">
         <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">
-        &#128100; {{ current_user }}
-    </span>
-       <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
-    <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
+          &#128100; {{ current_user }}
+        </span>
+        <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
+        <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
         <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a> -->
       </div>
     </header>
@@ -864,7 +864,7 @@
             </div>
             <div class="field">
               <label class="field-label">Checker<span class="req"></span></label>
-               <input type="text" id="checker" value="{{ current_user }}" readonly>
+              <input type="text" id="checker" value="{{ current_user }}" readonly>
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
@@ -925,7 +925,8 @@
             <!-- Berat Bersih -->
             <div class="field">
               <label class="field-label">Berat Bersih (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_bersih" placeholder="Masukkan Berat Bersih" required oninput="validateBerat(this)">
+              <input type="text" id="berat_bersih" placeholder="Masukkan Berat Bersih" required
+                oninput="validateBerat(this)">
             </div>
           </div>
         </div>
@@ -1252,7 +1253,7 @@
               }
             }
 
-             // TIDAK BOLEH MINUS ATAU ANGKA YANG TIDAK SESUAI
+            // TIDAK BOLEH MINUS ATAU ANGKA YANG TIDAK SESUAI
             const beratVal = parseFloat(document.getElementById("berat_bersih").value);
             if (isNaN(beratVal) || beratVal <= 0) {
               errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
@@ -1308,7 +1309,7 @@
               document.getElementById("label-img").src = result.label_url;
               document.getElementById("btn-print").href = result.print_url;
 
-          // PRINT TANPA PINDAH HALAMAN
+              // PRINT TANPA PINDAH HALAMAN
               let frame = document.getElementById("print-frame");
               if (!frame) {
                 frame = document.createElement("iframe");
@@ -1384,7 +1385,46 @@
             }
           }
         </script>
- <iframe id="print-frame" style="display:none"></iframe>
+        <script>
+          document.addEventListener("keydown", function (e) {
+
+            // hanya Enter atau Tab
+            if (e.key !== "Enter" && e.key !== "Tab") return;
+
+            const active = document.activeElement;
+
+            // ambil field yang bisa diisi saja
+            const fields = [...document.querySelectorAll(
+              'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
+            )].filter(el => el.offsetParent !== null); // skip hidden
+
+            const index = fields.indexOf(active);
+            if (index === -1) return;
+
+            e.preventDefault();
+
+            // mundur jika Shift ditekan
+            let targetIndex;
+
+            if (e.shiftKey) {
+              targetIndex = index - 1;
+            } else {
+              targetIndex = index + 1;
+            }
+
+            const target = fields[targetIndex];
+
+            if (target) {
+              target.focus();
+
+              // auto select text kalau input text
+              if (target.select) {
+                target.select();
+              }
+            }
+          });
+        </script>
+        <iframe id="print-frame" style="display:none"></iframe>
 </body>
 
 </html>

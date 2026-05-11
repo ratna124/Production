@@ -741,21 +741,21 @@
 
     <!-- ── SIDEBAR ── -->
     <aside class="sidebar">
-        {% if session.get('role') in 'administrator' %}
-        <div class="sidebar-section">Production Input</div>
-        <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
-            <span class="sidebar-dot"></span>Admin Input
-        </a>
-        <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
-            <span class="sidebar-dot"></span>Checker Input
-        </a>
-        {% endif %}
-        {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
-        <div class="sidebar-section">Production Output</div>
-        <a href="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
-            <span class="sidebar-dot"></span>Hasil Produksi
-        </a>
-        {% endif %}
+      {% if session.get('role') in 'administrator' %}
+      <div class="sidebar-section">Production Input</div>
+      <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Admin Input
+      </a>
+      <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Checker Input
+      </a>
+      {% endif %}
+      {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
+      <div class="sidebar-section">Production Output</div>
+      <a href="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Hasil Produksi
+      </a>
+      {% endif %}
 
 
       <div class="sidebar-section">Hasil</div>
@@ -1354,6 +1354,45 @@
               el.style.borderColor = "";
             }
           }
+        </script>
+        <script>
+          document.addEventListener("keydown", function (e) {
+
+            // hanya Enter atau Tab
+            if (e.key !== "Enter" && e.key !== "Tab") return;
+
+            const active = document.activeElement;
+
+            // ambil field yang bisa diisi saja
+            const fields = [...document.querySelectorAll(
+              'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
+            )].filter(el => el.offsetParent !== null); // skip hidden
+
+            const index = fields.indexOf(active);
+            if (index === -1) return;
+
+            e.preventDefault();
+
+            // mundur jika Shift ditekan
+            let targetIndex;
+
+            if (e.shiftKey) {
+              targetIndex = index - 1;
+            } else {
+              targetIndex = index + 1;
+            }
+
+            const target = fields[targetIndex];
+
+            if (target) {
+              target.focus();
+
+              // auto select text kalau input text
+              if (target.select) {
+                target.select();
+              }
+            }
+          });
         </script>
         <iframe id="print-frame" style="display:none;"></iframe>
 </body>
