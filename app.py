@@ -18,7 +18,7 @@ app = Flask(__name__)
 
 # ─── CONFIG ─────────────────────────────────────────────────
 app.secret_key = "GarindraPlastik@2026#Produksi!"
-app.permanent_session_lifetime = timedelta(minutes=7)
+app.permanent_session_lifetime = timedelta(minutes=45)
 
 # ─── PATHS ──────────────────────────────────────────────────
 APP_DIR    = os.path.dirname(os.path.abspath(__file__))
@@ -29,7 +29,6 @@ SPK_CSV      = r"Z:\Checker\Summary SPK.csv"
 USER_EXCEL   = r"Z:\Checker\Production\other\other.xlsx"
 USER_SHEET   = "User"
 
-# Katalog produksi
 CSV_MIXING      = r"Z:\Checker\Production\Database\katalogmixing.csv"
 CSV_HD          = r"Z:\Checker\Production\Database\kataloghd.csv"
 CSV_POTONG      = r"Z:\Checker\Production\Database\katalogpotong.csv"
@@ -55,7 +54,6 @@ CATALOG_MAP = {
     "AVAL_QC": CSV_AVAL_QC,
 }
 
-# CSV scan salah
 SCAN_DIR  = Path(r"Z:\Checker\Production\Database\scan_salah")
 CSV_SCAN_FILES = {
     "scansalahhd.csv":      SCAN_DIR / "scansalahhd.csv",
@@ -65,7 +63,6 @@ CSV_SCAN_FILES = {
     "scansalahqc.csv":      SCAN_DIR / "scansalahqc.csv",
 }
 
-# CSV scan pemakaian
 SCAN_PDIR  = Path(r"Z:\Checker\Production\Database\scan_pemakaian")
 CSV_SCAN_PFILES = {
     "scanhd.csv":      SCAN_PDIR / "scanhd.csv",
@@ -222,7 +219,6 @@ def hasil_required(f):
 
     return decorated
 
-
 FIELD_MAP = {
     "MIXING":       {"operator": "operator_mix", "wadah": "karung"},
     "HD":           {"operator": "operator_hd",  "wadah": "bobin"},
@@ -270,7 +266,6 @@ def generate_label_image(order_id, data, source_route=None):
 }
 
     show_tiket_sementara = (source_route == "barcode")
-    
     CELTIC_FONT_PATH = r"Z:\Checker\Production\Production\templates\celtic-astrologer\CelticAstrologer.ttf"  # sesuaikan namanya
 
     try:
@@ -378,7 +373,6 @@ def generate_label_image(order_id, data, source_route=None):
     qr_center = padding_top + qr_size // 2
     y         = qr_center - total_h // 2
 
-    # Celtic
     CELTIC_FONT_PATH = r"Z:\Checker\Production\Production\templates\celtic-astrologer\CelticAstrologer.ttf"
     
     try:
@@ -435,7 +429,6 @@ def generate_label_image(order_id, data, source_route=None):
     draw.text((celtic_x, celtic_y), celtic_str, fill=0, font=celtic_font)
 
     return img
-
 
 @app.route("/label/<order_id>")
 @login_required
@@ -536,7 +529,6 @@ def generate_code(data):
     # Default dulu
     div = div_map.get(divisi, "XX")
 
-    # Override khusus AVAL
     if divisi == "AVAL_HD":
         jenis_map = {
             "Prong": "AHP",
@@ -568,7 +560,6 @@ def generate_code(data):
         jenis = str(data.get("jenis_pa", "")).strip()
         div = jenis_map.get(jenis, "APX")
 
-    # Format bagian lain
     tanggal = now.strftime("%d-%m-%Y")
     spk     = str(data.get("spk", "")).strip()
     shift   = str(data.get("shift", "")).strip()
@@ -582,7 +573,6 @@ def generate_code(data):
 
     return f"{div}{tanggal}{spk}{shift}{berat}{waktu}"
 
-
 # ─── SPK LOOKUP ─────────────────────────────────────────────
 def load_spk_data():
     df = pd.read_csv(SPK_CSV, encoding="utf-8-sig")
@@ -591,7 +581,6 @@ def load_spk_data():
     if "JENIS AVAL" in df.columns:
         cols.append("JENIS AVAL")
     return df[cols]
-
 
 # ─── DB INIT ────────────────────────────────────────────────
 def init_db():
@@ -889,7 +878,6 @@ def save_record(data):
             writer.writeheader()
         writer.writerow({k: data.get(k, "") for k in headers})
 
-
 # ROUTES
 # ─── AUTH ───────────────────────────────────────────────────
 @app.route("/")
@@ -1090,8 +1078,12 @@ def hasil_produksi():
 def hasil_produksi_hd():
     return render_template("hasil_produksi_hd.html", active_page="hasil_produksi_hd", current_user=session.get("name"))
 
+@app.route("/hasil_produksi_mixing")
+@hasil_required
+def hasil_produksi_mixing():
+    return render_template("hasil_produksi_mixing.html", active_page="hasil_produksi_mixing", current_user=session.get("name"))
+
 # HASIL PRODUKSI
-# ─── API: HASIL PRODUKSI ────────────────────────────────────
 @app.route("/api/hasil_produksi")
 @hasil_required
 def api_hasil_produksi():
@@ -1105,10 +1097,9 @@ def api_hasil_produksi():
         raw_order = raw_order.str.replace('.', '', regex=False)
         raw_order = raw_order.str.replace(',', '.', regex=False)
         df_spk["order_qty"] = pd.to_numeric(raw_order, errors="coerce").fillna(0)
-        # Ambil 1000 data terakhir
         df_spk = df_spk.tail(500)
 
-        # 2. Helper: baca katalog → dict {spk: {code: berat_bersih}}
+        # 2. Helper: baca katalog
         def load_catalog_by_code(path, spk_col, berat_col):
             """Return dict: spk -> {code -> berat}"""
             result = {}
@@ -1118,8 +1109,7 @@ def api_hasil_produksi():
             df.columns = df.columns.str.strip()
             col_spk   = df.columns[spk_col]
             col_berat = df.columns[berat_col]
-            col_code  = df.columns[-1]  # kolom code selalu terakhir
-            # cari kolom code by nama
+            col_code  = df.columns[-1]
             code_candidates = [c for c in df.columns if c.lower() == "code"]
             col_code = code_candidates[0] if code_candidates else df.columns[-1]
 
@@ -1136,7 +1126,7 @@ def api_hasil_produksi():
                 result[spk][code] = berat
             return result
 
-        # 3. Helper: baca scan_salah → dict {spk: set(codes)}
+        # 3. Helper: baca scan_salah
         def load_salah_codes(path, spk_col, code_col):
             """Return dict: spk -> set of codes yang salah"""
             result = {}
@@ -1166,7 +1156,6 @@ def api_hasil_produksi():
             return round(total_all - total_salah, 2), len(salah_codes) > 0
 
         # 5. Load katalog per divisi
-        # Columb
         cat_mixing  = load_catalog_by_code(CSV_MIXING,    3, 10)
         cat_hd      = load_catalog_by_code(CSV_HD,        3, 12)
         cat_potong  = load_catalog_by_code(CSV_POTONG,    3, 12)
@@ -1223,6 +1212,7 @@ def api_hasil_produksi():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
+    
 @app.route("/api/hasil_produksi_hd")
 @hasil_required
 def api_hasil_produksi_hd():
@@ -1235,7 +1225,6 @@ def api_hasil_produksi_hd():
         df.columns = df.columns.str.strip()
 
         # Kolom by index (0-based): A=0 tgl, B=1 shift, D=3 spk, E=4 cust,
-        # F=5 produk, G=6 uk, J=9 mesin, M=12 berat_bersih, N=13 created_at, O=14 code
         c_tanggal  = df.columns[0]
         c_shift    = df.columns[1]
         c_spk      = df.columns[3]
@@ -1244,8 +1233,8 @@ def api_hasil_produksi_hd():
         c_uk       = df.columns[6]
         c_mesin    = df.columns[9]
         c_berat    = df.columns[12]
-        c_created  = df.columns[13]  # N = created_at
-        c_code     = df.columns[14]  # O = code
+        c_created  = df.columns[13]
+        c_code     = df.columns[14]
 
         df[c_berat]   = pd.to_numeric(df[c_berat], errors="coerce").fillna(0)
         df[c_spk]     = df[c_spk].astype(str).str.strip()
@@ -1298,7 +1287,6 @@ def api_hasil_produksi_hd():
         ).reset_index()
 
         # ── Baca katalogavalhd.csv → Afal per (tanggal, spk, shift, mesin) ──
-        # Kolom: A=0 tgl, B=1 shift, D=3 spk, J=9 mesin, K=10 jenis_hd, O=14 berat_bersih
         aval_daun = aval_prong = aval_sapuan = {}
         if os.path.exists(CSV_AVAL_HD):
             da = pd.read_csv(CSV_AVAL_HD, encoding="utf-8-sig")
@@ -1373,6 +1361,143 @@ def api_hasil_produksi_hd():
     except Exception as e:
         import traceback
         return jsonify({"error": str(e), "detail": traceback.format_exc()}), 500
+    
+@app.route("/api/hasil_produksi_mixing")
+@hasil_required
+def api_hasil_produksi_mixing():
+    try:
+        # ── Baca katalogmixing.csv (BUKAN CSV_HD) ──
+        if not os.path.exists(CSV_MIXING):
+            return jsonify({"rows": [], "newest_created": ""})
+
+        df = pd.read_csv(CSV_MIXING, encoding="utf-8-sig")
+        df.columns = df.columns.str.strip()
+
+        # Struktur katalogmixing: tanggal(0) shift(1) divisi(2) spk(3)
+        # customer(4) produk(5) uk(6) operator_mix(7) checker(8)
+        # berat_kg(9) berat_bersih(10) karung(11) created_at(12) code(13)
+        c_tanggal  = df.columns[0]
+        c_shift    = df.columns[1]
+        c_spk      = df.columns[3]
+        c_customer = df.columns[4]
+        c_produk   = df.columns[5]
+        c_uk       = df.columns[6]
+        c_berat    = df.columns[10]   # berat_bersih
+        c_created  = df.columns[12]
+        c_code     = df.columns[13]
+
+        df[c_berat]   = pd.to_numeric(df[c_berat], errors="coerce").fillna(0)
+        df[c_spk]     = df[c_spk].astype(str).str.strip()
+        df[c_tanggal] = df[c_tanggal].astype(str).str.strip()
+        df[c_shift]   = df[c_shift].astype(str).str.strip()
+        df[c_code]    = df[c_code].astype(str).str.strip()
+        df[c_created] = df[c_created].astype(str).str.strip()
+
+        newest_created = df[c_created].dropna().iloc[-1] if len(df) > 0 else ""
+
+        # ── Baca scansalahmixing.csv → set kode salah ──
+        bad_codes = set()
+        scan_salah_path = SCAN_DIR / "scansalahmixing.csv"
+        if scan_salah_path.exists():
+            ds = pd.read_csv(scan_salah_path, encoding="utf-8-sig")
+            ds.columns = ds.columns.str.strip()
+            code_candidates = [c for c in ds.columns if c.lower() == "code"]
+            code_col = code_candidates[0] if code_candidates else ds.columns[-1]
+            bad_codes = set(ds[code_col].astype(str).str.strip().dropna())
+
+        df["_salah"] = df[c_code].isin(bad_codes)
+
+        # ── Filter request ──
+        def flt(col, param):
+            val = request.args.get(param, "").strip()
+            if val:
+                return df[col].astype(str).str.contains(val, case=False, na=False)
+            return pd.Series([True] * len(df), index=df.index)
+
+        mask = (flt(c_tanggal, "tanggal") & flt(c_spk, "spk") &
+                flt(c_customer, "customer") & flt(c_produk, "produk") &
+                flt(c_shift, "shift"))
+        df = df[mask]
+
+        # ── Group by (tanggal, spk, shift) — mixing tidak punya mesin ──
+        grp_key = [c_tanggal, c_spk, c_shift]
+        agg = df.groupby(grp_key, sort=False).apply(
+            lambda g: pd.Series({
+                "customer":     g[c_customer].iloc[0],
+                "produk":       g[c_produk].iloc[0],
+                "uk":           g[c_uk].iloc[0],
+                "berat_bersih": round(g.loc[~g["_salah"], c_berat].sum(), 2),
+                "total_karung": int((~g["_salah"]).sum()),
+                "has_salah":    bool(g["_salah"].any()),
+            })
+        ).reset_index()
+
+        # ── Baca katalogavalmixing.csv ──
+        # Struktur: tanggal(0) shift(1) divisi(2) spk(3)
+        # operator_amix(4) checker(5) mesin(6) karung(7) berat_kg(8)
+        # berat_bersih(9) jenis(10) created_at(11) code(12)
+        aval_total = {}
+        if os.path.exists(CSV_AVAL_MIXING):
+            da = pd.read_csv(CSV_AVAL_MIXING, encoding="utf-8-sig")
+            da.columns = da.columns.str.strip()
+            ca_tgl   = da.columns[0]
+            ca_shift = da.columns[1]
+            ca_spk   = da.columns[3]
+            ca_berat = da.columns[9]   # berat_bersih
+
+            da[ca_berat] = pd.to_numeric(da[ca_berat], errors="coerce").fillna(0)
+            da[ca_spk]   = da[ca_spk].astype(str).str.strip()
+            da[ca_tgl]   = da[ca_tgl].astype(str).str.strip()
+            da[ca_shift] = da[ca_shift].astype(str).str.strip()
+
+            # Exclude kode aval yang salah
+            aval_code_candidates = [c for c in da.columns if c.lower() == "code"]
+            if aval_code_candidates:
+                ca_code = aval_code_candidates[0]
+                da[ca_code] = da[ca_code].astype(str).str.strip()
+                da["_salah"] = da[ca_code].isin(bad_codes)
+            else:
+                da["_salah"] = False
+
+            aval_total = (
+                da[~da["_salah"]]
+                .groupby([ca_tgl, ca_spk, ca_shift])[ca_berat]
+                .sum()
+                .to_dict()
+            )
+
+        # ── Bangun respons ──
+        rows = []
+        for _, r in agg.iterrows():
+            key = (str(r[c_tanggal]), str(r[c_spk]), str(r[c_shift]))
+            rows.append({
+                "tanggal":      r[c_tanggal],
+                "spk":          r[c_spk],
+                "customer":     r["customer"],
+                "produk":       r["produk"],
+                "uk":           r["uk"],
+                "berat_bersih": float(r["berat_bersih"]),
+                "total_karung": int(r["total_karung"]),
+                "shift":        r[c_shift],
+                "aval_mixing":  round(float(aval_total.get(key, 0)), 2),
+                "has_salah":    r["has_salah"],
+            })
+
+        from datetime import datetime
+        def parse_tgl(t):
+            for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y"):
+                try:
+                    return datetime.strptime(str(t), fmt)
+                except:
+                    continue
+            return datetime.min
+
+        rows.sort(key=lambda r: parse_tgl(r["tanggal"]), reverse=True)
+        return jsonify({"rows": rows, "newest_created": newest_created})
+
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "detail": traceback.format_exc()}), 500
 
 # ─── API: OPERATORS ─────────────────────────────────────────
 @app.route("/api/operators/<divisi>")
@@ -1387,6 +1512,8 @@ def get_operators(divisi):
         return jsonify(operators)
     except Exception as e:
         return jsonify([])
+    
+    
     
 @app.route("/api/tali/<kategori>")
 @login_required

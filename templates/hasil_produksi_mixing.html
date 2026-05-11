@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hasil Produksi HD</title>
+    <title>Hasil Produksi Mixing</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
         href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
@@ -645,7 +645,7 @@
 
         <!-- TOPBAR -->
         <header class="topbar">
-            <span class="topbar-logo">&#9632; HASIL PRODUKSI HD</span>
+            <span class="topbar-logo">&#9632; HASIL PRODUKSI MIXING</span>
             <span class="topbar-sep"></span>
             <span class="topbar-title">Rekap per SPK / Shift</span>
             <div class="topbar-right">
@@ -712,8 +712,8 @@
         <!-- MAIN -->
         <main class="main">
             <div class="page-header">
-                <h1 class="page-title">HASIL PRODUKSI HD</h1>
-                <span class="divisi-badge">Rekap per SPK / Shift</span>
+                <h1 class="page-title">HASIL PRODUKSI Mixing</h1>
+                <span class="divisi-badge">Rekap</span>
                 <span style="margin-left:auto;font-size:11px;color:var(--gray4);font-family:var(--font-mono)"
                     id="current-date"></span>
             </div>
@@ -732,7 +732,7 @@
                         </div>
                         <div class="field">
                             <label class="field-label" for="f-mesin">Mesin</label>
-                            <input type="text" id="f-mesin" placeholder="e.g. HD-01" style="width:110px">
+                            <input type="text" id="f-mesin" placeholder="e.g. mixing-01" style="width:110px">
                         </div>
                         <div class="field">
                             <label class="field-label" for="f-spk">No. SPK</label>
@@ -770,7 +770,7 @@
             <div class="card">
                 <div class="card-header">
                     <span class="card-header-num">2</span>
-                    <span class="card-header-title">Tabel Produksi HD</span>
+                    <span class="card-header-title">Tabel Produksi Mixing</span>
                     <span class="card-header-extra">
                         <div class="legend">
                             <div class="legend-item">
@@ -902,10 +902,10 @@
 
 
             document.getElementById("load-spinner").style.display = "block";
-            showToast("⏳ Memuat data produksi HD…", "success");
+            showToast("⏳ Memuat data produksi Mixing…", "success");
 
             try {
-                const res = await fetch("/api/hasil_produksi_hd?" + params.toString());
+                const res = await fetch("/api/hasil_produksi_mixing?" + params.toString());
                 if (!res.ok) throw new Error("HTTP " + res.status + " — " + await res.text());
                 const data = await res.json();
                 if (data.error) throw new Error(data.error);
