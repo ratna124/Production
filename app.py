@@ -1068,6 +1068,11 @@ def barcode_aval_packing():
 def barcode_aval_qc():
     return render_template("barcode_aval_qc.html", active_page="barcode_aval_qc", current_user=session.get("name"))
 
+@app.route("/stok_produksi")
+@hasil_required
+def stok_produksi():
+    return render_template("stok_produksi.html", active_page="stok_produksi", current_user=session.get("name"))
+
 @app.route("/hasil_produksi")
 @hasil_required
 def hasil_produksi():
@@ -1947,7 +1952,220 @@ def api_hasil_produksi_packing():
         import traceback
         return jsonify({"error": str(e), "detail": traceback.format_exc()}), 500
 
+# STOK PRODUKSI
+@app.route("/api/stok_produksi")
+@hasil_required
+def api_stok_produksi():
+    try:
+        import pandas as pd
+        import os
 
+        # ==========================
+        # PATH
+        # ==========================
+        SUMMARY_SPK = r"Z:\Checker\Summary SPK.csv"
+
+        MIXING = r"Z:\Checker\Production\Database\scan_pemakaian\scanmixing.csv"
+        HD = r"Z:\Checker\Production\Database\scan_pemakaian\scanhd.csv"
+        POTONG = r"Z:\Checker\Production\Database\scan_pemakaian\scanpotong.csv"
+        PACKING = r"Z:\Checker\Production\Database\scan_pemakaian\scanpacking.csv"
+        SISA_PACK = r"Z:\Checker\Production\Database\scan_salah\scansalahqc.csv"
+
+        # ==========================
+        # FILTER
+        # ==========================
+        spk_filter = request.args.get("spk", "").strip().lower()
+        customer_filter = request.args.get("customer", "").strip().lower()
+        produk_filter = request.args.get("produk", "").strip().lower()
+        uk_filter = request.args.get("uk", "").strip().lower()
+
+        # ==========================
+        # LOAD SUMMARY SPK
+        # ==========================
+        df_spk = pd.read_csv(
+            SUMMARY_SPK,
+            dtype=str,
+            encoding="utf-8-sig",
+            low_memory=False
+        )
+
+        df_spk.columns = (
+            df_spk.columns
+            .str.strip()
+            .str.lower()
+        )
+
+        # ambil 100 SPK terakhir
+        df_spk = df_spk.tail(100)
+
+        # rename biar konsisten
+        rename_map = {
+            "no. spk": "spk",
+            "customer": "customer",
+            "product": "produk",
+            "uk": "uk"
+        }
+
+        df_spk.rename(columns=rename_map, inplace=True)
+
+        # hanya ambil kolom yg dibutuhkan
+        df_spk = df_spk[
+            ["spk", "customer", "produk", "uk"]
+        ].copy()
+
+        df_spk = df_spk.fillna("")
+
+        # ==========================
+        # FUNCTION LOAD SCAN
+        # ==========================
+        def load_scan(path, col_name):
+            if not os.path.exists(path):
+                return pd.DataFrame(
+                    columns=["spk", col_name]
+                )
+
+            try:
+                df = pd.read_csv(
+                    path,
+                    dtype=str,
+                    encoding="utf-8-sig",
+                    low_memory=False
+                )
+
+                df.columns = (
+                    df.columns
+                    .str.strip()
+                    .str.lower()
+                )
+
+                # cari kolom spk otomatis
+                spk_col = None
+                for c in df.columns:
+                    if "spk" in c:
+                        spk_col = c
+                        break
+
+                if not spk_col:
+                    return pd.DataFrame(
+                        columns=["spk", col_name]
+                    )
+
+                df["spk"] = (
+                    df[spk_col]
+                    .astype(str)
+                    .str.strip()
+                )
+
+                # hitung qty/baris per SPK
+                result = (
+                    df.groupby("spk")
+                    .size()
+                    .reset_index(name=col_name)
+                )
+
+                return result
+
+            except Exception as e:
+                print(f"ERROR {path}:", e)
+
+                return pd.DataFrame(
+                    columns=["spk", col_name]
+                )
+
+        # ==========================
+        # LOAD DIVISI
+        # ==========================
+        df_mix = load_scan(MIXING, "mixing")
+        df_hd = load_scan(HD, "hd")
+        df_potong = load_scan(POTONG, "potong")
+        df_pack = load_scan(PACKING, "packing")
+        df_sisa = load_scan(SISA_PACK, "sisa_pack")
+
+        # ==========================
+        # MERGE
+        # ==========================
+        df = df_spk.copy()
+
+        for d in [
+            df_mix,
+            df_hd,
+            df_potong,
+            df_pack,
+            df_sisa
+        ]:
+            df = df.merge(
+                d,
+                on="spk",
+                how="left"
+            )
+
+        df.fillna(0, inplace=True)
+
+        # ==========================
+        # FILTER
+        # ==========================
+        if spk_filter:
+            df = df[
+                df["spk"]
+                .astype(str)
+                .str.lower()
+                .str.contains(
+                    spk_filter,
+                    na=False
+                )
+            ]
+
+        if customer_filter:
+            df = df[
+                df["customer"]
+                .astype(str)
+                .str.lower()
+                .str.contains(
+                    customer_filter,
+                    na=False
+                )
+            ]
+
+        if produk_filter:
+            df = df[
+                df["produk"]
+                .astype(str)
+                .str.lower()
+                .str.contains(
+                    produk_filter,
+                    na=False
+                )
+            ]
+
+        if uk_filter:
+            df = df[
+                df["uk"]
+                .astype(str)
+                .str.lower()
+                .str.contains(
+                    uk_filter,
+                    na=False
+                )
+            ]
+
+        # ==========================
+        # RESPONSE
+        # ==========================
+        rows = df.to_dict(
+            orient="records"
+        )
+
+        return jsonify({
+            "rows": rows
+        })
+
+    except Exception as e:
+        print("ERROR stok produksi:", e)
+
+        return jsonify({
+            "rows": [],
+            "error": str(e)
+        }), 500
 
 # ─── API: OPERATORS ─────────────────────────────────────────
 @app.route("/api/operators/<divisi>")

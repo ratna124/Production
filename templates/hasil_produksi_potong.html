@@ -674,6 +674,11 @@
                         class="sidebar-dot"></span>Checker Input</a>
                 {% endif %}
                 {% if session.get('role') in ('administrator','staff','adminwip') %}
+                <div class="sidebar-section">Stok Produksi</div>
+                <a href="/stok_produksi"
+                    class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Stok Produksi
+                </a>
                 <div class="sidebar-section">Hasil Produksi</div>
                 <a href="/hasil_produksi"
                     class="sidebar-item {% if active_page=='hasil_produksi' %}active{% endif %}"><span

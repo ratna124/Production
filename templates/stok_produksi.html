@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stok Produksi</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --black: #0a0a0a;
+            --white: #f5f4f0;
+            --accent: #e8420a;
+            --gray1: #1a1a1a;
+            --gray2: #2c2c2c;
+            --gray3: #3e3e3e;
+            --gray4: #777;
+            --gray5: #aaa;
+            --border: #2e2e2e;
+            --radius: 4px;
+
+            --success: #22c55e;
+            --danger: #ef4444;
+
+            --font-sans: 'IBM Plex Sans', sans-serif;
+            --font-mono: 'IBM Plex Mono', monospace;
+        }
+
+        body {
+            background: var(--black);
+            color: var(--white);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            min-height: 100vh;
+        }
+
+        /* ============ LAYOUT ============ */
+
+        .shell {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            grid-template-rows: 56px 1fr;
+            min-height: 100vh;
+        }
+
+        /* ============ TOPBAR ============ */
+
+        .topbar {
+            grid-column: 1/-1;
+            background: var(--gray1);
+            border-bottom: 1px solid var(--border);
+
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            gap: 16px;
+
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .topbar-logo {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            color: var(--accent);
+            letter-spacing: .08em;
+        }
+
+        .topbar-sep {
+            width: 1px;
+            height: 20px;
+            background: var(--border);
+        }
+
+        .topbar-title {
+            font-size: 13px;
+            color: var(--gray5);
+        }
+
+        .topbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .clock {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--gray4);
+        }
+
+        .user-name {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--gray4);
+        }
+
+        .btn-ghost {
+            border: 1px solid var(--border);
+            color: var(--gray5);
+            text-decoration: none;
+            padding: 7px 14px;
+            border-radius: var(--radius);
+            transition: .15s;
+        }
+
+        .btn-ghost:hover {
+            color: white;
+            border-color: var(--gray5);
+        }
+
+        .sidebar {
+            background: var(--gray1);
+            border-right: 1px solid var(--border);
+
+            display: flex;
+            flex-direction: column;
+            padding: 24px 0;
+        }
+
+        .sidebar-section {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            color: var(--gray4);
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            padding: 16px 20px 8px;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            padding: 12px 20px;
+            color: var(--gray5);
+            text-decoration: none;
+
+            border-left: 2px solid transparent;
+            transition: .15s;
+        }
+
+        .sidebar-item:hover {
+            background: var(--gray2);
+            color: white;
+        }
+
+        .sidebar-item.active {
+            border-left-color: var(--accent);
+            background: rgba(232, 66, 10, .08);
+            color: white;
+        }
+
+        .sidebar-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--gray3);
+        }
+
+        .sidebar-stats {
+            margin-top: auto;
+            border-top: 1px solid var(--border);
+            padding: 20px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--gray4);
+        }
+
+        .stat-val {
+            font-family: var(--font-mono);
+            font-size: 18px;
+        }
+
+        .stat-val.small {
+            font-size: 12px;
+        }
+
+        .main {
+            overflow-y: auto;
+            padding: 32px 40px;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .page-title {
+            font-family: var(--font-mono);
+            font-size: 20px;
+        }
+
+        .divisi-badge {
+            background: var(--gray3);
+            color: var(--gray5);
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-family: var(--font-mono);
+        }
+
+        .current-date {
+            margin-left: auto;
+            color: var(--gray4);
+            font-size: 11px;
+            font-family: var(--font-mono);
+        }
+
+        /* ============ CARD ============ */
+
+        .card {
+            background: var(--gray1);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            background: var(--gray2);
+            gap: 10px;
+        }
+
+        .card-header-num {
+            background: var(--accent);
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-family: var(--font-mono);
+            font-size: 11px;
+        }
+
+        .card-header-title {
+            font-size: 13px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* ============ FILTER ============ */
+
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--gray4);
+            text-transform: uppercase;
+        }
+
+        input {
+            height: 38px;
+            background: var(--gray2);
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: var(--radius);
+            padding: 0 12px;
+            outline: none;
+            min-width: 160px;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+        }
+
+        .action-group {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+        }
+
+        .btn-load,
+        .btn-reset {
+            height: 38px;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            padding: 0 18px;
+            font-family: var(--font-mono);
+        }
+
+        .btn-load {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-load:hover {
+            background: #c9360a;
+        }
+
+        .btn-reset {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--gray5);
+        }
+
+        .btn-reset:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .search-section {
+            display: flex;
+            align-items: center;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border);
+            background: var(--gray2);
+        }
+
+        .search-wrap {
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 9px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .search-wrap input {
+            padding-left: 30px;
+            width: 240px;
+        }
+
+        .tbl-count {
+            margin-left: auto;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--gray4);
+        }
+
+        /* ============ TABLE ============ */
+
+        .prod-table-wrap {
+            overflow: auto;
+            max-height: calc(100vh - 300px);
+        }
+
+        .prod-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+
+        .prod-table thead th {
+            position: sticky;
+            top: 0;
+            background: var(--gray3);
+            z-index: 10;
+
+            padding: 12px;
+            text-align: left;
+            font-size: 10px;
+            color: var(--gray4);
+            text-transform: uppercase;
+        }
+
+        .prod-table tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, .04);
+        }
+
+        .prod-table tbody tr:nth-child(odd) {
+            background: rgba(255, 255, 255, .02);
+        }
+
+        .prod-table tbody tr:hover {
+            background: rgba(255, 255, 255, .04);
+        }
+
+        .prod-table td {
+            padding: 12px;
+            white-space: nowrap;
+        }
+
+        .num {
+            text-align: right;
+        }
+
+
+        .col-mixing {
+            color: #60a5fa;
+        }
+
+        .col-hd {
+            color: #a78bfa;
+        }
+
+        .col-potong {
+            color: #34d399;
+        }
+
+        .col-packing {
+            color: #f59e0b;
+        }
+
+        .col-sisa {
+            color: #f87171;
+        }
+
+
+        tfoot td {
+            position: sticky;
+            bottom: 0;
+            background: var(--gray2);
+            font-weight: 600;
+        }
+
+
+        .table-empty {
+            text-align: center;
+            color: var(--gray4);
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, .3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .toast {
+            margin-top: 10px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+
+        @media(max-width:900px) {
+            .shell {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <span class="topbar-logo">&#9632; STOK PRODUKSI</span>
+            <span class="topbar-sep"></span>
+            <span class="topbar-title">Rekap Stok per SPK</span>
+
+            <div class="topbar-right">
+                <span class="clock" id="clock"></span>
+                <span class="user-name">
+                    &#128100; {{ current_user }}
+                </span>
+                <a href="/logout" class="btn-ghost">
+                    &#x2192; Logout
+                </a>
+            </div>
+        </header>
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div style="flex:1; overflow-y:auto; min-height:0;">
+                {% if session.get('role') in ('administrator', 'adminwip') %}
+                <a href="/scan_pemakaian"
+                    class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Admin Input
+                </a>
+                {% endif %}
+                {% if session.get('role') in 'administrator' %}
+                <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Checker Input
+                </a>
+                {% endif %}
+                {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
+                <div class="sidebar-section">Stok Produksi</div>
+                <a href="/stok_produksi"
+                    class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Stok Produksi
+                </a>
+                <div class="sidebar-section">Hasil Produksi</div>
+                <a href="/hasil_produksi"
+                    class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Summary
+                </a>
+                <a href="/hasil_produksi_mixing"
+                    class="sidebar-item {% if active_page == 'hasil_produksi_mixing' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Hasil Mixing
+                </a>
+                <a href="/hasil_produksi_hd"
+                    class="sidebar-item {% if active_page == 'hasil_produksi_hd' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Hasil HD
+                </a>
+                <a href="/hasil_produksi_potong"
+                    class="sidebar-item {% if active_page == 'hasil_produksi_potong' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Hasil Potong
+                </a>
+                <a href="/hasil_produksi_packing"
+                    class="sidebar-item {% if active_page == 'hasil_produksi_packing' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Hasil Packing
+                </a>
+                {% endif %}
+            </div>
+            <div class="sidebar-stats">
+                <div class="stat-row">
+                    <span class="stat-label">Total Baris</span>
+                    <span class="stat-val" id="sb-total">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Last Load</span>
+                    <span class="stat-val small" id="sb-time">—</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="main">
+            <div class="page-header">
+                <h1 class="page-title">STOK PRODUKSI</h1>
+                <span class="divisi-badge">Rekap Stok</span>
+                <span class="current-date" id="current-date"></span>
+            </div>
+
+            <!-- FILTER -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-header-num">1</span>
+                    <span class="card-header-title">Filter Data</span>
+                </div>
+                <div class="card-body">
+                    <div class="filter-bar">
+                        <div class="field">
+                            <label class="field-label">No. SPK</label>
+                            <input type="text" id="filter-spk" placeholder="e.g. 10100">
+                        </div>
+                        <div class="field">
+                            <label class="field-label">Customer</label>
+                            <input type="text" id="filter-customer" placeholder="Nama customer">
+                        </div>
+                        <div class="field">
+                            <label class="field-label">Produk</label>
+                            <input type="text" id="filter-produk" placeholder="Nama produk">
+                        </div>
+                        <div class="field">
+                            <label class="field-label">Ukuran</label>
+                            <input type="text" id="filter-uk" placeholder="Uk">
+                        </div>
+                        <div class="field action-group">
+                            <button class="btn-load" onclick="loadData()">
+                                <div class="spinner" id="load-spinner"></div>&#8635; Muat Data
+                            </button>
+                            <button class="btn-reset" onclick="resetFilter()">&#10005; Reset
+                            </button>
+                        </div>
+                    </div>
+                    <div class="toast hidden" id="toast">
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABLE -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-header-num">2</span>
+                    <span class="card-header-title">Tabel Stok Produksi</span>
+                </div>
+                <!-- SEARCH -->
+                <div class="search-section">
+                    <div class="search-wrap">
+                        <span class="search-icon">
+                            &#128269;
+                        </span>
+                        <input type="text" id="tbl-search" placeholder="Cari SPK / Produk..." oninput="filterTable()">
+                    </div>
+                    <span class="tbl-count">
+                        <span id="tbl-count">0</span> baris
+                    </span>
+                </div>
+
+                <!-- TABLE -->
+                <div class="prod-table-wrap">
+                    <table class="prod-table">
+                        <thead>
+                            <tr>
+                                <th>SPK</th>
+                                <th>Customer</th>
+                                <th>Produk</th>
+                                <th>Uk</th>
+                                <th class="num col-mixing">Mixing</th>
+                                <th class="num col-hd">
+                                    HD
+                                </th>
+                                <th class="num col-potong">
+                                    Potong
+                                </th>
+                                <th class="num col-packing">
+                                    Packing
+                                </th>
+                                <th class="num col-sisa">
+                                    Sisa Pack
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="prod-tbody">
+                            <tr>
+                                <td colspan="9" class="table-empty">
+                                    Klik "Muat Data"
+                                    untuk menampilkan stok...
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot id="prod-tfoot">
+                            <tr>
+                                <td colspan="4">
+                                    TOTAL
+                                </td>
+                                <td class="num" id="ft-mixing">
+                                    0
+                                </td>
+                                <td class="num" id="ft-hd">
+                                    0
+                                </td>
+                                <td class="num" id="ft-potong">
+                                    0
+                                </td>
+                                <td class="num" id="ft-packing">
+                                    0
+                                </td>
+                                <td class="num" id="ft-sisa">
+                                    0
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        let allRows = [];
+        let filtered = [];
+        let toastTimer;
+
+        // ======================
+        // INIT
+        // ======================
+        document.addEventListener("DOMContentLoaded", () => {
+
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            document.getElementById("current-date").textContent =
+                new Date().toLocaleDateString(
+                    "id-ID",
+                    {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric"
+                    }
+                );
+        });
+
+        // ======================
+        // CLOCK
+        // ======================
+        function updateClock() {
+
+            const now = new Date();
+
+            const pad = n =>
+                String(n).padStart(2, "0");
+
+            document.getElementById("clock").textContent =
+                `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        }
+
+        // ======================
+        // TOAST
+        // ======================
+        function showToast(msg, type = "success") {
+
+            const t =
+                document.getElementById("toast");
+
+            t.textContent = msg;
+            t.className =
+                `toast ${type}`;
+
+            clearTimeout(toastTimer);
+
+            toastTimer =
+                setTimeout(() => {
+
+                    t.className =
+                        "toast hidden";
+
+                }, 4000);
+        }
+
+        // ======================
+        // LOAD DATA
+        // ======================
+        async function loadData() {
+
+            const spinner =
+                document.getElementById("load-spinner");
+
+            spinner.style.display =
+                "block";
+
+            const spk =
+                document.getElementById("filter-spk")
+                    .value.trim();
+
+            const customer =
+                document.getElementById("filter-customer")
+                    .value.trim();
+
+            const produk =
+                document.getElementById("filter-produk")
+                    .value.trim();
+
+            const uk =
+                document.getElementById("filter-uk")
+                    .value.trim();
+
+            showToast(
+                "⏳ Memuat data stok...",
+                "success"
+            );
+
+            try {
+
+                const params =
+                    new URLSearchParams();
+
+                if (spk)
+                    params.set(
+                        "spk",
+                        spk
+                    );
+
+                if (customer)
+                    params.set(
+                        "customer",
+                        customer
+                    );
+
+                if (produk)
+                    params.set(
+                        "produk",
+                        produk
+                    );
+
+                if (uk)
+                    params.set(
+                        "uk",
+                        uk
+                    );
+
+                const res =
+                    await fetch(
+                        "/api/stok_produksi?" +
+                        params.toString()
+                    );
+
+                if (!res.ok) {
+                    throw new Error(
+                        `HTTP ${res.status}`
+                    );
+                }
+
+                const data =
+                    await res.json();
+
+                allRows =
+                    data.rows || [];
+
+                filtered =
+                    [...allRows];
+
+                renderTable(filtered);
+
+                document.getElementById(
+                    "sb-total"
+                ).textContent =
+                    filtered.length;
+
+                const now =
+                    new Date();
+
+                const pad =
+                    n =>
+                        String(n)
+                            .padStart(2, "0");
+
+                document.getElementById(
+                    "sb-time"
+                ).textContent =
+                    `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+                showToast(
+                    `✔ ${filtered.length} data berhasil dimuat`,
+                    "success"
+                );
+
+            }
+            catch (err) {
+
+                console.error(err);
+
+                showToast(
+                    "❌ Gagal memuat data: " +
+                    err.message,
+                    "error"
+                );
+            }
+
+            spinner.style.display =
+                "none";
+        }
+
+        // ======================
+        // SEARCH TABLE
+        // ======================
+        function filterTable() {
+
+            const q =
+                document
+                    .getElementById(
+                        "tbl-search"
+                    )
+                    .value
+                    .toLowerCase();
+
+            // auto load jika belum ada data
+            if (
+                allRows.length === 0 &&
+                q
+            ) {
+                loadData()
+                    .then(() => {
+                        filterTable();
+                    });
+                return;
+            }
+
+            filtered =
+                !q
+                    ? [...allRows]
+                    : allRows.filter(r =>
+
+                        String(r?.spk || "")
+                            .toLowerCase()
+                            .includes(q)
+
+                        ||
+
+                        String(r?.customer || "")
+                            .toLowerCase()
+                            .includes(q)
+
+                        ||
+
+                        String(r?.produk || "")
+                            .toLowerCase()
+                            .includes(q)
+
+                        ||
+
+                        String(r?.uk || "")
+                            .toLowerCase()
+                            .includes(q)
+                    );
+
+            renderTable(filtered);
+        }
+
+        // ======================
+        // RENDER TABLE
+        // ======================
+        function renderTable(rows) {
+
+            const tbody =
+                document.getElementById(
+                    "prod-tbody"
+                );
+
+            const tfoot =
+                document.getElementById(
+                    "prod-tfoot"
+                );
+
+            document.getElementById(
+                "tbl-count"
+            ).textContent =
+                rows.length;
+
+            // kosong
+            if (!rows.length) {
+
+                tbody.innerHTML =
+                    `
+            <tr>
+                <td colspan="9"
+                    class="table-empty">
+                    Tidak ada data
+                </td>
+            </tr>
+            `;
+
+                tfoot.style.display =
+                    "none";
+
+                return;
+            }
+
+            tbody.innerHTML = "";
+
+            rows.forEach(r => {
+
+                const tr =
+                    document.createElement(
+                        "tr"
+                    );
+
+                tr.innerHTML = `
+                <td>${esc(r.spk)}</td>
+                <td>${esc(r.customer)}</td>
+                <td>${esc(r.produk)}</td>
+                <td>${esc(r.uk)}</td>
+
+                <td class="num col-mixing">
+                    ${fmtNum(r.mixing)}
+                </td>
+
+                <td class="num col-hd">
+                    ${fmtNum(r.hd)}
+                </td>
+
+                <td class="num col-potong">
+                    ${fmtNum(r.potong)}
+                </td>
+
+                <td class="num col-packing">
+                    ${fmtNum(r.packing)}
+                </td>
+
+                <td class="num col-sisa">
+                    ${fmtNum(r.sisa_pack)}
+                </td>
+            `;
+
+                tbody.appendChild(tr);
+            });
+
+            // ======================
+            // FOOTER TOTAL
+            // ======================
+            const sum = key =>
+                rows.reduce(
+                    (a, r) =>
+                        a +
+                        (
+                            parseFloat(
+                                r[key]
+                            ) || 0
+                        ),
+                    0
+                );
+
+            document.getElementById(
+                "ft-mixing"
+            ).textContent =
+                fmtNum(
+                    sum("mixing")
+                );
+
+            document.getElementById(
+                "ft-hd"
+            ).textContent =
+                fmtNum(
+                    sum("hd")
+                );
+
+            document.getElementById(
+                "ft-potong"
+            ).textContent =
+                fmtNum(
+                    sum("potong")
+                );
+
+            document.getElementById(
+                "ft-packing"
+            ).textContent =
+                fmtNum(
+                    sum("packing")
+                );
+
+            document.getElementById(
+                "ft-sisa"
+            ).textContent =
+                fmtNum(
+                    sum("sisa_pack")
+                );
+
+            tfoot.style.display =
+                "";
+        }
+
+        // ======================
+        // RESET
+        // ======================
+        function resetFilter() {
+
+            [
+                "filter-spk",
+                "filter-customer",
+                "filter-produk",
+                "filter-uk",
+                "tbl-search"
+            ].forEach(id => {
+
+                document.getElementById(id)
+                    .value = "";
+            });
+
+            allRows = [];
+            filtered = [];
+
+            document.getElementById(
+                "prod-tbody"
+            ).innerHTML =
+                `
+            <tr>
+                <td colspan="9"
+                    class="table-empty">
+                    Klik "Muat Data"
+                </td>
+            </tr>
+            `;
+
+            document.getElementById(
+                "prod-tfoot"
+            ).style.display =
+                "none";
+
+            document.getElementById(
+                "tbl-count"
+            ).textContent =
+                "0";
+
+            document.getElementById(
+                "sb-total"
+            ).textContent =
+                "0";
+
+            document.getElementById(
+                "sb-time"
+            ).textContent =
+                "—";
+
+            showToast(
+                "✔ Reset berhasil",
+                "success"
+            );
+        }
+
+        // ======================
+        // FORMAT NUMBER
+        // ======================
+        function fmtNum(val) {
+
+            const n =
+                parseFloat(val) || 0;
+
+            return n.toLocaleString(
+                "id-ID",
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }
+            );
+        }
+
+        // ======================
+        // ESCAPE HTML
+        // ======================
+        function esc(s) {
+
+            return String(
+                s || ""
+            )
+                .replace(
+                    /&/g,
+                    "&amp;"
+                )
+                .replace(
+                    /</g,
+                    "&lt;"
+                )
+                .replace(
+                    />/g,
+                    "&gt;"
+                );
+        }
+    </script>
+</body>
+
+</html>
