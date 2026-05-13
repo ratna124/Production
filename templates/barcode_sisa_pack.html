@@ -1270,10 +1270,10 @@
             // DATE FILTER (DD-MM-YYYY)
             if (date) {
               const [y, m, d] = date.split("-");
-              const target = `${y}-${m}-${d}`;
+              const target = `${d}-${m}-${y}`;  // ← ubah ke DD-MM-YYYY
 
               filtered = filtered.filter(r =>
-                (r.tanggal || "").trim() === target
+                (r.tanggal || "").trim().startsWith(target)
               );
             }
 
@@ -1467,7 +1467,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
             // Fokus ke SPK biar langsung bisa input
-            document.getElementById("spk").focus();
+            document.getElementById("operator_sp").focus();
           }
 
           //TIDAK BOLEH MINUS

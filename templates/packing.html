@@ -941,6 +941,10 @@
               </select>
             </div>
             <div class="field">
+              <label class="field-label">Team Packing <span class="req">*</span></label>
+              <input type="text" id="team" value="Team" readonly>
+            </div>
+            <div class="field">
               <label class="field-label">Checker<span class="req"></span></label>
               <input type="text" id="checker" value="{{ current_user }}" readonly>
             </div>
@@ -1219,10 +1223,10 @@
             // DATE FILTER (DD-MM-YYYY)
             if (date) {
               const [y, m, d] = date.split("-");
-              const target = `${y}-${m}-${d}`;
+              const target = `${d}-${m}-${y}`;  // ← ubah ke DD-MM-YYYY
 
               filtered = filtered.filter(r =>
-                (r.tanggal || "").trim() === target
+                (r.tanggal || "").trim().startsWith(target)
               );
             }
 
@@ -1279,23 +1283,38 @@
         </script>
         <script>
           async function loadOperators() {
-            const divisi = document.getElementById("divisi").value; // "Mixing"
+            const divisi = document.getElementById("divisi").value;
 
             try {
-              const res = await fetch(`/api/operators/${divisi}`);
+              // pakai endpoint khusus yang return operator + team
+              const res = await fetch(`/api/operators_team/${divisi}`);
               const operators = await res.json();
 
-              const select = document.getElementById("operator_pa");
+              const select = document.getElementById("operator_pa"); // ganti sesuai id masing-masing
               select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
 
               operators.forEach(op => {
-                select.innerHTML += `<option value="${op}">${op}</option>`;
+                const opt = document.createElement("option");
+                opt.value = op.operator;
+                opt.textContent = op.operator;
+                opt.dataset.team = op.team || "";
+                select.appendChild(opt);
               });
 
             } catch (e) {
               console.error("Gagal load operator:", e);
             }
           }
+
+          // Auto-fill team saat operator dipilih
+          document.addEventListener("DOMContentLoaded", function () {
+            loadOperators();
+
+            document.getElementById("operator_pa").addEventListener("change", function () {
+              const selected = this.options[this.selectedIndex];
+              document.getElementById("team").value = selected.dataset.team || "";
+            });
+          });
 
           // Panggil saat halaman siap
           document.addEventListener("DOMContentLoaded", function () {
@@ -1414,21 +1433,21 @@
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
 
-            ['tanggal', 'shift', 'operator_pa', 'spk', 'customer', 'product', 'uk', 'mesin', 'berat_bersih']
+            ['tanggal', 'spk', 'customer', 'product', 'uk', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
               });
 
             // Reset dropdown operator ke default
-            const opSelect = document.getElementById("operator_pa");
-            if (opSelect) opSelect.selectedIndex = 0;
+            //const opSelect = document.getElementById("operator_pa");
+            //if (opSelect) opSelect.selectedIndex = 0;
 
             // Scroll ke atas
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
             // Fokus ke SPK biar langsung bisa input
-            document.getElementById("spk").focus();
+            document.getElementById("operator_pa").focus();
           }
 
           //TIDAK BOLEH MINUS

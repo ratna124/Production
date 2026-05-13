@@ -1957,215 +1957,137 @@ def api_hasil_produksi_packing():
 @hasil_required
 def api_stok_produksi():
     try:
-        import pandas as pd
-        import os
-
-        # ==========================
-        # PATH
-        # ==========================
-        SUMMARY_SPK = r"Z:\Checker\Summary SPK.csv"
-
-        MIXING = r"Z:\Checker\Production\Database\scan_pemakaian\scanmixing.csv"
-        HD = r"Z:\Checker\Production\Database\scan_pemakaian\scanhd.csv"
-        POTONG = r"Z:\Checker\Production\Database\scan_pemakaian\scanpotong.csv"
-        PACKING = r"Z:\Checker\Production\Database\scan_pemakaian\scanpacking.csv"
-        SISA_PACK = r"Z:\Checker\Production\Database\scan_salah\scansalahqc.csv"
-
-        # ==========================
-        # FILTER
-        # ==========================
-        spk_filter = request.args.get("spk", "").strip().lower()
+        spk_filter      = request.args.get("spk",      "").strip().lower()
         customer_filter = request.args.get("customer", "").strip().lower()
-        produk_filter = request.args.get("produk", "").strip().lower()
-        uk_filter = request.args.get("uk", "").strip().lower()
+        produk_filter   = request.args.get("produk",   "").strip().lower()
+        uk_filter       = request.args.get("uk",       "").strip().lower()
 
-        # ==========================
-        # LOAD SUMMARY SPK
-        # ==========================
-        df_spk = pd.read_csv(
-            SUMMARY_SPK,
-            dtype=str,
-            encoding="utf-8-sig",
-            low_memory=False
-        )
+        # ── Load Summary SPK ──────────────────────────────────────
+        df_spk = pd.read_csv(SPK_CSV, dtype=str, encoding="utf-8-sig", low_memory=False)
+        df_spk.columns = df_spk.columns.str.strip().str.lower()
+        df_spk = df_spk.tail(500)
 
-        df_spk.columns = (
-            df_spk.columns
-            .str.strip()
-            .str.lower()
-        )
-
-        # ambil 100 SPK terakhir
-        df_spk = df_spk.tail(100)
-
-        # rename biar konsisten
-        rename_map = {
-            "no. spk": "spk",
-            "customer": "customer",
-            "product": "produk",
-            "uk": "uk"
-        }
-
+        # rename kolom — toleran terhadap berbagai nama
+        rename_map = {}
+        for c in df_spk.columns:
+            if c in ("no. spk", "no.spk", "no spk"):
+                rename_map[c] = "spk"
+            elif c in ("product", "produk", "products"):
+                rename_map[c] = "produk"
+            elif c == "customer":
+                rename_map[c] = "customer"
+            elif c == "uk":
+                rename_map[c] = "uk"
         df_spk.rename(columns=rename_map, inplace=True)
 
-        # hanya ambil kolom yg dibutuhkan
-        df_spk = df_spk[
-            ["spk", "customer", "produk", "uk"]
-        ].copy()
+        # pastikan kolom ada
+        for col in ["spk", "customer", "produk", "uk"]:
+            if col not in df_spk.columns:
+                df_spk[col] = ""
 
-        df_spk = df_spk.fillna("")
+        df_spk = df_spk[["spk", "customer", "produk", "uk"]].fillna("")
 
-        # ==========================
-        # FUNCTION LOAD SCAN
-        # ==========================
-        def load_scan(path, col_name):
+        # ── Helper: ambil set kode salah / sudah dipakai ──────────
+        def load_codes(path):
             if not os.path.exists(path):
-                return pd.DataFrame(
-                    columns=["spk", col_name]
-                )
-
+                return set()
             try:
-                df = pd.read_csv(
-                    path,
-                    dtype=str,
-                    encoding="utf-8-sig",
-                    low_memory=False
+                df = pd.read_csv(path, dtype=str, encoding="utf-8-sig", low_memory=False)
+                df.columns = df.columns.str.strip().str.lower()
+                code_col = next((c for c in df.columns if c == "code"), None)
+                if not code_col:
+                    return set()
+                return set(df[code_col].str.strip().dropna())
+            except Exception as e:
+                print(f"WARN load_codes({path}): {e}")
+                return set()
+
+        # ── Helper: count stok per SPK ────────────────────────────
+        def calc_stok(cat_path, bad_codes, used_codes):
+            if not os.path.exists(cat_path):
+                return {}
+            try:
+                df = pd.read_csv(cat_path, dtype=str, encoding="utf-8-sig", low_memory=False)
+                df.columns = df.columns.str.strip().str.lower()
+
+                # cari kolom spk
+                spk_col = next(
+                    (c for c in df.columns if c in ("spk", "no. spk", "no.spk", "no spk")),
+                    None
                 )
-
-                df.columns = (
-                    df.columns
-                    .str.strip()
-                    .str.lower()
-                )
-
-                # cari kolom spk otomatis
-                spk_col = None
-                for c in df.columns:
-                    if "spk" in c:
-                        spk_col = c
-                        break
-
                 if not spk_col:
-                    return pd.DataFrame(
-                        columns=["spk", col_name]
-                    )
+                    # fallback: pakai kolom index 3
+                    spk_col = df.columns[3]
 
-                df["spk"] = (
-                    df[spk_col]
-                    .astype(str)
-                    .str.strip()
-                )
+                # cari kolom code
+                code_col = next((c for c in df.columns if c == "code"), df.columns[-1])
 
-                # hitung qty/baris per SPK
-                result = (
-                    df.groupby("spk")
-                    .size()
-                    .reset_index(name=col_name)
-                )
+                df[spk_col]  = df[spk_col].astype(str).str.strip()
+                df[code_col] = df[code_col].astype(str).str.strip()
 
-                return result
+                exclude  = bad_codes | used_codes
+                df_valid = df[~df[code_col].isin(exclude)]
+
+                return df_valid.groupby(spk_col).size().to_dict()
 
             except Exception as e:
-                print(f"ERROR {path}:", e)
+                print(f"WARN calc_stok({cat_path}): {e}")
+                return {}
 
-                return pd.DataFrame(
-                    columns=["spk", col_name]
-                )
+        # ── Load kode salah ───────────────────────────────────────
+        bad_mixing  = load_codes(str(SCAN_DIR / "scansalahmixing.csv"))
+        bad_hd      = load_codes(str(SCAN_DIR / "scansalahhd.csv"))
+        bad_potong  = load_codes(str(SCAN_DIR / "scansalahpotong.csv"))
+        bad_packing = load_codes(str(SCAN_DIR / "scansalahpacking.csv"))
+        bad_sisa    = load_codes(str(SCAN_DIR / "scansalahqc.csv"))
 
-        # ==========================
-        # LOAD DIVISI
-        # ==========================
-        df_mix = load_scan(MIXING, "mixing")
-        df_hd = load_scan(HD, "hd")
-        df_potong = load_scan(POTONG, "potong")
-        df_pack = load_scan(PACKING, "packing")
-        df_sisa = load_scan(SISA_PACK, "sisa_pack")
+        # ── Load kode yang sudah dipakai ──────────────────────────
+        used_mixing  = load_codes(str(SCAN_PDIR / "scanmixing.csv"))
+        used_hd      = load_codes(str(SCAN_PDIR / "scanhd.csv"))
+        used_potong  = load_codes(str(SCAN_PDIR / "scanpotong.csv"))
+        used_packing = load_codes(str(SCAN_PDIR / "scanpacking.csv"))
+        used_sisa    = load_codes(str(SCAN_PDIR / "scanpacking.csv"))
 
-        # ==========================
-        # MERGE
-        # ==========================
-        df = df_spk.copy()
+        # ── Hitung stok ───────────────────────────────────────────
+        stok_mixing  = calc_stok(CSV_MIXING,   bad_mixing,  used_mixing)
+        stok_hd      = calc_stok(CSV_HD,       bad_hd,      used_hd)
+        stok_potong  = calc_stok(CSV_POTONG,   bad_potong,  used_potong)
+        stok_packing = calc_stok(CSV_PACKING,  bad_packing, used_packing)
+        stok_sisa    = calc_stok(CSV_SISA_PACK,bad_sisa,    used_sisa)
 
-        for d in [
-            df_mix,
-            df_hd,
-            df_potong,
-            df_pack,
-            df_sisa
-        ]:
-            df = df.merge(
-                d,
-                on="spk",
-                how="left"
-            )
+        # ── Gabungkan ke SPK ──────────────────────────────────────
+        rows = []
+        for _, r in df_spk.iterrows():
+            spk = str(r["spk"]).strip()
+            rows.append({
+                "spk":      spk,
+                "customer": r["customer"],
+                "produk":   r["produk"],
+                "uk":       r["uk"],
+                "mixing":   int(stok_mixing.get(spk,  0)),
+                "hd":       int(stok_hd.get(spk,      0)),
+                "potong":   int(stok_potong.get(spk,  0)),
+                "packing":  int(stok_packing.get(spk, 0)),
+                "sisa_pack":int(stok_sisa.get(spk,    0)),
+            })
 
-        df.fillna(0, inplace=True)
-
-        # ==========================
-        # FILTER
-        # ==========================
+        # ── Filter ────────────────────────────────────────────────
         if spk_filter:
-            df = df[
-                df["spk"]
-                .astype(str)
-                .str.lower()
-                .str.contains(
-                    spk_filter,
-                    na=False
-                )
-            ]
-
+            rows = [r for r in rows if spk_filter      in r["spk"].lower()]
         if customer_filter:
-            df = df[
-                df["customer"]
-                .astype(str)
-                .str.lower()
-                .str.contains(
-                    customer_filter,
-                    na=False
-                )
-            ]
-
+            rows = [r for r in rows if customer_filter in r["customer"].lower()]
         if produk_filter:
-            df = df[
-                df["produk"]
-                .astype(str)
-                .str.lower()
-                .str.contains(
-                    produk_filter,
-                    na=False
-                )
-            ]
-
+            rows = [r for r in rows if produk_filter   in r["produk"].lower()]
         if uk_filter:
-            df = df[
-                df["uk"]
-                .astype(str)
-                .str.lower()
-                .str.contains(
-                    uk_filter,
-                    na=False
-                )
-            ]
+            rows = [r for r in rows if uk_filter       in r["uk"].lower()]
 
-        # ==========================
-        # RESPONSE
-        # ==========================
-        rows = df.to_dict(
-            orient="records"
-        )
-
-        return jsonify({
-            "rows": rows
-        })
+        return jsonify({"rows": rows})
 
     except Exception as e:
-        print("ERROR stok produksi:", e)
-
-        return jsonify({
-            "rows": [],
-            "error": str(e)
-        }), 500
+        import traceback
+        tb = traceback.format_exc()
+        print("ERROR stok_produksi:\n", tb)
+        return jsonify({"rows": [], "error": str(e), "detail": tb}), 500
 
 # ─── API: OPERATORS ─────────────────────────────────────────
 @app.route("/api/operators/<divisi>")
@@ -2181,7 +2103,31 @@ def get_operators(divisi):
     except Exception as e:
         return jsonify([])
     
-    
+@app.route("/api/operators_team/<divisi>")
+@login_required
+def get_operators_team(divisi):
+    try:
+        df = pd.read_csv(MAPPING_CSV, encoding="utf-8-sig")
+        df.columns = df.columns.str.strip()
+        df["divisi"] = df["divisi"].astype(str).str.strip().str.upper()
+
+        filtered = df[df["divisi"] == divisi.strip().upper()]
+
+        op_col   = df.columns[4]
+        team_col = df.columns[5] if len(df.columns) > 5 else None
+
+        result = []
+        for _, row in filtered.iterrows():
+            result.append({
+                "operator": str(row[op_col]).strip(),
+                "team":     str(row[team_col]).strip() if team_col else ""
+            })
+
+        return jsonify(result)
+
+    except Exception as e:
+        print("ERROR get_operators_team:", e)
+        return jsonify([])    
     
 @app.route("/api/tali/<kategori>")
 @login_required
@@ -2406,6 +2352,16 @@ def save_pemakaian():
     except Exception as e:
         return jsonify(success=False, error=str(e))
 
+def format_tanggal(raw):
+    """Normalisasi tanggal ke DD-MM-YYYY"""
+    val = (raw or "").split("T")[0].strip()
+    for fmt in ("%Y-%m-%d", "%d-%m-%Y"):
+        try:
+            return datetime.strptime(val, fmt).strftime("%d-%m-%Y")
+        except:
+            continue
+    return val
+
 # ─── API: SUBMIT PRODUKSI ───────────────────────────────────
 @app.route("/api/submit", methods=["POST"])
 @login_required
@@ -2418,7 +2374,7 @@ def submit():
 
         if div == "HD":
             record = {
-                "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
                 "shift": d.get("shift"), "divisi": div,
                 "spk": d.get("spk"), "customer": d.get("customer"),
                 "produk": d.get("produk"), "uk": d.get("uk"),
@@ -2431,7 +2387,7 @@ def submit():
             }
         elif div == "POTONG":
             record = {
-                "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
                 "shift": d.get("shift"), "divisi": div,
                 "spk": d.get("spk"), "customer": d.get("customer"),
                 "produk": d.get("produk"), "uk": d.get("uk"),
@@ -2444,7 +2400,7 @@ def submit():
             }
         elif div == "PACKING":
             record = {
-                "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
                 "shift": d.get("shift"), "divisi": div,
                 "spk": d.get("spk"), "customer": d.get("customer"),
                 "produk": d.get("produk"), "uk": d.get("uk"),
@@ -2455,7 +2411,7 @@ def submit():
             }
         elif div == "SISA_PACK":
             record = {
-                "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
                 "shift": d.get("shift"), "divisi": div,
                 "spk": d.get("spk"), "customer": d.get("customer"),
                 "produk": d.get("produk"), "uk": d.get("uk"),
@@ -2467,7 +2423,7 @@ def submit():
             }
         elif div == "AVAL_MIXING":
             record = {
-                "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
                 "shift": d.get("shift"), "divisi": div,
                 "spk": d.get("spk"),
                 "operator_amix": d.get("operator_amix"), "checker": d.get("checker"),
@@ -2480,7 +2436,7 @@ def submit():
             }
         elif div == "AVAL_HD":
             record = {
-                "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
                 "shift": d.get("shift"), "divisi": div,
                 "spk": d.get("spk"),"customer": d.get("customer"),
                 "produk": d.get("produk"), "uk": d.get("uk"),
@@ -2495,7 +2451,7 @@ def submit():
             }
         elif div == "AVAL_POTONG":
             record = {
-                "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
                 "shift": d.get("shift"), "divisi": div,
                 "spk": d.get("spk"),"customer": d.get("customer"),
                 "produk": d.get("produk"), "uk": d.get("uk"),
@@ -2510,7 +2466,7 @@ def submit():
             }
         elif div == "AVAL_PACKING":
             record = {
-                "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
                 "shift": d.get("shift"), "divisi": div,
                 "spk": d.get("spk"),"customer": d.get("customer"),
                 "produk": d.get("produk"), "uk": d.get("uk"),
@@ -2523,7 +2479,7 @@ def submit():
             }
         elif div == "AVAL_QC":
             record = {
-                "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
                 "shift": d.get("shift"), "divisi": div,
                 "spk": d.get("spk"),"customer": d.get("customer"),
                 "produk": d.get("produk"), "uk": d.get("uk"),
@@ -2535,7 +2491,7 @@ def submit():
             }
         elif div == "MIXING":
             record = {
-                "order_id": order_id, "tanggal": d.get("tanggal","").split("T")[0],
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
                 "shift": d.get("shift"), "divisi": div,
                 "spk": d.get("spk"), "customer": d.get("customer"),
                 "produk": d.get("produk"), "uk": d.get("uk"),

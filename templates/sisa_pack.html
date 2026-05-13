@@ -1226,10 +1226,10 @@
             // DATE FILTER (DD-MM-YYYY)
             if (date) {
               const [y, m, d] = date.split("-");
-              const target = `${y}-${m}-${d}`;
+              const target = `${d}-${m}-${y}`;  // ← ubah ke DD-MM-YYYY
 
               filtered = filtered.filter(r =>
-                (r.tanggal || "").trim() === target
+                (r.tanggal || "").trim().startsWith(target)
               );
             }
 
@@ -1433,21 +1433,21 @@
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
 
-            ['shift', 'operator_sp', 'spk', 'customer', 'product', 'uk', 'mesin', 'berat_bersih', 'sisa']
+            ['spk', 'customer', 'product', 'uk', 'berat_bersih', 'sisa']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
               });
 
             // Reset dropdown operator ke default
-            const opSelect = document.getElementById("operator_sp");
-            if (opSelect) opSelect.selectedIndex = 0;
+            //const opSelect = document.getElementById("operator_sp");
+            //if (opSelect) opSelect.selectedIndex = 0;
 
             // Scroll ke atas
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
             // Fokus ke SPK biar langsung bisa input
-            document.getElementById("spk").focus();
+            document.getElementById("operator_sp").focus();
           }
 
           //TIDAK BOLEH MINUS
