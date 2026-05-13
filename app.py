@@ -317,6 +317,7 @@ def generate_label_image(order_id, data, source_route=None):
     created  = str(data.get("created_at", "")   or "")
     customer = str(data.get("customer", "")     or "")
     produk   = str(data.get("produk", "")       or "")
+    team = str(data.get("team", "") or "")
 
     if divisi_raw == "AVAL_MIXING":
         customer = "AVAL SAPUAN"
@@ -383,11 +384,24 @@ def generate_label_image(order_id, data, source_route=None):
     # Baris 1: Customer  Produk
     draw.text((x, y), f"{customer}    {produk}", fill=0, font=font_md)
 
-    # Baris 2: SPK  UK  Operator  Mesin
+  # Baris 2: SPK  UK  Operator  Mesin  Team
     y += gap
+
     mesin_text = f"M{mesin}" if mesin else ""
-    parts2 = [p for p in [spk, uk, operator, mesin_text] if p.strip()]
+    team       = str(data.get("team", "") or "").strip()
+
+    # hanya tampil di divisi tertentu
+    SHOW_TEAM_DIVISI = {"PACKING", "SISA_PACK", "AVAL_PACKING"}
+
+    parts2 = [spk, uk, operator, mesin_text]
+
+    # tambahkan team setelah mesin kalau divisinya sesuai
+    if divisi_raw in SHOW_TEAM_DIVISI and team:
+        parts2.append(team)
+
+    parts2 = [p for p in parts2 if str(p).strip()]
     line2 = "    ".join(parts2)
+
     draw.text((x, y), line2, fill=0, font=font_md)
 
     # TIKET SEMENTARA — sejajar baris 2, setelah teks baris 2
@@ -623,7 +637,7 @@ def init_db():
         order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
         spk TEXT, customer TEXT, produk TEXT, uk TEXT,
         operator_pa TEXT, checker TEXT,
-        mesin REAL, berat_bersih REAL, created_at TEXT, code TEXT
+        mesin REAL, berat_bersih REAL, created_at TEXT, code TEXT, team TEXT
     )""")
 
     c.execute("""
@@ -633,7 +647,7 @@ def init_db():
         spk TEXT, customer TEXT, produk TEXT, uk TEXT,
         operator_sp TEXT, checker TEXT,
         mesin REAL, berat_bersih REAL, sisa REAL,
-        created_at TEXT, code TEXT
+        created_at TEXT, code TEXT, team TEXT
     )""")
 
     c.execute("""
@@ -669,7 +683,7 @@ def init_db():
         order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
         spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_pa TEXT, checker TEXT,
         mesin REAL, jenis_pa TEXT, kategori_pa TEXT, berat_bersih REAL,
-        created_at TEXT, code TEXT
+        created_at TEXT, code TEXT, team TEXT
     )""")
     
     c.execute("""
@@ -749,30 +763,30 @@ def save_record(data):
         INSERT INTO katalogpacking (
             tanggal, shift, divisi, spk, customer, produk, uk,
             operator_pa, checker, mesin, berat_bersih,
-            created_at, code
+            created_at, code, team
         ) VALUES (
             :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
             :operator_pa, :checker, :mesin, :berat_bersih,
-            :created_at, :code
+            :created_at, :code, :team
         )""", data)
         csv_path = CSV_PACKING
         headers  = ["tanggal","shift","divisi","spk","customer","produk","uk",
-                    "operator_pa","checker","mesin","berat_bersih","created_at","code"]
+                    "operator_pa","checker","mesin","berat_bersih","created_at","code","team"]
 
     elif div == "SISA_PACK":
         c.execute("""
         INSERT INTO katalogsisapack (
             tanggal, shift, divisi, spk, customer, produk, uk,
             operator_sp, checker, mesin, berat_bersih, sisa,
-            created_at, code
+            created_at, code, team
         ) VALUES (
             :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
             :operator_sp, :checker, :mesin, :berat_bersih, :sisa,
-            :created_at, :code
+            :created_at, :code, :team
         )""", data)
         csv_path = CSV_SISA_PACK
         headers  = ["tanggal","shift","divisi","spk","customer","produk","uk",
-                    "operator_sp","checker","mesin","berat_bersih","sisa","created_at","code"]
+                    "operator_sp","checker","mesin","berat_bersih","sisa","created_at","code","team"]
 
     elif div == "AVAL_MIXING":
         c.execute("""
@@ -824,15 +838,15 @@ def save_record(data):
         INSERT INTO katalogavalpacking (
             tanggal, shift, divisi, spk, customer, produk, uk,
             operator_pa, checker, mesin, jenis_pa, kategori_pa, berat_bersih, 
-            created_at, code
+            created_at, code, team
         ) VALUES (
             :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
             :operator_pa, :checker, :mesin, :jenis_pa, :kategori_pa, :berat_bersih,
-            :created_at, :code
+            :created_at, :code, :team
         )""", data)
         csv_path = CSV_AVAL_PACKING
         headers  = ["tanggal","shift","divisi","spk", "customer","produk","uk",
-                    "operator_pa","checker","mesin","jenis_pa","kategori_pa","berat_bersih","created_at","code"]
+                    "operator_pa","checker","mesin","jenis_pa","kategori_pa","berat_bersih","created_at","code","team"]
 
     elif div == "AVAL_QC":
         c.execute("""
@@ -877,6 +891,17 @@ def save_record(data):
         if f.tell() == 0:
             writer.writeheader()
         writer.writerow({k: data.get(k, "") for k in headers})
+        
+import math
+
+def safe_json(obj):
+    if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+        return None
+    if isinstance(obj, dict):
+        return {k: safe_json(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [safe_json(i) for i in obj]
+    return obj
 
 # ROUTES
 # ─── AUTH ───────────────────────────────────────────────────
@@ -1283,9 +1308,35 @@ def api_hasil_produksi_hd():
         # ── Filter request ──
         def flt(col, param):
             val = request.args.get(param, "").strip()
-            if val:
-                return df[col].astype(str).str.contains(val, case=False, na=False)
-            return pd.Series([True] * len(df), index=df.index)
+
+            if not val:
+                return pd.Series(True, index=df.index)
+
+    # FILTER TANGGAL
+            if param == "tanggal":
+                try:
+            # input dari HTML: 2026-05-13
+                    target = pd.to_datetime(val).normalize()
+
+            # parse tanggal CSV
+                    csv_dates = pd.to_datetime(
+                        df[col].astype(str).str.strip(),
+                        dayfirst=True,
+                        errors="coerce"
+                    ).dt.normalize()
+
+                    return csv_dates == target
+
+                except Exception as e:
+                    print("ERROR FILTER TANGGAL:", e)
+                    return pd.Series(False, index=df.index)
+
+    # FILTER TEXT BIASA
+            return df[col].astype(str).str.strip().str.contains(
+                val,
+                case=False,
+                na=False
+            )
 
         mask = (flt(c_tanggal, "tanggal") & flt(c_spk, "spk") &
                 flt(c_customer, "customer") & flt(c_produk, "produk") &
@@ -1399,7 +1450,7 @@ def api_hasil_produksi_hd():
             return datetime.min
 
         rows.sort(key=lambda r: parse_tgl(r["tanggal"]), reverse=True)
-        return jsonify({"rows": rows, "newest_created": newest_created})
+        return jsonify(safe_json({"rows": rows, "newest_created": newest_created}))
 
     except Exception as e:
         import traceback
@@ -1458,12 +1509,54 @@ def api_hasil_produksi_mixing():
             .to_dict()
         )  # key: (tanggal, shift) → jumlah SPK unik tidak salah
 
-        # ── Filter request ──
+# ── Filter request ──
         def flt(col, param):
             val = request.args.get(param, "").strip()
-            if val:
-                return df[col].astype(str).str.contains(val, case=False, na=False)
-            return pd.Series([True] * len(df), index=df.index)
+
+    # kosong = tampil semua
+            if not val:
+                return pd.Series(True, index=df.index)
+
+    # ==========================
+    # FILTER TANGGAL
+    # ==========================
+            if param == "tanggal":
+                try:
+            # dari input HTML date
+                    target_date = pd.to_datetime(
+                        val,
+                        format="%Y-%m-%d",
+                        errors="coerce"
+                    )
+
+            # parse semua format tanggal CSV
+                    csv_dates = pd.to_datetime(
+                        df[col].astype(str).str.strip(),
+                        dayfirst=True,
+                        errors="coerce"
+                    )
+
+            # debug terminal
+                    print("TARGET:", target_date)
+                    print("CSV SAMPLE:", df[col].head(10).tolist())
+                    print("CSV PARSED:", csv_dates.head(10).tolist())
+
+            # bandingkan hanya tanggalnya (tanpa jam)
+                    return csv_dates.dt.date == target_date.date()
+
+                except Exception as e:
+                    print("ERROR FILTER:", e)
+                    return pd.Series(False, index=df.index)
+
+    # ==========================
+    # FILTER TEXT BIASA
+    # ==========================
+            return (
+                df[col]
+                .astype(str)
+                .str.strip()
+                .str.contains(val, case=False, na=False)
+            )
 
         mask = (flt(c_tanggal, "tanggal") & flt(c_spk, "spk") &
                 flt(c_customer, "customer") & flt(c_produk, "produk") &
@@ -1554,7 +1647,7 @@ def api_hasil_produksi_mixing():
             return datetime.min
 
         rows.sort(key=lambda r: parse_tgl(r["tanggal"]), reverse=True)
-        return jsonify({"rows": rows, "newest_created": newest_created})
+        return jsonify(safe_json({"rows": rows, "newest_created": newest_created}))
 
     except Exception as e:
         import traceback
@@ -1618,9 +1711,35 @@ def api_hasil_produksi_potong():
         # ── Filter request ──
         def flt(col, param):
             val = request.args.get(param, "").strip()
-            if val:
-                return df[col].astype(str).str.contains(val, case=False, na=False)
-            return pd.Series([True] * len(df), index=df.index)
+
+            if not val:
+                return pd.Series(True, index=df.index)
+
+    # FILTER TANGGAL
+            if param == "tanggal":
+                try:
+            # input dari HTML: 2026-05-13
+                    target = pd.to_datetime(val).normalize()
+
+            # parse tanggal CSV
+                    csv_dates = pd.to_datetime(
+                        df[col].astype(str).str.strip(),
+                        dayfirst=True,
+                        errors="coerce"
+                    ).dt.normalize()
+
+                    return csv_dates == target
+
+                except Exception as e:
+                    print("ERROR FILTER TANGGAL:", e)
+                    return pd.Series(False, index=df.index)
+
+    # FILTER TEXT BIASA
+            return df[col].astype(str).str.strip().str.contains(
+                val,
+                case=False,
+                na=False
+            )
 
         mask = (flt(c_tanggal, "tanggal") & flt(c_spk, "spk") &
                 flt(c_customer, "customer") & flt(c_produk, "produk") &
@@ -1745,7 +1864,7 @@ def api_hasil_produksi_potong():
             return datetime.min
 
         rows.sort(key=lambda r: parse_tgl(r["tanggal"]), reverse=True)
-        return jsonify({"rows": rows, "newest_created": newest_created})
+        return jsonify(safe_json({"rows": rows, "newest_created": newest_created}))
 
     except Exception as e:
         import traceback
@@ -1801,9 +1920,35 @@ def api_hasil_produksi_packing():
         # spk_valid tidak diperlukan (tidak ada sapuan), tapi filter tetap sebelum group
         def flt(col, param):
             val = request.args.get(param, "").strip()
-            if val:
-                return df[col].astype(str).str.contains(val, case=False, na=False)
-            return pd.Series([True] * len(df), index=df.index)
+
+            if not val:
+                return pd.Series(True, index=df.index)
+
+    # FILTER TANGGAL
+            if param == "tanggal":
+                try:
+            # input dari HTML: 2026-05-13
+                    target = pd.to_datetime(val).normalize()
+
+            # parse tanggal CSV
+                    csv_dates = pd.to_datetime(
+                        df[col].astype(str).str.strip(),
+                        dayfirst=True,
+                        errors="coerce"
+                    ).dt.normalize()
+
+                    return csv_dates == target
+
+                except Exception as e:
+                    print("ERROR FILTER TANGGAL:", e)
+                    return pd.Series(False, index=df.index)
+
+    # FILTER TEXT BIASA
+            return df[col].astype(str).str.strip().str.contains(
+                val,
+                case=False,
+                na=False
+            )
 
         mask = (flt(c_tanggal, "tanggal") & flt(c_spk, "spk") &
                 flt(c_customer, "customer") & flt(c_produk, "produk") &
@@ -1946,7 +2091,7 @@ def api_hasil_produksi_packing():
             return datetime.min
 
         rows.sort(key=lambda r: parse_tgl(r["tanggal"]), reverse=True)
-        return jsonify({"rows": rows, "newest_created": newest_created})
+        return jsonify(safe_json({"rows": rows, "newest_created": newest_created}))
 
     except Exception as e:
         import traceback
@@ -2407,7 +2552,7 @@ def submit():
                 "operator_pa": d.get("operator_pa"), "checker": d.get("checker"),
                 "mesin": d.get("mesin"),
                 "berat_bersih": float(d.get("berat_bersih") or 0),
-                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
+                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code, "team": d.get("team")
             }
         elif div == "SISA_PACK":
             record = {
@@ -2419,7 +2564,7 @@ def submit():
                 "mesin": d.get("mesin"),
                 "berat_bersih": float(d.get("berat_bersih") or 0),
                 "sisa": float(d.get("sisa") or 0),
-                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
+                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code, "team": d.get("team")
             }
         elif div == "AVAL_MIXING":
             record = {
@@ -2475,7 +2620,7 @@ def submit():
                 "jenis_pa": d.get("jenis_pa"),
                 "kategori_pa": d.get("kategori_pa"),
                 "berat_bersih": float(d.get("berat_bersih") or 0),
-                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
+                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code, "team": d.get("team")
             }
         elif div == "AVAL_QC":
             record = {

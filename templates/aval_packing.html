@@ -943,6 +943,10 @@
               </select>
             </div>
             <div class="field">
+              <label class="field-label">Team Packing <span class="req">*</span></label>
+              <input type="text" id="team" value="Team" readonly>
+            </div>
+            <div class="field">
               <label class="field-label">Checker<span class="req"></span></label>
               <input type="text" id="checker" value="{{ current_user }}" readonly>
             </div>
@@ -1346,23 +1350,38 @@
         </script>
         <script>
           async function loadOperators() {
-            const divisi = document.getElementById("divisi").value; // "Mixing"
+            const divisi = document.getElementById("divisi").value;
 
             try {
-              const res = await fetch(`/api/operators/${divisi}`);
+              // pakai endpoint khusus yang return operator + team
+              const res = await fetch(`/api/operators_team/${divisi}`);
               const operators = await res.json();
 
-              const select = document.getElementById("operator_pa");
+              const select = document.getElementById("operator_pa"); // ganti sesuai id masing-masing
               select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
 
               operators.forEach(op => {
-                select.innerHTML += `<option value="${op}">${op}</option>`;
+                const opt = document.createElement("option");
+                opt.value = op.operator;
+                opt.textContent = op.operator;
+                opt.dataset.team = op.team || "";
+                select.appendChild(opt);
               });
 
             } catch (e) {
               console.error("Gagal load operator:", e);
             }
           }
+
+          // Auto-fill team saat operator dipilih
+          document.addEventListener("DOMContentLoaded", function () {
+            loadOperators();
+
+            document.getElementById("operator_pa").addEventListener("change", function () {
+              const selected = this.options[this.selectedIndex];
+              document.getElementById("team").value = selected.dataset.team || "";
+            });
+          });
 
           // Panggil saat halaman siap
           document.addEventListener("DOMContentLoaded", function () {
@@ -1379,6 +1398,7 @@
             const requiredFields = [
               { id: "operator_pa", name: "Operator Packing" },
               { id: "checker", name: "Checker" },
+              { id: "shift", name: "Shift" },
               { id: "spk", name: "No. SPK" },
               { id: "jenis_pa", name: "Jenis Aval" },
               { id: "kategori_pa", name: "Kategori Aval" },
@@ -1397,12 +1417,17 @@
             }
 
             // TIDAK BOLEH MINUS ATAU ANGKA YANG TIDAK SESUAI
-            const beratVal = parseFloat(document.getElementById("berat_bersih").value);
+            const beratVal = parseFloat(document.getElementById("berat_kg").value);
             if (isNaN(beratVal) || beratVal <= 0) {
               errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
               errorMsg.classList.add("show");
-              document.getElementById("berat_bersih").focus();
-              document.getElementById("berat_bersih").style.borderColor = "var(--accent)";
+              document.getElementById("berat_kg").focus();
+              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
+              return;
+            } else if (beratVal > 11) {
+              showAlert("Berat maksimal 11 kg");
+              document.getElementById("berat_kg").focus();
+              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
               return;
             }
             document.getElementById("berat_bersih").style.borderColor = "";
@@ -1425,6 +1450,7 @@
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
               operator_pa: document.getElementById("operator_pa").value,
+              team: document.getElementById("team").value,
               checker: document.getElementById("checker").value,
               divisi: document.getElementById("divisi").value,
               spk: document.getElementById("spk").value,
@@ -1484,7 +1510,7 @@
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
 
-            ['spk', 'customer', 'product', 'uk','tali', 'jenis_pa', 'kategori_pa', 'berat_bersih']
+            ['spk', 'customer', 'product', 'uk', 'tali', 'jenis_pa', 'kategori_pa', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
@@ -1509,6 +1535,9 @@
             if (el.value !== "" && (isNaN(val) || val <= 0)) {
               errorMsg.innerText = "Berat tidak boleh minus atau nol";
               errorMsg.classList.add("show");
+              el.style.borderColor = "var(--accent)";
+            } else if (val > 11) {
+              showAlert("Berat maksimal 11 kg");
               el.style.borderColor = "var(--accent)";
             } else {
               errorMsg.classList.remove("show");

@@ -969,7 +969,7 @@
             <!-- Berat Total (kg) -->
             <div class="field">
               <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_kg" placeholder="Masukkan Berat" required oninput="validateBerat(this)">
+              <input type="text" id="berat_kg" placeholder="Masukkan Berat" required min="0.01" max="21" step="0.01" oninput="validateBerat(this)">
             </div>
             <!-- Berat Karung -->
             <div class="field">
@@ -1306,8 +1306,12 @@
 
             const beratVal = parseFloat(document.getElementById("berat_kg").value);
             if (isNaN(beratVal) || beratVal <= 0) {
-              errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
-              errorMsg.classList.add("show");
+              showAlert("Berat tidak boleh minus, nol, atau bukan angka");
+              document.getElementById("berat_kg").focus();
+              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
+              return;
+            } else if (beratVal > 26) {
+              showAlert("Berat maksimal 26 kg");
               document.getElementById("berat_kg").focus();
               document.getElementById("berat_kg").style.borderColor = "var(--accent)";
               return;
@@ -1423,8 +1427,11 @@
             const errorMsg = document.getElementById("error-msg");
 
             if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Berat tidak boleh minus atau nol";
+              showAlert("Berat tidak boleh minus atau nol");
               errorMsg.classList.add("show");
+              el.style.borderColor = "var(--accent)";
+            } else if (val > 26) {
+              showAlert("Berat maksimal 26 kg");
               el.style.borderColor = "var(--accent)";
             } else {
               errorMsg.classList.remove("show");

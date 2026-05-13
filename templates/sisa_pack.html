@@ -941,6 +941,10 @@
               </select>
             </div>
             <div class="field">
+              <label class="field-label">Team Packing <span class="req">*</span></label>
+              <input type="text" id="team" value="Team" readonly>
+            </div>
+            <div class="field">
               <label class="field-label">Checker<span class="req"></span></label>
               <input type="text" id="checker" value="{{ current_user }}" readonly>
             </div>
@@ -1057,6 +1061,7 @@
                     <th>Divisi</th>
                     <th>Shift</th>
                     <th>Operator</th>
+                    <th>Team</th>
                     <th>Checker</th>
                     <th>Code</th>
                   </tr>
@@ -1202,6 +1207,7 @@
             <td>${r.divisi || ""}</td>
             <td>${r.shift || ""}</td>
             <td>${r.operator_sp || ""}</td>
+            <td>${r.team || ""}</td>
             <td>${r.checker || ""}</td>
             <td>${r.code || ""}</td>
         </tr>
@@ -1286,17 +1292,32 @@
         </script>
         <script>
           async function loadOperators() {
-            const divisi = document.getElementById("divisi").value; // "Mixing"
+            const divisi = document.getElementById("divisi").value;
 
             try {
-              const res = await fetch(`/api/operators/${divisi}`);
+              const res = await fetch(`/api/operators_team/${divisi}`);
               const operators = await res.json();
 
               const select = document.getElementById("operator_sp");
-              select.innerHTML = `<option value="">-- Pilih Operator Packing --</option>`;
+
+              select.innerHTML =
+                `<option value="">-- Pilih Operator ${divisi} --</option>`;
 
               operators.forEach(op => {
-                select.innerHTML += `<option value="${op}">${op}</option>`;
+                const opt = document.createElement("option");
+                opt.value = op.operator;
+                opt.textContent = op.operator;
+                opt.dataset.team = op.team || "";
+                select.appendChild(opt);
+              });
+
+              // 🔥 AUTO ISI TEAM
+              select.addEventListener("change", function () {
+                const selected =
+                  this.options[this.selectedIndex];
+
+                document.getElementById("team").value =
+                  selected.dataset.team || "";
               });
 
             } catch (e) {
@@ -1319,6 +1340,7 @@
             const requiredFields = [
               { id: "operator_sp", name: "Operator Packing" },
               { id: "checker", name: "Checker" },
+              { id: "shift", name: "Shift" },
               { id: "spk", name: "No. SPK" },
               { id: "mesin", name: "Mesin" },
               { id: "berat_bersih", name: "Berat Bersih (kg)" },
@@ -1375,6 +1397,7 @@
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
               operator_sp: document.getElementById("operator_sp").value,
+              team: document.getElementById("team").value,
               checker: document.getElementById("checker").value,
               divisi: document.getElementById("divisi").value,
               spk: document.getElementById("spk").value,

@@ -1024,7 +1024,8 @@
             <!-- Berat Bersih -->
             <div class="field">
               <label class="field-label">Afal Qty (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_kg" placeholder="Masukkan Aval Qty" required oninput="validateBerat(this)">
+              <input type="text" id="berat_kg" placeholder="Masukkan Aval Qty" required min="0.01" max="11" step="0.01"
+                oninput="validateBerat(this)">
             </div>
             <!-- Kategori Aval -->
             <div class="field">
@@ -1413,6 +1414,11 @@
               document.getElementById("berat_kg").focus();
               document.getElementById("berat_kg").style.borderColor = "var(--accent)";
               return;
+            } else if (beratVal > 11) {
+              showAlert("Berat maksimal 11 kg");
+              document.getElementById("berat_kg").focus();
+              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
+              return;
             }
             document.getElementById("berat_kg").style.borderColor = "";
 
@@ -1528,6 +1534,9 @@
             if (el.value !== "" && (isNaN(val) || val <= 0)) {
               errorMsg.innerText = "Berat tidak boleh minus atau nol";
               errorMsg.classList.add("show");
+              el.style.borderColor = "var(--accent)";
+            } else if (val > 11) {
+              showAlert("Berat maksimal 11 kg");
               el.style.borderColor = "var(--accent)";
             } else {
               errorMsg.classList.remove("show");
