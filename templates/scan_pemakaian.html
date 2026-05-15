@@ -841,6 +841,10 @@
         </a>
         {% endif %}
         {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
+        <div class="sidebar-section">Production Stock</div>
+        <a href="/stok_produksi" class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Stok Produksi
+        </a>
         <div class="sidebar-section">Production Output</div>
         <a href="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
           <span class="sidebar-dot"></span>Hasil Produksi
