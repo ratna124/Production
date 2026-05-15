@@ -1126,6 +1126,21 @@
             showToast("✔ Filter dan data berhasil direset", "success");
         }
     </script>
+    <script>
+          setInterval(async () => {
+            try {
+              const res = await fetch("/check_session");
+              const data = await res.json();
+
+              if (!data.active) {
+                alert("Session habis, silakan login kembali");
+                window.location.href = "/login";
+              }
+            } catch (err) {
+              console.error(err);
+            }
+          }, 60000);
+        </script>
 </body>
 
 </html>

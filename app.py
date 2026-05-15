@@ -18,7 +18,7 @@ app = Flask(__name__)
 
 # ─── CONFIG ─────────────────────────────────────────────────
 app.secret_key = "GarindraPlastik@2026#Produksi!"
-app.permanent_session_lifetime = timedelta(minutes=45)
+app.permanent_session_lifetime = timedelta(minutes=5)
 
 # ─── PATHS ──────────────────────────────────────────────────
 APP_DIR    = os.path.dirname(os.path.abspath(__file__))
@@ -141,7 +141,7 @@ def check_session_timeout():
 
     if last_active:
         last_active = datetime.fromisoformat(last_active)
-        if now - last_active > timedelta(minutes=45):
+        if now - last_active > timedelta(minutes=5):
             session.clear()
             if request.is_json:
                 return jsonify(success=False, message="SESSION_EXPIRED")
@@ -915,6 +915,22 @@ def login_page():
         return redirect("/mixing")
     return render_template("login.html")
 
+@app.route("/check_session")
+def check_session():
+    if not session.get("logged_in"):
+        return jsonify(active=False)
+#
+    last_active = session.get("last_active")
+
+    if last_active:
+        last_active = datetime.fromisoformat(last_active)
+
+        if datetime.now() - last_active > timedelta(minutes=5):
+            session.clear()
+            return jsonify(active=False)
+
+    return jsonify(active=True)
+
 @app.route("/login", methods=["POST"])
 def login_post():
     data     = request.get_json()
@@ -962,12 +978,6 @@ def login_post():
 def logout():
     session.clear()
     return redirect("/login")
-
-@app.route("/check_session")
-def check_session():
-    if session.get("logged_in"):
-        return jsonify(active=True)
-    return jsonify(active=False)
 
 
 # ─── PAGES ──────────────────────────────────────────────────
@@ -1548,9 +1558,7 @@ def api_hasil_produksi_mixing():
                     print("ERROR FILTER:", e)
                     return pd.Series(False, index=df.index)
 
-    # ==========================
     # FILTER TEXT BIASA
-    # ==========================
             return (
                 df[col]
                 .astype(str)

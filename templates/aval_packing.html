@@ -1403,7 +1403,8 @@
               { id: "jenis_pa", name: "Jenis Aval" },
               { id: "kategori_pa", name: "Kategori Aval" },
               { id: "berat_bersih", name: "Aval Qty (kg)" },
-              { id: "mesin", name: "Mesin" }
+              { id: "mesin", name: "Mesin" },
+
             ];
 
             for (let f of requiredFields) {
@@ -1417,17 +1418,17 @@
             }
 
             // TIDAK BOLEH MINUS ATAU ANGKA YANG TIDAK SESUAI
-            const beratVal = parseFloat(document.getElementById("berat_kg").value);
+            const beratVal = parseFloat(document.getElementById("berat_bersih").value);
             if (isNaN(beratVal) || beratVal <= 0) {
               errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
               errorMsg.classList.add("show");
-              document.getElementById("berat_kg").focus();
-              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
+              document.getElementById("berat_bersih").focus();
+              document.getElementById("berat_bersih").style.borderColor = "var(--accent)";
               return;
             } else if (beratVal > 11) {
               showAlert("Berat maksimal 11 kg");
-              document.getElementById("berat_kg").focus();
-              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
+              document.getElementById("berat_bersih").focus();
+              document.getElementById("berat_bersih").style.borderColor = "var(--accent)";
               return;
             }
             document.getElementById("berat_bersih").style.borderColor = "";
@@ -1560,43 +1561,6 @@
           }
         </script>
         <script>
-          document.addEventListener("keydown", function (e) {
-
-            // hanya Enter atau Tab
-            if (e.key !== "Enter" && e.key !== "Tab") return;
-
-            const active = document.activeElement;
-
-            // ambil field yang bisa diisi saja
-            const fields = [...document.querySelectorAll(
-              'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
-            )].filter(el => el.offsetParent !== null); // skip hidden
-
-            const index = fields.indexOf(active);
-            if (index === -1) return;
-
-            e.preventDefault();
-
-            // mundur jika Shift ditekan
-            let targetIndex;
-
-            if (e.shiftKey) {
-              targetIndex = index - 1;
-            } else {
-              targetIndex = index + 1;
-            }
-
-            const target = fields[targetIndex];
-
-            if (target) {
-              target.focus();
-
-              // auto select text kalau input text
-              if (target.select) {
-                target.select();
-              }
-            }
-          });
 
           function showAlert(msg) {
             document.getElementById("modal-msg").textContent = msg;
@@ -1610,10 +1574,70 @@
             }
           }
 
-          // Tutup dengan Escape
-          document.addEventListener("keydown", function (e) {
-            if (e.key === "Escape") closeModal({ target: document.getElementById("modal-overlay") });
+          // Button save
+          document.addEventListener("keydown", async function (e) {
+
+            // hanya ENTER
+            if (e.key !== "Enter") return;
+
+            const active = document.activeElement;
+
+            const fields = [
+              ...document.querySelectorAll(
+                'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
+              )
+            ].filter(el => el.offsetParent !== null);
+
+            const index = fields.indexOf(active);
+            if (index === -1) return;
+
+            // STOP submit browser
+            e.preventDefault();
+            e.stopPropagation();
+
+            // validasi field aktif
+            if (active.hasAttribute("required") && !active.value.trim()) {
+              showAlert("Field ini wajib diisi");
+              active.focus();
+              return;
+            }
+
+            // kalau BELUM field terakhir → pindah fokus
+            if (index < fields.length - 1) {
+              fields[index + 1].focus();
+              fields[index + 1].select?.();
+              return;
+            }
+
+            // FIELD TERAKHIR → VALIDASI SEMUA
+            const requiredFields = document.querySelectorAll("[required]");
+
+            for (const field of requiredFields) {
+              if (!field.value.trim()) {
+                showAlert(`${field.previousElementSibling.innerText} wajib diisi`);
+                field.focus();
+                return;
+              }
+            }
+
+            // 🔥 AUTO SAVE + PRINT
+            await submitForm();
           });
+        </script>
+        <script>
+          setInterval(async () => {
+            try {
+              const res = await fetch("/check_session");
+              const data = await res.json();
+
+              if (!data.active) {
+                alert("Session habis, silakan login kembali");
+                window.location.href = "/login";
+              }
+            } catch (err) {
+              console.error(err);
+            }
+          }, 60000);
         </script>
         <iframe id="print-frame" style="display:none"></iframe>
         <!-- MODAL ALERT -->

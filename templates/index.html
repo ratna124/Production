@@ -969,7 +969,8 @@
             <!-- Berat Total (kg) -->
             <div class="field">
               <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_kg" placeholder="Masukkan Berat" required min="0.01" max="21" step="0.01" oninput="validateBerat(this)">
+              <input type="text" id="berat_kg" placeholder="Masukkan Berat" required min="0.01" max="21" step="0.01"
+                oninput="validateBerat(this)">
             </div>
             <!-- Berat Karung -->
             <div class="field">
@@ -1440,43 +1441,6 @@
           }
         </script>
         <script>
-          document.addEventListener("keydown", function (e) {
-
-            // hanya Enter atau Tab
-            if (e.key !== "Enter" && e.key !== "Tab") return;
-
-            const active = document.activeElement;
-
-            // ambil field yang bisa diisi saja
-            const fields = [...document.querySelectorAll(
-              'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
-            )].filter(el => el.offsetParent !== null); // skip hidden
-
-            const index = fields.indexOf(active);
-            if (index === -1) return;
-
-            e.preventDefault();
-
-            // mundur jika Shift ditekan
-            let targetIndex;
-
-            if (e.shiftKey) {
-              targetIndex = index - 1;
-            } else {
-              targetIndex = index + 1;
-            }
-
-            const target = fields[targetIndex];
-
-            if (target) {
-              target.focus();
-
-              // auto select text kalau input text
-              if (target.select) {
-                target.select();
-              }
-            }
-          });
           function showAlert(msg) {
             document.getElementById("modal-msg").textContent = msg;
             document.getElementById("modal-overlay").classList.add("show");
@@ -1489,10 +1453,82 @@
             }
           }
 
-          // Tutup dengan Escape
+          //save button
           document.addEventListener("keydown", function (e) {
-            if (e.key === "Escape") closeModal({ target: document.getElementById("modal-overlay") });
+
+            // hanya Enter
+            if (e.key !== "Enter") return;
+
+            const active = document.activeElement;
+
+            // field yang bisa diisi
+            const fields = [
+              ...document.querySelectorAll(
+                'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
+              )
+            ].filter(el => el.offsetParent !== null);
+
+            const index = fields.indexOf(active);
+            if (index === -1) return;
+
+            e.preventDefault();
+
+            // ===== VALIDASI FIELD YANG SEDANG AKTIF =====
+            const value = (active.value || "").trim();
+
+            // kalau required tapi kosong → stop
+            if (active.hasAttribute("required") && !value) {
+              showAlert("Field ini wajib diisi");
+              active.focus();
+              return;
+            }
+
+            // ===== PINDAH KE FIELD BERIKUTNYA =====
+            const next = fields[index + 1];
+
+            if (next) {
+              next.focus();
+
+              // auto select isi input
+              if (next.select) {
+                next.select();
+              }
+
+              return;
+            }
+
+            // ===== KALAU SUDAH FIELD TERAKHIR =====
+            // cek semua required wajib terisi
+            const requiredFields = document.querySelectorAll("[required]");
+
+            for (const field of requiredFields) {
+              const val = (field.value || "").trim();
+
+              if (!val) {
+                showAlert("Masih ada field yang belum diisi");
+                field.focus();
+                return;
+              }
+            }
+
+            // semua sudah terisi → save
+            submitForm();
           });
+        </script>
+        <script>
+          setInterval(async () => {
+            try {
+              const res = await fetch("/check_session");
+              const data = await res.json();
+
+              if (!data.active) {
+                alert("Session habis, silakan login kembali");
+                window.location.href = "/login";
+              }
+            } catch (err) {
+              console.error(err);
+            }
+          }, 60000);
         </script>
         <iframe id="print-frame" style="display:none;"></iframe>
         <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">

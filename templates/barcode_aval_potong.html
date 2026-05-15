@@ -1553,43 +1553,6 @@
           }
         </script>
         <script>
-          document.addEventListener("keydown", function (e) {
-
-            // hanya Enter atau Tab
-            if (e.key !== "Enter" && e.key !== "Tab") return;
-
-            const active = document.activeElement;
-
-            // ambil field yang bisa diisi saja
-            const fields = [...document.querySelectorAll(
-              'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
-            )].filter(el => el.offsetParent !== null); // skip hidden
-
-            const index = fields.indexOf(active);
-            if (index === -1) return;
-
-            e.preventDefault();
-
-            // mundur jika Shift ditekan
-            let targetIndex;
-
-            if (e.shiftKey) {
-              targetIndex = index - 1;
-            } else {
-              targetIndex = index + 1;
-            }
-
-            const target = fields[targetIndex];
-
-            if (target) {
-              target.focus();
-
-              // auto select text kalau input text
-              if (target.select) {
-                target.select();
-              }
-            }
-          });
 
           function showAlert(msg) {
             document.getElementById("modal-msg").textContent = msg;
@@ -1603,10 +1566,86 @@
             }
           }
 
-          // Tutup dengan Escape
+          // Button save
           document.addEventListener("keydown", function (e) {
-            if (e.key === "Escape") closeModal({ target: document.getElementById("modal-overlay") });
+
+            // hanya Enter / Tab
+            if (e.key !== "Enter" && e.key !== "Tab") return;
+
+            const active = document.activeElement;
+
+            // ambil field input yang aktif
+            const fields = [
+              ...document.querySelectorAll(
+                'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
+              )
+            ].filter(el => el.offsetParent !== null);
+
+            const index = fields.indexOf(active);
+            if (index === -1) return;
+
+            // 🔥 stop submit default browser
+            e.preventDefault();
+            e.stopPropagation();
+
+            // validasi field aktif kalau required
+            const value = (active.value || "").trim();
+
+            if (active.hasAttribute("required") && !value) {
+              showAlert("Field ini wajib diisi");
+              active.focus();
+              return;
+            }
+
+            // SHIFT + ENTER → mundur
+            if (e.shiftKey) {
+              const prev = fields[index - 1];
+              if (prev) {
+                prev.focus();
+                prev.select?.();
+              }
+              return;
+            }
+
+            // ENTER / TAB → next field
+            const next = fields[index + 1];
+
+            if (next) {
+              next.focus();
+              next.select?.();
+              return;
+            }
+
+            // kalau field terakhir → submit
+            const requiredFields = document.querySelectorAll("[required]");
+
+            for (const field of requiredFields) {
+              const val = (field.value || "").trim();
+
+              if (!val) {
+                showAlert("Masih ada field yang belum diisi");
+                field.focus();
+                return;
+              }
+            }
+
+            submitForm();
           });
+        </script>
+        <script>
+          setInterval(async () => {
+            try {
+              const res = await fetch("/check_session");
+              const data = await res.json();
+
+              if (!data.active) {
+                alert("Session habis, silakan login kembali");
+                window.location.href = "/login";
+              }
+            } catch (err) {
+              console.error(err);
+            }
+          }, 60000);
         </script>
         <iframe id="print-frame" style="display:none"></iframe>
         <!-- MODAL ALERT -->
