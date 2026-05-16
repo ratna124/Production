@@ -47,14 +47,12 @@
     /* ITEM */
     .sidebar-item {
       display: flex;
-      /* 🔥 biar rapi horizontal icon + text */
       align-items: center;
       gap: 10px;
       padding: 10px 20px;
       cursor: pointer;
 
       text-decoration: none;
-      /* 🔥 HILANGIN GARIS BAWAH */
       color: #aaa;
 
       border-left: 3px solid transparent;
@@ -164,8 +162,6 @@
     .modal-btn:hover {
       background: #c9360a;
     }
-
-
 
     :root {
       --black: #0a0a0a;
@@ -680,11 +676,8 @@
     /* ── RECENT TABLE ─────────────────────────────────────── */
     .table-wrap {
       max-height: 320px;
-      /* tinggi scroll */
       overflow-y: auto;
-      /* scroll vertikal */
       overflow-x: auto;
-      /* scroll horizontal tetap ada */
     }
 
     table {
@@ -804,7 +797,6 @@
 
 <body>
   <div class="shell">
-
     <!-- ── TOPBAR ── -->
     <header class="topbar">
       <span class="topbar-logo">&#9632; Garindra Plastik</span>
@@ -815,8 +807,6 @@
           &#128100; {{ current_user }}
         </span>
         <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
-        <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
-        <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a> -->
       </div>
     </header>
 
@@ -882,7 +872,7 @@
         <span class="page-sub" id="current-date"></span>
       </div>
 
-      <!-- RESULT PANEL (appears after submit) -->
+      <!-- RESULT PANEL -->
       <div class="result-panel" id="result-panel">
         <div class="result-header">
           <span class="result-icon">&#10003;</span>
@@ -900,14 +890,6 @@
               <span class="btn-action-icon">&#9113;</span>
               <span>Cetak Label</span>
             </a>
-            <!-- <a class="btn-action" id="btn-download" href="#">
-            <span class="btn-action-icon">&#8595;</span>
-            <span>Download PNG</span>
-          </a>
-          <div style="font-size:11px;color:var(--gray4);font-family:var(--font-mono);margin:8px 0 4px">STATUS</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; Tersimpan ke database</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; Dicatat ke CSV</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; QR Code generated</div> -->
             <button class="btn-action btn-new" onclick="resetForm()">
               <span class="btn-action-icon">+</span>
               <span>Input baru</span>
@@ -958,27 +940,22 @@
         </div>
         <div class="card-body">
           <div class="form-grid cols-2">
-            <!-- SPK -->
             <div class="field">
               <label class="field-label">No. SPK <span class="req">*</span></label>
               <input type="text" id="spk" placeholder="Masukkan No SPK" required>
             </div>
-            <!-- CUSTOMER -->
             <div class="field">
               <label class="field-label">Customer</label>
               <input type="text" id="customer" readonly>
             </div>
-            <!-- PRODUCT -->
             <div class="field">
               <label class="field-label">Produk</label>
               <input type="text" id="product" readonly>
             </div>
-            <!-- UK -->
             <div class="field">
               <label class="field-label">UKURAN</label>
               <input type="text" id="uk" readonly>
             </div>
-            <!-- Mesin -->
             <div class="field">
               <label class="field-label">Mesin<span class="req">*</span></label>
               <select id="mesin" required>
@@ -995,11 +972,9 @@
                 <option value="20">20</option>
               </select>
             </div>
-            <!-- Jenis Aval -->
             <div class="field">
               <label class="field-label">
                 Jenis Aval<span class="req">*</span>
-                <!-- kode tampil di sebelah label -->
                 <span id="jenis-kode-badge" style="
                 font-family: var(--font-mono);
                 font-size: 11px;
@@ -1021,13 +996,11 @@
                 <option value="Sapuan">(SAP) SAPUAN</option>
               </select>
             </div>
-            <!-- Berat Bersih -->
             <div class="field">
               <label class="field-label">Afal Qty (kg)<span class="req">*</span></label>
               <input type="text" id="berat_kg" placeholder="Masukkan Aval Qty" required min="0.01" max="11" step="0.01"
                 oninput="validateBerat(this)">
             </div>
-            <!-- Kategori Aval -->
             <div class="field">
               <label class="field-label">Kategori Aval</label>
               <input type="text" id="kategori_cu" value="" readonly>
@@ -1067,10 +1040,8 @@
 
             <!-- SEARCH 2 KOLOM -->
             <div style="display:flex; gap:10px; padding:10px; background:#111; border-bottom:1px solid #222;">
-              <!-- TANGGAL -->
               <input id="search-date" type="date"
                 style="flex:1; padding:8px; font-size:12px; background:#1a1a1a; color:#fff; border:1px solid #333; border-radius:6px;">
-              <!-- SPK -->
               <input id="search-spk" type="text" placeholder="Cari SPK..."
                 style="flex:1; padding:8px; font-size:12px; background:#1a1a1a; color:#fff; border:1px solid #333; border-radius:6px;">
             </div>
@@ -1107,10 +1078,8 @@
                 </tbody>
               </table>
             </div>
-
           </div>
         </div>
-
         <script>
           let allData = [];
           let searchTimeout;
@@ -1131,7 +1100,6 @@
             spkInput.addEventListener("input", debounce(handleSpkInput, 300));
           });
 
-          // DEBOUNCE
           function debounce(func, delay) {
             let timer;
             return function (...args) {
@@ -1140,7 +1108,6 @@
             };
           }
 
-          // SPK AUTOFILL
           async function handleSpkInput(e) {
             const spk = e.target.value.trim();
 
@@ -1167,7 +1134,6 @@
             }
           }
 
-          // CLEAR FIELD
           function clearAutoFill() {
             document.getElementById("customer").value = "";
             document.getElementById("product").value = "";
@@ -1178,17 +1144,14 @@
           function updateTime() {
             let now = new Date();
             let hour = now.getHours();
-            // SHIFT
             let shift = (hour >= 7 && hour < 19) ? "P" : "M";
             document.getElementById("shift").value = shift;
             // TANGGAL PRODUKSI
             let prodDate = new Date(now);
-            // 🔥 kalau jam 00:00 - 06:59 → mundur 1 hari
             if (hour < 7) {
               prodDate.setDate(prodDate.getDate() - 1);
             }
 
-            // FORMAT datetime-local
             let formatted =
               prodDate.getFullYear() + "-" +
               String(prodDate.getMonth() + 1).padStart(2, '0') + "-" +
@@ -1215,7 +1178,6 @@
             }
           }
 
-          // RENDER TABLE
           function renderTable(data) {
             console.log(data);
             const tbody = document.getElementById("recent-body");
@@ -1257,7 +1219,6 @@
             const spk = document.getElementById("search-spk").value.toLowerCase();
 
             let filtered = allData;
-
             // SPK FILTER
             if (spk) {
               filtered = filtered.filter(r => {
@@ -1269,7 +1230,7 @@
             // DATE FILTER (DD-MM-YYYY)
             if (date) {
               const [y, m, d] = date.split("-");
-              const target = `${d}-${m}-${y}`;  // ← ubah ke DD-MM-YYYY
+              const target = `${d}-${m}-${y}`;
 
               filtered = filtered.filter(r =>
                 (r.tanggal || "").trim().startsWith(target)
@@ -1279,7 +1240,6 @@
             renderTable(filtered);
           }
 
-          // AUTO FILTER
           function autoFilter() {
             clearTimeout(searchTimeout);
 
@@ -1316,7 +1276,6 @@
               badge.style.display = "none";
             }
           }
-
 
           let timeout = null;
 
@@ -1356,7 +1315,7 @@
         </script>
         <script>
           async function loadOperators() {
-            const divisi = document.getElementById("divisi").value; // "Mixing"
+            const divisi = document.getElementById("divisi").value;
 
             try {
               const res = await fetch(`/api/operators/${divisi}`);
@@ -1374,10 +1333,8 @@
             }
           }
 
-          // Panggil saat halaman siap
           document.addEventListener("DOMContentLoaded", function () {
             loadOperators();
-            // ... kode DOMContentLoaded lainnya yang sudah ada
           });
 
           async function submitForm() {
@@ -1385,7 +1342,6 @@
             const spinner = document.getElementById("spinner");
             const errorMsg = document.getElementById("error-msg");
 
-            // VALIDASI WAJIB
             const requiredFields = [
               { id: "operator_cu", name: "Operator Potong" },
               { id: "checker", name: "Checker" },
@@ -1407,7 +1363,6 @@
               }
             }
 
-            // TIDAK BOLEH MINUS ATAU ANGKA YANG TIDAK SESUAI
             const beratVal = parseFloat(document.getElementById("berat_kg").value);
             if (isNaN(beratVal) || beratVal <= 0) {
               errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
@@ -1422,8 +1377,6 @@
               return;
             }
             document.getElementById("berat_kg").style.borderColor = "";
-
-
 
             errorMsg.classList.remove("show");
             btn.disabled = true;
@@ -1464,7 +1417,6 @@
               document.getElementById("label-img").src = result.label_url;
               document.getElementById("btn-print").href = result.print_url;
 
-              // PRINT TANPA PINDAH HALAMAN
               let frame = document.getElementById("print-frame");
               if (!frame) {
                 frame = document.createElement("iframe");
@@ -1476,11 +1428,9 @@
 
               loadRecent();
 
-              //auto reset
               setTimeout(() => {
                 resetForm();
               }, 2000);
-
             } catch (err) {
               console.error(err);
               showAlert(err.message || "Terjadi kesalahan, coba lagi");
@@ -1500,14 +1450,11 @@
                 if (el) el.value = '';
               });
 
-            // Reset dropdown operator ke default
             const opSelect = document.getElementById("operator_cu");
             if (opSelect) opSelect.selectedIndex = 0;
 
-            // Scroll ke atas
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            // Fokus ke SPK biar langsung bisa input
             document.getElementById("operator_cu").focus();
           }
 
@@ -1517,17 +1464,14 @@
 
             let hasil = berat - karung;
 
-            // biar tidak minus
             if (hasil < 0) hasil = 0;
 
             document.getElementById("berat_bersih").value = hasil.toFixed(2);
           }
 
-          // trigger saat input berubah
           document.getElementById("berat_kg").addEventListener("input", hitungBersih);
           document.getElementById("karung").addEventListener("input", hitungBersih);
 
-          //TIDAK BOLEH MINUS
           function validateBerat(el) {
             const val = parseFloat(el.value);
             const errorMsg = document.getElementById("error-msg");
@@ -1544,31 +1488,25 @@
               el.style.borderColor = "";
             }
           }
-
         </script>
         <script>
-
           function showAlert(msg) {
             document.getElementById("modal-msg").textContent = msg;
             document.getElementById("modal-overlay").classList.add("show");
           }
 
           function closeModal(e) {
-            // Kalau klik overlay (bukan box) atau klik tombol OK
             if (!e || e.target === document.getElementById("modal-overlay")) {
               document.getElementById("modal-overlay").classList.remove("show");
             }
           }
 
-          // Button save
           document.addEventListener("keydown", function (e) {
 
-            // hanya Enter / Tab
             if (e.key !== "Enter" && e.key !== "Tab") return;
 
             const active = document.activeElement;
 
-            // ambil field input yang aktif
             const fields = [
               ...document.querySelectorAll(
                 'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
@@ -1578,11 +1516,9 @@
             const index = fields.indexOf(active);
             if (index === -1) return;
 
-            // 🔥 stop submit default browser
             e.preventDefault();
             e.stopPropagation();
 
-            // validasi field aktif kalau required
             const value = (active.value || "").trim();
 
             if (active.hasAttribute("required") && !value) {
@@ -1591,7 +1527,6 @@
               return;
             }
 
-            // SHIFT + ENTER → mundur
             if (e.shiftKey) {
               const prev = fields[index - 1];
               if (prev) {
@@ -1601,7 +1536,6 @@
               return;
             }
 
-            // ENTER / TAB → next field
             const next = fields[index + 1];
 
             if (next) {
@@ -1610,7 +1544,6 @@
               return;
             }
 
-            // kalau field terakhir → submit
             const requiredFields = document.querySelectorAll("[required]");
 
             for (const field of requiredFields) {
@@ -1652,6 +1585,4 @@
           </div>
         </div>
 </body>
-
-
 </html>

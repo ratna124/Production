@@ -47,14 +47,12 @@
     /* ITEM */
     .sidebar-item {
       display: flex;
-      /* 🔥 biar rapi horizontal icon + text */
       align-items: center;
       gap: 10px;
       padding: 10px 20px;
       cursor: pointer;
 
       text-decoration: none;
-      /* 🔥 HILANGIN GARIS BAWAH */
       color: #aaa;
 
       border-left: 3px solid transparent;
@@ -86,8 +84,6 @@
     .sidebar-item.active .sidebar-dot {
       background: #e8420a;
     }
-
-
 
     :root {
       --black: #0a0a0a;
@@ -680,11 +676,8 @@
     /* ── RECENT TABLE ─────────────────────────────────────── */
     .table-wrap {
       max-height: 320px;
-      /* tinggi scroll */
       overflow-y: auto;
-      /* scroll vertikal */
       overflow-x: auto;
-      /* scroll horizontal tetap ada */
     }
 
     table {
@@ -815,8 +808,6 @@
           &#128100; {{ current_user }}
         </span>
         <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
-        <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
-        <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a> -->
       </div>
     </header>
 
@@ -900,14 +891,6 @@
               <span class="btn-action-icon">&#9113;</span>
               <span>Cetak Label</span>
             </a>
-            <!-- <a class="btn-action" id="btn-download" href="#">
-            <span class="btn-action-icon">&#8595;</span>
-            <span>Download PNG</span>
-          </a>
-          <div style="font-size:11px;color:var(--gray4);font-family:var(--font-mono);margin:8px 0 4px">STATUS</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; Tersimpan ke database</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; Dicatat ke CSV</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; QR Code generated</div> -->
             <button class="btn-action btn-new" onclick="resetForm()">
               <span class="btn-action-icon">+</span>
               <span>Input baru</span>
@@ -966,27 +949,22 @@
         </div>
         <div class="card-body">
           <div class="form-grid cols-2">
-            <!-- SPK -->
             <div class="field">
               <label class="field-label">No. SPK <span class="req">*</span></label>
               <input type="text" id="spk" placeholder="Masukkan No SPK">
             </div>
-            <!-- CUSTOMER -->
             <div class="field">
               <label class="field-label">Customer</label>
               <input type="text" id="customer" readonly>
             </div>
-            <!-- PRODUCT -->
             <div class="field">
               <label class="field-label">Produk</label>
               <input type="text" id="product" readonly>
             </div>
-            <!-- UK -->
             <div class="field">
               <label class="field-label">UKURAN</label>
               <input type="text" id="uk" readonly>
             </div>
-            <!-- Mesin -->
             <div class="field">
               <label class="field-label">Meja<span class="req">*</span></label>
               <select id="mesin" required oninput="validateMeja(this)">
@@ -1006,11 +984,9 @@
                 <option value="18">18</option>
               </select>
             </div>
-            <!-- Jenis Aval -->
             <div class="field">
               <label class="field-label">
                 Jenis Aval<span class="req">*</span>
-                <!-- kode tampil di sebelah label -->
                 <span id="jenis-kode-badge" style="
                 font-family: var(--font-mono);
                 font-size: 11px;
@@ -1030,13 +1006,11 @@
                 <option value="Mutasi">(CUT) MUTASI</option>
               </select>
             </div>
-            <!-- Berat Bersih -->
             <div class="field">
               <label class="field-label">Afal Qty (kg)<span class="req">*</span></label>
               <input type="text" id="berat_bersih" placeholder="Masukkan Aval Qty" required
                 oninput="validateBerat(this)">
             </div>
-            <!-- Kategori Aval -->
             <div class="field">
               <label class="field-label">Kategori Aval</label>
               <input type="text" id="kategori_pa" value="" readonly>
@@ -1068,10 +1042,8 @@
 
             <!-- SEARCH 2 KOLOM -->
             <div style="display:flex; gap:10px; padding:10px; background:#111; border-bottom:1px solid #222;">
-              <!-- TANGGAL -->
               <input id="search-date" type="date"
                 style="flex:1; padding:8px; font-size:12px; background:#1a1a1a; color:#fff; border:1px solid #333; border-radius:6px;">
-              <!-- SPK -->
               <input id="search-spk" type="text" placeholder="Cari SPK..."
                 style="flex:1; padding:8px; font-size:12px; background:#1a1a1a; color:#fff; border:1px solid #333; border-radius:6px;">
             </div>
@@ -1178,9 +1150,8 @@
           function updateTime() {
             let now = new Date();
             let hour = now.getHours();
-            // TANGGAL PRODUKSI
             let prodDate = new Date(now);
-            // 🔥 kalau jam 00:00 - 06:59 → mundur 1 hari
+            // jam 00:00 - 06:59
             if (hour < 7) {
               prodDate.setDate(prodDate.getDate() - 1);
             }
@@ -1212,7 +1183,6 @@
             }
           }
 
-          // RENDER TABLE
           function renderTable(data) {
             console.log(data);
             const tbody = document.getElementById("recent-body");
@@ -1275,7 +1245,6 @@
             renderTable(filtered);
           }
 
-          // AUTO FILTER
           function autoFilter() {
             clearTimeout(searchTimeout);
 
@@ -1310,7 +1279,6 @@
               badge.style.display = "none";
             }
           }
-
 
           let timeout = null;
 
@@ -1353,7 +1321,6 @@
             const divisi = document.getElementById("divisi").value;
 
             try {
-              // pakai endpoint khusus yang return operator + team
               const res = await fetch(`/api/operators_team/${divisi}`);
               const operators = await res.json();
 
@@ -1383,10 +1350,8 @@
             });
           });
 
-          // Panggil saat halaman siap
           document.addEventListener("DOMContentLoaded", function () {
             loadOperators();
-            // ... kode DOMContentLoaded lainnya yang sudah ada
           });
 
           async function submitForm() {
@@ -1394,7 +1359,6 @@
             const spinner = document.getElementById("spinner");
             const errorMsg = document.getElementById("error-msg");
 
-            // VALIDASI WAJIB
             const requiredFields = [
               { id: "operator_pa", name: "Operator Packing" },
               { id: "checker", name: "Checker" },
@@ -1481,7 +1445,6 @@
               document.getElementById("label-img").src = result.label_url;
               document.getElementById("btn-print").href = result.print_url;
 
-              // PRINT TANPA PINDAH HALAMAN
               let frame = document.getElementById("print-frame");
               if (!frame) {
                 frame = document.createElement("iframe");
@@ -1493,7 +1456,6 @@
 
               loadRecent();
 
-              //auto reset
               setTimeout(() => {
                 resetForm();
               }, 2000);
@@ -1517,14 +1479,12 @@
                 if (el) el.value = '';
               });
 
-            // Reset dropdown operator ke default
+            // Reset dropdown operator
             const opSelect = document.getElementById("operator_pa");
             if (opSelect) opSelect.selectedIndex = 0;
 
-            // Scroll ke atas
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            // Fokus ke SPK biar langsung bisa input
             document.getElementById("operator_pa").focus();
           }
 
@@ -1561,23 +1521,19 @@
           }
         </script>
         <script>
-
           function showAlert(msg) {
             document.getElementById("modal-msg").textContent = msg;
             document.getElementById("modal-overlay").classList.add("show");
           }
 
           function closeModal(e) {
-            // Kalau klik overlay (bukan box) atau klik tombol OK
             if (!e || e.target === document.getElementById("modal-overlay")) {
               document.getElementById("modal-overlay").classList.remove("show");
             }
           }
 
-          // Button save
           document.addEventListener("keydown", async function (e) {
 
-            // hanya ENTER
             if (e.key !== "Enter") return;
 
             const active = document.activeElement;
@@ -1591,25 +1547,21 @@
             const index = fields.indexOf(active);
             if (index === -1) return;
 
-            // STOP submit browser
             e.preventDefault();
             e.stopPropagation();
 
-            // validasi field aktif
             if (active.hasAttribute("required") && !active.value.trim()) {
               showAlert("Field ini wajib diisi");
               active.focus();
               return;
             }
 
-            // kalau BELUM field terakhir → pindah fokus
             if (index < fields.length - 1) {
               fields[index + 1].focus();
               fields[index + 1].select?.();
               return;
             }
 
-            // FIELD TERAKHIR → VALIDASI SEMUA
             const requiredFields = document.querySelectorAll("[required]");
 
             for (const field of requiredFields) {
@@ -1620,7 +1572,6 @@
               }
             }
 
-            // 🔥 AUTO SAVE + PRINT
             await submitForm();
           });
         </script>
@@ -1650,6 +1601,4 @@
           </div>
         </div>
 </body>
-
-
 </html>

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stok Packing</title>
+    <title>Stok Mixing</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
@@ -46,6 +46,8 @@
             min-height: 100vh;
         }
 
+        /* ============ LAYOUT ============ */
+
         .shell {
             display: grid;
             grid-template-columns: 240px 1fr;
@@ -53,14 +55,18 @@
             min-height: 100vh;
         }
 
+        /* ============ TOPBAR ============ */
+
         .topbar {
             grid-column: 1/-1;
             background: var(--gray1);
             border-bottom: 1px solid var(--border);
+
             display: flex;
             align-items: center;
             padding: 0 24px;
             gap: 16px;
+
             position: sticky;
             top: 0;
             z-index: 100;
@@ -120,6 +126,7 @@
         .sidebar {
             background: var(--gray1);
             border-right: 1px solid var(--border);
+
             display: flex;
             flex-direction: column;
             padding: 24px 0;
@@ -138,9 +145,11 @@
             display: flex;
             align-items: center;
             gap: 10px;
+
             padding: 12px 20px;
             color: var(--gray5);
             text-decoration: none;
+
             border-left: 2px solid transparent;
             transition: .15s;
         }
@@ -207,9 +216,9 @@
         }
 
         .divisi-badge {
-            background: rgba(245, 158, 11, 0.15);
-            color: #f59e0b;
-            border: 1px solid rgba(245, 158, 11, 0.3);
+            background: rgba(167, 139, 250, 0.15);
+            color: #a78bfa;
+            border: 1px solid rgba(167, 139, 250, 0.3);
             padding: 4px 12px;
             border-radius: 999px;
             font-size: 11px;
@@ -222,6 +231,8 @@
             font-size: 11px;
             font-family: var(--font-mono);
         }
+
+        /* ============ CARD ============ */
 
         .card {
             background: var(--gray1);
@@ -245,9 +256,11 @@
             width: 22px;
             height: 22px;
             border-radius: 4px;
+
             display: flex;
             align-items: center;
             justify-content: center;
+
             font-family: var(--font-mono);
             font-size: 11px;
         }
@@ -259,6 +272,8 @@
         .card-body {
             padding: 20px;
         }
+
+        /* ============ FILTER ============ */
 
         .filter-bar {
             display: flex;
@@ -362,6 +377,8 @@
             color: var(--gray4);
         }
 
+        /* ============ TABLE ============ */
+
         .prod-table-wrap {
             overflow: auto;
             max-height: calc(100vh - 300px);
@@ -378,6 +395,7 @@
             top: 0;
             background: var(--gray3);
             z-index: 10;
+
             padding: 12px;
             text-align: left;
             font-size: 10px;
@@ -406,9 +424,9 @@
             text-align: right;
         }
 
-        .col-packing {
-            color: #f59e0b;
-        }
+        .col-mixing {
+    color: #22c55e;
+}
 
         tfoot td {
             position: sticky;
@@ -434,7 +452,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .toast {
@@ -451,9 +471,11 @@
             .shell {
                 grid-template-columns: 1fr;
             }
+
             .sidebar {
                 display: none;
             }
+
             .main {
                 padding: 20px;
             }
@@ -466,9 +488,9 @@
 
         <!-- TOPBAR -->
         <header class="topbar">
-            <span class="topbar-logo">&#9632; STOK PACKING</span>
+            <span class="topbar-logo">&#9632; STOK MIXING</span>
             <span class="topbar-sep"></span>
-            <span class="topbar-title">Rekap Stok Packing per SPK</span>
+            <span class="topbar-title">Rekap Stok Mixing per SPK</span>
 
             <div class="topbar-right">
                 <span class="clock" id="clock"></span>
@@ -500,6 +522,10 @@
                 <a href="/stok_produksi"
                     class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Stok Produksi
+                </a>
+                <a href="/stok_mixing"
+                    class="sidebar-item {% if active_page == 'stok_mixing' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Stok Mixing
                 </a>
                 <a href="/stok_hd"
                     class="sidebar-item {% if active_page == 'stok_hd' %}active{% endif %}">
@@ -555,8 +581,8 @@
         <!-- MAIN -->
         <main class="main">
             <div class="page-header">
-                <h1 class="page-title">STOK PACKING</h1>
-                <span class="divisi-badge">Divisi Packing</span>
+                <h1 class="page-title">STOK MIXING</h1>
+                <span class="divisi-badge">Divisi MIXING</span>
                 <span class="current-date" id="current-date"></span>
             </div>
 
@@ -592,7 +618,8 @@
                             </button>
                         </div>
                     </div>
-                    <div class="toast hidden" id="toast"></div>
+                    <div class="toast hidden" id="toast">
+                    </div>
                 </div>
             </div>
 
@@ -600,11 +627,14 @@
             <div class="card">
                 <div class="card-header">
                     <span class="card-header-num">2</span>
-                    <span class="card-header-title">Tabel Stok Packing</span>
+                    <span class="card-header-title">Tabel Stok Mixing</span>
                 </div>
+                <!-- SEARCH -->
                 <div class="search-section">
                     <div class="search-wrap">
-                        <span class="search-icon">&#128269;</span>
+                        <span class="search-icon">
+                            &#128269;
+                        </span>
                         <input type="text" id="tbl-search" placeholder="Cari SPK / Produk..." oninput="filterTable()">
                     </div>
                     <span class="tbl-count">
@@ -612,6 +642,7 @@
                     </span>
                 </div>
 
+                <!-- TABLE -->
                 <div class="prod-table-wrap">
                     <table class="prod-table">
                         <thead>
@@ -620,20 +651,21 @@
                                 <th>Customer</th>
                                 <th>Produk</th>
                                 <th>Uk</th>
-                                <th class="num col-packing">Ball</th>
+                                <th class="num col-mixing">Karung</th>
                             </tr>
                         </thead>
                         <tbody id="prod-tbody">
                             <tr>
                                 <td colspan="5" class="table-empty">
-                                    Klik "Muat Data" untuk menampilkan stok Packing...
+                                    Klik "Muat Data"
+                                    untuk menampilkan stok Mixing...
                                 </td>
                             </tr>
                         </tbody>
                         <tfoot id="prod-tfoot">
                             <tr>
                                 <td colspan="4">TOTAL</td>
-                                <td class="num col-packing" id="ft-packing">0</td>
+                                <td class="num col-mixing" id="ft-mixing">0</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -647,16 +679,28 @@
         let filtered = [];
         let toastTimer;
 
+        // ======================
+        // INIT
+        // ======================
         document.addEventListener("DOMContentLoaded", () => {
             updateClock();
             setInterval(updateClock, 1000);
+
             document.getElementById("current-date").textContent =
-                new Date().toLocaleDateString("id-ID", {
-                    weekday: "long", year: "numeric",
-                    month: "long",  day: "numeric"
-                });
+                new Date().toLocaleDateString(
+                    "id-ID",
+                    {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric"
+                    }
+                );
         });
 
+        // ======================
+        // CLOCK
+        // ======================
         function updateClock() {
             const now = new Date();
             const pad = n => String(n).padStart(2, "0");
@@ -664,14 +708,22 @@
                 `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
         }
 
+        // ======================
+        // TOAST
+        // ======================
         function showToast(msg, type = "success") {
             const t = document.getElementById("toast");
             t.textContent = msg;
             t.className = `toast ${type}`;
             clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => { t.className = "toast hidden"; }, 4000);
+            toastTimer = setTimeout(() => {
+                t.className = "toast hidden";
+            }, 4000);
         }
 
+        // ======================
+        // LOAD DATA
+        // ======================
         async function loadData() {
             const spinner = document.getElementById("load-spinner");
             spinner.style.display = "block";
@@ -681,7 +733,7 @@
             const produk   = document.getElementById("filter-produk").value.trim();
             const uk       = document.getElementById("filter-uk").value.trim();
 
-            showToast("⏳ Memuat data stok Packing...", "success");
+            showToast("⏳ Memuat data stok HD...", "success");
 
             try {
                 const params = new URLSearchParams();
@@ -690,11 +742,13 @@
                 if (produk)   params.set("produk",    produk);
                 if (uk)       params.set("uk",        uk);
 
-                const res = await fetch("/api/stok_packing?" + params.toString());
+                const res = await fetch("/api/stok_mixing?" + params.toString());
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
                 const data = await res.json();
-                allRows  = data.rows || [];
+
+                // Hanya ambil baris yang memiliki stok HD > 0
+                allRows = data.rows || [];
                 filtered = [...allRows];
 
                 renderTable(filtered);
@@ -706,7 +760,7 @@
                 document.getElementById("sb-time").textContent =
                     `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
-                showToast(`✔ ${filtered.length} data Packing berhasil dimuat`, "success");
+                showToast(`✔ ${filtered.length} data HD berhasil dimuat`, "success");
 
             } catch (err) {
                 console.error(err);
@@ -716,6 +770,9 @@
             spinner.style.display = "none";
         }
 
+        // ======================
+        // SEARCH TABLE
+        // ======================
         function filterTable() {
             const q = document.getElementById("tbl-search").value.toLowerCase();
 
@@ -736,6 +793,9 @@
             renderTable(filtered);
         }
 
+        // ======================
+        // RENDER TABLE
+        // ======================
         function renderTable(rows) {
             const tbody = document.getElementById("prod-tbody");
             const tfoot = document.getElementById("prod-tfoot");
@@ -745,13 +805,16 @@
             if (!rows.length) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="table-empty">Tidak ada data Packing</td>
+                        <td colspan="5" class="table-empty">
+                            Tidak ada data HD
+                        </td>
                     </tr>`;
                 tfoot.style.display = "none";
                 return;
             }
 
             tbody.innerHTML = "";
+
             rows.forEach(r => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
@@ -759,16 +822,21 @@
                     <td>${esc(r.customer)}</td>
                     <td>${esc(r.produk)}</td>
                     <td>${esc(r.uk)}</td>
-                    <td class="num col-packing">${fmtNum(r.packing)}</td>
+                    <td class="num col-mixing">${fmtNum(r.mixing)}</td>
                 `;
                 tbody.appendChild(tr);
             });
 
-            const totalPacking = rows.reduce((a, r) => a + (parseFloat(r.packing) || 0), 0);
-            document.getElementById("ft-packing").textContent = fmtNum(totalPacking);
+            // FOOTER TOTAL
+            const totalMixing = rows.reduce((a, r) => a + (parseFloat(r.mixing) || 0), 0);
+            document.getElementById("ft-mixing").textContent = fmtNum(totalMixing);
+
             tfoot.style.display = "";
         }
 
+        // ======================
+        // RESET
+        // ======================
         function resetFilter() {
             ["filter-spk", "filter-customer", "filter-produk", "filter-uk", "tbl-search"]
                 .forEach(id => { document.getElementById(id).value = ""; });
@@ -778,7 +846,9 @@
 
             document.getElementById("prod-tbody").innerHTML = `
                 <tr>
-                    <td colspan="5" class="table-empty">Klik "Muat Data"</td>
+                    <td colspan="5" class="table-empty">
+                        Klik "Muat Data"
+                    </td>
                 </tr>`;
 
             document.getElementById("prod-tfoot").style.display = "none";
@@ -789,6 +859,9 @@
             showToast("✔ Reset berhasil", "success");
         }
 
+        // ======================
+        // FORMAT NUMBER
+        // ======================
         function fmtNum(val) {
             const n = parseFloat(val) || 0;
             return n.toLocaleString("id-ID", {
@@ -797,6 +870,9 @@
             });
         }
 
+        // ======================
+        // ESCAPE HTML
+        // ======================
         function esc(s) {
             return String(s || "")
                 .replace(/&/g, "&amp;")

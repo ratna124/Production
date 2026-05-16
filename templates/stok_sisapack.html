@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stok Packing</title>
+    <title>Stok Sisa Packing</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
@@ -406,7 +406,7 @@
             text-align: right;
         }
 
-        .col-packing {
+        .col-sisapack {
             color: #f59e0b;
         }
 
@@ -466,9 +466,9 @@
 
         <!-- TOPBAR -->
         <header class="topbar">
-            <span class="topbar-logo">&#9632; STOK PACKING</span>
+            <span class="topbar-logo">&#9632; STOK SISA PACKING</span>
             <span class="topbar-sep"></span>
-            <span class="topbar-title">Rekap Stok Packing per SPK</span>
+            <span class="topbar-title">Rekap Stok Sisa Packing per SPK</span>
 
             <div class="topbar-right">
                 <span class="clock" id="clock"></span>
@@ -555,7 +555,7 @@
         <!-- MAIN -->
         <main class="main">
             <div class="page-header">
-                <h1 class="page-title">STOK PACKING</h1>
+                <h1 class="page-title">STOK SISA PACKING</h1>
                 <span class="divisi-badge">Divisi Packing</span>
                 <span class="current-date" id="current-date"></span>
             </div>
@@ -600,7 +600,7 @@
             <div class="card">
                 <div class="card-header">
                     <span class="card-header-num">2</span>
-                    <span class="card-header-title">Tabel Stok Packing</span>
+                    <span class="card-header-title">Tabel Stok Sisa Packing</span>
                 </div>
                 <div class="search-section">
                     <div class="search-wrap">
@@ -620,20 +620,20 @@
                                 <th>Customer</th>
                                 <th>Produk</th>
                                 <th>Uk</th>
-                                <th class="num col-packing">Ball</th>
+                                <th class="num col-sisapack">Ikat / Pack</th>
                             </tr>
                         </thead>
                         <tbody id="prod-tbody">
                             <tr>
                                 <td colspan="5" class="table-empty">
-                                    Klik "Muat Data" untuk menampilkan stok Packing...
+                                    Klik "Muat Data" untuk menampilkan stok Sisa Packing...
                                 </td>
                             </tr>
                         </tbody>
                         <tfoot id="prod-tfoot">
                             <tr>
                                 <td colspan="4">TOTAL</td>
-                                <td class="num col-packing" id="ft-packing">0</td>
+                                <td class="num col-sisapack" id="ft-sisapack">0</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -681,7 +681,7 @@
             const produk   = document.getElementById("filter-produk").value.trim();
             const uk       = document.getElementById("filter-uk").value.trim();
 
-            showToast("⏳ Memuat data stok Packing...", "success");
+            showToast("⏳ Memuat data stok Sisa Packing...", "success");
 
             try {
                 const params = new URLSearchParams();
@@ -690,7 +690,7 @@
                 if (produk)   params.set("produk",    produk);
                 if (uk)       params.set("uk",        uk);
 
-                const res = await fetch("/api/stok_packing?" + params.toString());
+                const res = await fetch("/api/stok_sisapack?" + params.toString());
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
                 const data = await res.json();
@@ -706,7 +706,7 @@
                 document.getElementById("sb-time").textContent =
                     `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
-                showToast(`✔ ${filtered.length} data Packing berhasil dimuat`, "success");
+                showToast(`✔ ${filtered.length} data Sisa Packing berhasil dimuat`, "success");
 
             } catch (err) {
                 console.error(err);
@@ -745,7 +745,7 @@
             if (!rows.length) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="table-empty">Tidak ada data Packing</td>
+                        <td colspan="5" class="table-empty">Tidak ada data Sisa Packing</td>
                     </tr>`;
                 tfoot.style.display = "none";
                 return;
@@ -759,13 +759,13 @@
                     <td>${esc(r.customer)}</td>
                     <td>${esc(r.produk)}</td>
                     <td>${esc(r.uk)}</td>
-                    <td class="num col-packing">${fmtNum(r.packing)}</td>
+                    <td class="num col-sisapack">${fmtNum(r.sisa_pack)}</td>
                 `;
                 tbody.appendChild(tr);
             });
 
-            const totalPacking = rows.reduce((a, r) => a + (parseFloat(r.packing) || 0), 0);
-            document.getElementById("ft-packing").textContent = fmtNum(totalPacking);
+            const totalSisaPack = rows.reduce((a, r) => a + (parseFloat(r.sisa_pack) || 0), 0);
+            document.getElementById("ft-sisapack").textContent = fmtNum(totalSisaPack);
             tfoot.style.display = "";
         }
 

@@ -490,7 +490,7 @@
     /* ── TABLE ── */
     .col-header {
       display: grid;
-      grid-template-columns: 30px minmax(0, 2fr) 50px minmax(0, 1fr) minmax(0, 1.5fr) 65px minmax(0, 1fr) 36px;
+      grid-template-columns: 30px minmax(0, 2fr) 50px minmax(0, 1fr) minmax(0, 1.5fr) 100px 65px minmax(0, 1fr) 36px;
       gap: 8px;
       padding: 6px 16px;
       background: var(--gray3);
@@ -526,7 +526,7 @@
 
     .code-row {
       display: grid;
-      grid-template-columns: 30px minmax(0, 2fr) 50px minmax(0, 1fr) minmax(0, 1.5fr) 65px minmax(0, 1fr) 36px;
+      grid-template-columns: 30px minmax(0, 2fr) 50px minmax(0, 1fr) minmax(0, 1.5fr) 100px 65px minmax(0, 1fr) 36px;
       align-items: start;
       gap: 8px;
       padding: 8px 16px;
@@ -850,7 +850,7 @@
           <span class="sidebar-dot"></span>Hasil Produksi
         </a>
         {% endif %}
-        
+
         {% if session.get('role') in ('administrator', 'adminwip') %}
         <div class="sidebar-section">Scan</div>
         <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
@@ -976,7 +976,10 @@
               </div>
               <input type="hidden" id="shift" value="">
             </div>
-
+            <div class="field">
+              <label class="field-label">Mesin<span class="req">*</span></label>
+              <input type="text" id="mesin" required oninput="renderSummary()">
+            </div>
           </div>
         </div>
       </div>
@@ -1017,6 +1020,7 @@
           <span>SPK</span>
           <span>Customer</span>
           <span>Produk</span>
+          <span>Berat</span>
           <span>Checker</span>
           <span>Divisi</span>
           <span>Del</span>
@@ -1037,7 +1041,52 @@
           <span class="action-feedback" id="action-feedback"></span>
         </div>
       </div>
+      <!-- CARD 4: Summary Berat per SPK -->
+      <div class="card" id="summary-card" style="display:none">
+        <div class="card-header">
+          <span class="card-header-num">4</span>
+          <span class="card-header-title">Summary Total Berat</span>
+          <span class="card-header-extra" style="font-family:var(--font-mono);font-size:11px;color:var(--gray4)">
+            group by SPK · Customer · Produk · UK · Mesin · Divisi
+          </span>
+        </div>
 
+        <div style="overflow-x:auto">
+          <table id="summary-table"
+            style="width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:12px">
+            <thead>
+              <tr style="background:var(--gray3);color:var(--gray4)">
+                <th
+                  style="padding:8px 14px;text-align:left;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
+                  SPK</th>
+                <th
+                  style="padding:8px 14px;text-align:left;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
+                  Customer</th>
+                <th
+                  style="padding:8px 14px;text-align:left;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
+                  Produk</th>
+                <th
+                  style="padding:8px 14px;text-align:left;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
+                  UK</th>
+                <th
+                  style="padding:8px 14px;text-align:left;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
+                  Mesin</th>
+                <th
+                  style="padding:8px 14px;text-align:left;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
+                  Divisi</th>
+                <th
+                  style="padding:8px 14px;text-align:right;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
+                  Qty</th>
+                <th
+                  style="padding:8px 14px;text-align:right;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
+                  Total Berat (kg)</th>
+              </tr>
+            </thead>
+            <tbody id="summary-tbody"></tbody>
+            <tfoot id="summary-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
     </main>
   </div>
 
@@ -1160,14 +1209,14 @@
           codes.push({
             code: val, prefix, divisi_label: divisiLabel, csv_file: csvFile,
             spk: data.spk, customer: data.customer,
-            produk: data.produk, uk: data.uk, checker: data.checker,
+            produk: data.produk, uk: data.uk, berat_bersih: data.berat_bersih, checker: data.checker,
             found: true
           });
           showToast(`✔ [${prefix}] ${divisiLabel} — ${val}`, "success");
         } else {
           codes.push({
             code: val, prefix, divisi_label: divisiLabel, csv_file: csvFile,
-            spk: "-", customer: "-", produk: "-", uk: "-", checker: "-",
+            spk: "-", customer: "-", produk: "-", uk: "-", berat_bersih: "-", checker: "-",
             found: false
           });
           showToast(`⚠ [${prefix}] Kode tidak ditemukan di katalog: ${val}`, "warning");
@@ -1178,7 +1227,7 @@
           code: val, prefix: localPrefix,
           divisi_label: PREFIX_LABEL[localPrefix] || "?",
           csv_file: null,
-          spk: "-", customer: "-", produk: "-", uk: "-", checker: "-",
+          spk: "-", customer: "-", produk: "-", uk: "-", berat_bersih: "-", checker: "-",
           found: false
         });
         showToast("⚠ Gagal lookup: " + val, "warning");
@@ -1186,6 +1235,7 @@
 
       renderList();
       updateStats();
+      renderSummary();
     }
 
     // ── RENDER LIST ──
@@ -1216,20 +1266,22 @@
         };
 
         row.innerHTML = `
-          <span class="code-idx">${i + 1}</span>
-          ${cell(c.code, 'var(--white)')}
-          ${cell(c.spk)}
-          ${cell(c.customer)}
-          ${cell(c.produk)}
-          ${cell(c.checker)}
-          <span class="code-text" style="color:var(--accent2);font-size:10px;line-height:1.3">${escHtml(c.divisi_label || c.prefix || "?")}</span>
-          <button class="btn-del" onclick="deleteCode(${i})">✕</button>
-        `;
+  <span class="code-idx">${i + 1}</span>
+  ${cell(c.code, 'var(--white)')}
+  ${cell(c.spk)}
+  ${cell(c.customer)}
+  ${cell(c.produk)}
+  ${cell(c.berat_bersih, 'var(--success)')}
+  ${cell(c.checker)}
+  <span class="code-text" style="color:var(--accent2);font-size:10px;line-height:1.3">${escHtml(c.divisi_label || c.prefix || "?")}</span>
+  <button class="btn-del" onclick="deleteCode(${i})">✕</button>
+`;
         list.appendChild(row);
       });
 
       list.scrollTop = list.scrollHeight;
       updateSubmitState();
+      renderSummary();
     }
 
     // ── VALIDATION BANNER & SUBMIT STATE ──
@@ -1277,6 +1329,7 @@
       codes.splice(idx, 1);
       renderList();
       updateStats();
+      renderSummary();
     }
 
     function clearAll() {
@@ -1285,6 +1338,7 @@
       codes = [];
       renderList();
       updateStats();
+      renderSummary();
     }
 
     function updateStats() {
@@ -1298,6 +1352,7 @@
       const el = document.getElementById("stat-divisi");
       if (el) el.textContent = summary || "—";
     }
+
 
     // ── TOAST ──
     let toastTimer;
@@ -1314,6 +1369,7 @@
       if (!codes.length) { alert("Belum ada kode."); return; }
 
       const tanggal = document.getElementById("tanggal").value;
+      const mesin = document.getElementById("mesin").value;
       if (!tanggal) {
         alert("⚠ Tanggal & waktu wajib diisi.");
         document.getElementById("tanggal").focus();
@@ -1328,6 +1384,12 @@
       const invalid = codes.filter(c => !isCodeValid(c));
       if (invalid.length > 0) {
         alert(`⛔ Ada ${invalid.length} kode yang checker atau divisnya tidak terdeteksi.\nHapus kode tersebut terlebih dahulu.`);
+        return;
+      }
+
+      if (!mesin) {
+        alert("⚠ Pilih mesin terlebih dahulu.");
+        document.getElementById("mesin").focus();
         return;
       }
 
@@ -1347,7 +1409,8 @@
             records: codes,
             tanggal: tanggal,       // tanggal input manual user
             shift: selectedShift,
-            created_at: created_at  // ← timestamp otomatis saat submit
+            created_at: created_at,  // ← timestamp otomatis saat submit
+            mesin: mesin,
           })
         });
 
@@ -1364,6 +1427,27 @@
         codes = [];
         renderList();
         updateStats();
+        renderSummary();
+
+        // Reset tanggal ke waktu sekarang
+        const now = new Date();
+        const pad = n => String(n).padStart(2, "0");
+        const localDT = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        document.getElementById("tanggal").value = localDT;
+
+        // Reset shift
+        selectedShift = "";
+        document.getElementById("shift").value = "";
+        document.getElementById("pill-P").className = "shift-pill";
+        document.getElementById("pill-M").className = "shift-pill";
+        const statShift = document.getElementById("stat-shift");
+        if (statShift) { statShift.textContent = "—"; statShift.style.color = "var(--accent2)"; }
+
+        // Reset mesin
+        document.getElementById("mesin").value = "";
+
+        // Fokus ke scan input
+        document.getElementById("scan-input").focus();
 
       } catch (err) {
         alert("❌ Gagal: " + err.message);
@@ -1379,22 +1463,117 @@
       document.getElementById("scan-input").focus();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+
+    function validateMesin(el) {
+      const val = parseFloat(el.value);
+      const errorMsg = document.getElementById("error-msg");
+
+      if (el.value !== "" && (isNaN(val) || val <= 0)) {
+        errorMsg.innerText = "Mesin tidak boleh minus atau nol";
+        errorMsg.classList.add("show");
+        el.style.borderColor = "var(--accent)";
+      } else {
+        errorMsg.classList.remove("show");
+        el.style.borderColor = "";
+      }
+    }
+
+    // ── DIVISI COLOR MAP ──
+    function getDivisiColor(divisi) {
+      const d = (divisi || "").toLowerCase();
+      if (d.includes("mixing") && d.includes("aval")) return "#e879f9";  // ungu — Aval Mixing
+      if (d.includes("mixing")) return "#e879f9";  // fushia
+      if (d.includes("hd") && d.includes("prong")) return "#60a5fa";  // merah muda — HD Prong
+      if (d.includes("hd") && d.includes("daun")) return "#60a5fa";  // oranye — HD Daun
+      if (d.includes("hd") && d.includes("sapuan")) return "#60a5fa";  // kuning — HD Sapuan
+      if (d.includes("hd")) return "#60a5fa";  // biru — HD
+      if (d.includes("potong") && d.includes("aval")) return "#34d399";  // ungu muda — Aval Potong
+      if (d.includes("potong")) return "#34d399";  // teal — Potong
+      if (d.includes("sisa")) return "#f472b6";  // pink — Sisa Pack
+      if (d.includes("packing") && d.includes("aval")) return "#a78bfa";  // fuchsia — Aval Packing
+      if (d.includes("packing")) return "#a78bfa";  // sky — Packing
+      if (d.includes("qc")) return "#facc15";  // kuning — QC
+      return "var(--gray5)";
+    }
+
+    function renderSummary() {
+      const card = document.getElementById("summary-card");
+      const tbody = document.getElementById("summary-tbody");
+      const tfoot = document.getElementById("summary-tfoot");
+
+      if (!codes.length) { card.style.display = "none"; return; }
+      card.style.display = "";
+
+      // Ambil mesin dari input (live)
+      const mesinVal = document.getElementById("mesin").value.trim() || "—";
+
+      // Group
+      const map = {};
+      codes.forEach(c => {
+        const divisiVal = c.divisi_label || c.prefix || "—";
+        const key = [c.spk || "—", c.customer || "—", c.produk || "—", c.uk || "—", mesinVal, divisiVal].join("||");
+        if (!map[key]) map[key] = {
+          spk: c.spk || "—", customer: c.customer || "—",
+          produk: c.produk || "—", uk: c.uk || "—",
+          mesin: mesinVal, divisi: divisiVal,
+          qty: 0, berat: 0
+        };
+        map[key].qty++;
+        const b = parseFloat(String(c.berat_bersih).replace(",", "."));
+        if (!isNaN(b)) map[key].berat += b;
+      });
+
+      const rows = Object.values(map);
+      const totalQty = rows.reduce((s, r) => s + r.qty, 0);
+      const totalBerat = rows.reduce((s, r) => s + r.berat, 0);
+
+      tbody.innerHTML = rows.map((r, i) => `
+  <tr style="border-bottom:1px solid rgba(46,46,46,.5);${i % 2 === 0 ? 'background:rgba(255,255,255,.01)' : 'background:rgba(0,0,0,.15)'}">
+    <td style="padding:8px 14px;color:var(--white)">${escHtml(r.spk)}</td>
+    <td style="padding:8px 14px;color:var(--gray5)">${escHtml(r.customer)}</td>
+    <td style="padding:8px 14px;color:var(--gray5)">${escHtml(r.produk)}</td>
+    <td style="padding:8px 14px;color:var(--gray5)">${escHtml(r.uk)}</td>
+    <td style="padding:8px 14px;color:var(--accent2)">${escHtml(r.mesin)}</td>
+    <td style="padding:8px 14px;font-size:10px;font-weight:500">
+  <span style="
+    color:${getDivisiColor(r.divisi)};
+    background:${getDivisiColor(r.divisi)}22;
+    border:1px solid ${getDivisiColor(r.divisi)}55;
+    padding:2px 8px;
+    border-radius:20px;
+    white-space:nowrap;
+    display:inline-block;
+  ">${escHtml(r.divisi)}</span>
+</td>
+    <td style="padding:8px 14px;text-align:right;color:var(--white);font-weight:500">${r.qty}</td>
+    <td style="padding:8px 14px;text-align:right;color:var(--success);font-weight:500">${r.berat > 0 ? r.berat.toFixed(2) : '—'}</td>
+  </tr>
+`).join("");
+
+      tfoot.innerHTML = `
+  <tr style="border-top:2px solid var(--border);background:var(--gray2)">
+    <td colspan="6" style="padding:10px 14px;font-family:var(--font-mono);font-size:11px;color:var(--gray4);letter-spacing:.08em;text-transform:uppercase">TOTAL</td>
+    <td style="padding:10px 14px;text-align:right;color:var(--white);font-weight:500;font-size:14px">${totalQty}</td>
+    <td style="padding:10px 14px;text-align:right;color:var(--success);font-weight:500;font-size:14px">${totalBerat > 0 ? totalBerat.toFixed(2) : '—'}</td>
+  </tr>
+`;
+    }
   </script>
   <script>
-          setInterval(async () => {
-            try {
-              const res = await fetch("/check_session");
-              const data = await res.json();
+    setInterval(async () => {
+      try {
+        const res = await fetch("/check_session");
+        const data = await res.json();
 
-              if (!data.active) {
-                alert("Session habis, silakan login kembali");
-                window.location.href = "/login";
-              }
-            } catch (err) {
-              console.error(err);
-            }
-          }, 60000);
-        </script>
+        if (!data.active) {
+          alert("Session habis, silakan login kembali");
+          window.location.href = "/login";
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 60000);
+  </script>
 </body>
 
 </html>
