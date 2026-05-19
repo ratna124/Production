@@ -423,7 +423,7 @@
             width: 100%;
             border-collapse: collapse;
             font-family: var(--font-mono);
-            font-size: 12px;
+            font-size: 13px;
             min-width: 1100px;
         }
 
@@ -756,10 +756,6 @@
                             <input type="date" id="f-tanggal" style="width:160px">
                         </div>
                         <div class="field">
-                            <label class="field-label" for="f-mesin">Mesin</label>
-                            <input type="text" id="f-mesin" placeholder="e.g. mixing-01" style="width:110px">
-                        </div>
-                        <div class="field">
                             <label class="field-label" for="f-spk">No. SPK</label>
                             <input type="text" id="f-spk" placeholder="e.g. 10100" style="width:120px">
                         </div>
@@ -825,7 +821,6 @@
                     <table class="prod-table" id="prod-table">
                         <colgroup>
                             <col style="width:100px"> <!-- Tanggal -->
-                            <col style="width:80px"> <!-- Mesin -->
                             <col style="width:55px"> <!-- Shift -->
                             <col style="width:75px"> <!-- SPK -->
                             <col style="width:130px"> <!-- Customer -->
@@ -838,7 +833,6 @@
                         <thead>
                             <tr>
                                 <th>Tanggal</th>
-                                <th>Mesin</th>
                                 <th class="num">Shift</th>
                                 <th>SPK</th>
                                 <th>Customer</th>
@@ -905,7 +899,6 @@
             const params = new URLSearchParams();
             const v = id => document.getElementById(id).value.trim();
             if (v("f-tanggal")) params.set("tanggal", v("f-tanggal"));
-            if (v("f-mesin")) params.set("mesin", v("f-mesin"));
             if (v("f-shift")) params.set("shift", v("f-shift"));
             if (v("f-spk")) params.set("spk", v("f-spk"));
             if (v("f-customer")) params.set("customer", v("f-customer"));
@@ -940,7 +933,7 @@
             const q = document.getElementById("tbl-search").value.toLowerCase();
             if (allRows.length === 0 && q) { loadData().then(filterTable); return; }
             filtered = !q ? [...allRows] : allRows.filter(r =>
-                [r.spk, r.customer, r.produk, r.mesin, r.tanggal, r.uk, r.shift]
+                [r.spk, r.customer, r.produk, r.tanggal, r.uk, r.shift]
                     .some(v => String(v || "").toLowerCase().includes(q))
             );
             renderTable(filtered);
@@ -948,52 +941,129 @@
 
         // Render table
         function renderTable(rows) {
-            const tbody = document.getElementById("prod-tbody");
-            const tfoot = document.getElementById("prod-tfoot");
-            document.getElementById("tbl-count").textContent = rows.length;
+    const tbody = document.getElementById("prod-tbody");
+    const tfoot = document.getElementById("prod-tfoot");
 
-            if (!rows.length) {
-                tbody.innerHTML = `<tr><td colspan="10" style="padding:48px;text-align:center;color:var(--gray4);font-family:var(--font-mono);font-size:12px;">Tidak ada data ditemukan…</td></tr>`;
-                tfoot.style.display = "none";
-                return;
-            }
+    document.getElementById("tbl-count").textContent =
+        rows.length;
 
-            tbody.innerHTML = "";
-            rows.forEach(r => {
-                const tr = document.createElement("tr");
+    if (!rows.length) {
+        tbody.innerHTML = `
+        <tr>
+            <td colspan="9"
+                style="padding:48px;text-align:center;
+                color:var(--gray4);
+                font-family:var(--font-mono);
+                font-size:12px;">
+                Tidak ada data ditemukan…
+            </td>
+        </tr>`;
+        tfoot.style.display = "none";
+        return;
+    }
 
-                const numCell = (val, cls, zero2dp = true) => {
-                    const n = parseFloat(val) || 0;
-                    const fmt = zero2dp ? fmtNum(n) : String(n);
-                    const inner = n === 0 ? `<span class="zero">${fmt}</span>` : `<span>${fmt}</span>`;
-                    return `<td class="num ${cls}">${inner}</td>`;
-                };
+    tbody.innerHTML = "";
 
-                tr.innerHTML = `
-                <td>${esc(r.tanggal)}</td>
-                <td>${esc(r.mesin || "—")}</td>
-                <td class="num">${esc(r.shift)}</td>
-                <td class="spk-cell">${esc(r.spk)}</td>
-                <td>${esc(r.customer || "—")}</td>
-                <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.produk || "—")}</td>
-                <td>${esc(r.uk || "—")}</td>
-                <td class="num col-berat">
-                    ${parseFloat(r.berat_bersih) || 0 ? fmtNum(r.berat_bersih) : '<span class="zero">0.00</span>'}
-                    ${r.has_salah ? '<span class="warn-dot" title="Ada scan salah"></span>' : ""}
+    rows.forEach(r => {
+
+        const tr = document.createElement("tr");
+
+        const numCell = (
+            val,
+            cls,
+            zero2dp = true
+        ) => {
+
+            const n =
+                parseFloat(val) || 0;
+
+            const fmt = zero2dp
+                ? fmtNum(n)
+                : String(n);
+
+            const inner =
+                n === 0
+                    ? `<span class="zero">${fmt}</span>`
+                    : `<span>${fmt}</span>`;
+
+            return `
+                <td class="num ${cls}">
+                    ${inner}
                 </td>
-                ${numCell(r.total_roll, "col-roll")}
-                ${numCell(r.afal_sapuan, "col-sapuan")}
             `;
-                tbody.appendChild(tr);
-            });
+        };
 
-            // Footer totals
-            const sum = k => rows.reduce((a, r) => a + (parseFloat(r[k]) || 0), 0);
-            document.getElementById("ft-berat").textContent = fmtNum(sum("berat_bersih"));
-            document.getElementById("ft-roll").textContent = sum("total_roll");
-            document.getElementById("ft-sapuan").textContent = fmtNum(sum("afal_sapuan"));
-            tfoot.style.display = "";
-        }
+        tr.innerHTML = `
+            <td>${esc(r.tanggal)}</td>
+            <td class="num">${esc(r.shift)}</td>
+            <td class="spk-cell">${esc(r.spk)}</td>
+            <td>${esc(r.customer || "—")}</td>
+            <td style="
+                white-space:nowrap;
+                overflow:hidden;
+                text-overflow:ellipsis">
+                ${esc(r.produk || "—")}
+            </td>
+            <td>${esc(r.uk || "—")}</td>
+
+            <td class="num col-berat">
+                ${
+                    (parseFloat(r.berat_bersih) || 0)
+                    ? fmtNum(r.berat_bersih)
+                    : '<span class="zero">0.00</span>'
+                }
+
+                ${
+                    r.has_salah
+                    ? '<span class="warn-dot" title="Ada scan salah"></span>'
+                    : ""
+                }
+            </td>
+
+            ${numCell(
+                r.total_karung,
+                "col-roll",
+                false
+            )}
+
+            ${numCell(
+                r.aval_mixing,
+                "col-sapuan"
+            )}
+        `;
+
+        tbody.appendChild(tr);
+    });
+
+    // ==========================
+    // FOOTER TOTAL
+    // ==========================
+    const sum = key =>
+        rows.reduce(
+            (a, r) =>
+                a + (
+                    parseFloat(r[key]) || 0
+                ),
+            0
+        );
+
+    document.getElementById(
+        "ft-berat"
+    ).textContent =
+        fmtNum(sum("berat_bersih"));
+
+    document.getElementById(
+        "ft-roll"
+    ).textContent =
+        sum("total_karung");
+
+    document.getElementById(
+        "ft-sapuan"
+    ).textContent =
+        fmtNum(sum("aval_mixing"));
+
+    tfoot.style.display = "";
+}
 
         function updateSidebar(rows) {
             document.getElementById("sb-spk").textContent = rows.length;

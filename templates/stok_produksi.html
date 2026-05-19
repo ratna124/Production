@@ -47,7 +47,6 @@
         }
 
         /* ============ LAYOUT ============ */
-
         .shell {
             display: grid;
             grid-template-columns: 240px 1fr;
@@ -56,58 +55,25 @@
         }
 
         /* ============ TOPBAR ============ */
-
         .topbar {
             grid-column: 1/-1;
             background: var(--gray1);
             border-bottom: 1px solid var(--border);
-
             display: flex;
             align-items: center;
             padding: 0 24px;
             gap: 16px;
-
             position: sticky;
             top: 0;
             z-index: 100;
         }
 
-        .topbar-logo {
-            font-family: var(--font-mono);
-            font-size: 13px;
-            color: var(--accent);
-            letter-spacing: .08em;
-        }
-
-        .topbar-sep {
-            width: 1px;
-            height: 20px;
-            background: var(--border);
-        }
-
-        .topbar-title {
-            font-size: 13px;
-            color: var(--gray5);
-        }
-
-        .topbar-right {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .clock {
-            font-family: var(--font-mono);
-            font-size: 11px;
-            color: var(--gray4);
-        }
-
-        .user-name {
-            font-family: var(--font-mono);
-            font-size: 11px;
-            color: var(--gray4);
-        }
+        .topbar-logo { font-family: var(--font-mono); font-size: 13px; color: var(--accent); letter-spacing: .08em; }
+        .topbar-sep  { width: 1px; height: 20px; background: var(--border); }
+        .topbar-title{ font-size: 13px; color: var(--gray5); }
+        .topbar-right{ margin-left: auto; display: flex; align-items: center; gap: 12px; }
+        .clock       { font-family: var(--font-mono); font-size: 11px; color: var(--gray4); }
+        .user-name   { font-family: var(--font-mono); font-size: 11px; color: var(--gray4); }
 
         .btn-ghost {
             border: 1px solid var(--border);
@@ -117,21 +83,15 @@
             border-radius: var(--radius);
             transition: .15s;
         }
-
-        .btn-ghost:hover {
-            color: white;
-            border-color: var(--gray5);
-        }
+        .btn-ghost:hover { color: white; border-color: var(--gray5); }
 
         .sidebar {
             background: var(--gray1);
             border-right: 1px solid var(--border);
-
             display: flex;
             flex-direction: column;
             padding: 24px 0;
         }
-
         .sidebar-section {
             font-family: var(--font-mono);
             font-size: 9px;
@@ -140,99 +100,43 @@
             text-transform: uppercase;
             padding: 16px 20px 8px;
         }
-
         .sidebar-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-
+            display: flex; align-items: center; gap: 10px;
             padding: 12px 20px;
             color: var(--gray5);
             text-decoration: none;
-
             border-left: 2px solid transparent;
             transition: .15s;
         }
-
-        .sidebar-item:hover {
-            background: var(--gray2);
-            color: white;
-        }
-
-        .sidebar-item.active {
-            border-left-color: var(--accent);
-            background: rgba(232, 66, 10, .08);
-            color: white;
-        }
-
-        .sidebar-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--gray3);
-        }
+        .sidebar-item:hover { background: var(--gray2); color: white; }
+        .sidebar-item.active { border-left-color: var(--accent); background: rgba(232,66,10,.08); color: white; }
+        .sidebar-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray3); }
 
         .sidebar-stats {
             margin-top: auto;
             border-top: 1px solid var(--border);
             padding: 20px;
         }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 12px; }
+        .stat-label { font-size: 11px; color: var(--gray4); }
+        .stat-val { font-family: var(--font-mono); font-size: 18px; }
+        .stat-val.small { font-size: 12px; }
 
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
-
-        .stat-label {
-            font-size: 11px;
-            color: var(--gray4);
-        }
-
-        .stat-val {
-            font-family: var(--font-mono);
-            font-size: 18px;
-        }
-
-        .stat-val.small {
-            font-size: 12px;
-        }
-
-        .main {
-            overflow-y: auto;
-            padding: 32px 40px;
-        }
+        /* ============ MAIN ============ */
+        .main { overflow-y: auto; padding: 32px 40px; }
 
         .page-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
+            display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
         }
-
-        .page-title {
-            font-family: var(--font-mono);
-            font-size: 20px;
-        }
-
+        .page-title { font-family: var(--font-mono); font-size: 20px; }
         .divisi-badge {
-            background: var(--gray3);
-            color: var(--gray5);
-            padding: 4px 12px;
-            border-radius: 999px;
-            font-size: 11px;
-            font-family: var(--font-mono);
+            background: var(--gray3); color: var(--gray5);
+            padding: 4px 12px; border-radius: 999px;
+            font-size: 11px; font-family: var(--font-mono);
         }
-
-        .current-date {
-            margin-left: auto;
-            color: var(--gray4);
-            font-size: 11px;
-            font-family: var(--font-mono);
-        }
+        .current-date { margin-left: auto; color: var(--gray4); font-size: 11px; font-family: var(--font-mono); }
 
         /* ============ CARD ============ */
-
         .card {
             background: var(--gray1);
             border: 1px solid var(--border);
@@ -240,59 +144,26 @@
             overflow: hidden;
             margin-bottom: 20px;
         }
-
         .card-header {
-            display: flex;
-            align-items: center;
+            display: flex; align-items: center;
             padding: 14px 18px;
             border-bottom: 1px solid var(--border);
             background: var(--gray2);
             gap: 10px;
         }
-
         .card-header-num {
             background: var(--accent);
-            width: 22px;
-            height: 22px;
-            border-radius: 4px;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            font-family: var(--font-mono);
-            font-size: 11px;
+            width: 22px; height: 22px; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-mono); font-size: 11px;
         }
-
-        .card-header-title {
-            font-size: 13px;
-        }
-
-        .card-body {
-            padding: 20px;
-        }
+        .card-header-title { font-size: 13px; }
+        .card-body { padding: 20px; }
 
         /* ============ FILTER ============ */
-
-        .filter-bar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            align-items: flex-end;
-        }
-
-        .field {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .field-label {
-            font-family: var(--font-mono);
-            font-size: 10px;
-            color: var(--gray4);
-            text-transform: uppercase;
-        }
+        .filter-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+        .field { display: flex; flex-direction: column; gap: 6px; }
+        .field-label { font-family: var(--font-mono); font-size: 10px; color: var(--gray4); text-transform: uppercase; }
 
         input {
             height: 38px;
@@ -304,200 +175,248 @@
             outline: none;
             min-width: 160px;
         }
+        input:focus { border-color: var(--accent); }
 
-        input:focus {
-            border-color: var(--accent);
+        .action-group { display: flex; flex-direction: row; gap: 8px; }
+        .btn-load, .btn-reset {
+            height: 38px; border: none; border-radius: var(--radius);
+            cursor: pointer; padding: 0 18px; font-family: var(--font-mono);
         }
+        .btn-load { background: var(--accent); color: white; }
+        .btn-load:hover { background: #c9360a; }
+        .btn-reset { background: transparent; border: 1px solid var(--border); color: var(--gray5); }
+        .btn-reset:hover { border-color: var(--danger); color: var(--danger); }
 
-        .action-group {
+        /* ============ VIEW TOGGLE ============ */
+        .view-toggle {
             display: flex;
-            flex-direction: row;
-            gap: 8px;
-        }
-
-        .btn-load,
-        .btn-reset {
-            height: 38px;
-            border: none;
+            align-items: center;
+            gap: 0;
+            background: var(--gray3);
             border-radius: var(--radius);
-            cursor: pointer;
-            padding: 0 18px;
-            font-family: var(--font-mono);
+            padding: 2px;
         }
-
-        .btn-load {
+        .view-toggle button {
+            height: 30px;
+            border: none;
+            background: transparent;
+            color: var(--gray4);
+            cursor: pointer;
+            padding: 0 12px;
+            border-radius: 3px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            transition: .15s;
+            white-space: nowrap;
+        }
+        .view-toggle button.active {
             background: var(--accent);
             color: white;
         }
 
-        .btn-load:hover {
-            background: #c9360a;
-        }
-
-        .btn-reset {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--gray5);
-        }
-
-        .btn-reset:hover {
-            border-color: var(--danger);
-            color: var(--danger);
-        }
-
+        /* ============ SEARCH ============ */
         .search-section {
             display: flex;
             align-items: center;
+            gap: 12px;
             padding: 12px 18px;
             border-bottom: 1px solid var(--border);
             background: var(--gray2);
+            flex-wrap: wrap;
         }
+        .search-wrap { position: relative; }
+        .search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); }
+        .search-wrap input { padding-left: 30px; width: 240px; }
+        .tbl-count { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--gray4); }
 
-        .search-wrap {
-            position: relative;
-        }
+/* ============ TABLE ============ */
+.prod-table-wrap {
+    overflow: auto;
+    max-height: calc(100vh - 320px);
+}
 
-        .search-icon {
-            position: absolute;
-            left: 9px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
+.prod-table {
+    width: 100%;
+    min-width: 1200px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
 
-        .search-wrap input {
-            padding-left: 30px;
-            width: 240px;
-        }
+/* ===== HEADER DASAR ===== */
+.prod-table thead th {
+    position: sticky;
+    background: var(--gray3);
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 10px;
+    color: var(--gray4);
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-right: 1px solid rgba(255,255,255,.06);
+}
 
-        .tbl-count {
-            margin-left: auto;
-            font-family: var(--font-mono);
-            font-size: 11px;
-            color: var(--gray4);
-        }
+/* ===== BARIS HEADER PERTAMA ===== */
+.prod-table thead tr:first-child th {
+    top: 0;
+    z-index: 40;
+    height: 36px;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border);
+}
 
-        /* ============ TABLE ============ */
+/* ===== BARIS HEADER KEDUA ===== */
+.prod-table thead tr:nth-child(2) th {
+    top: 36px;
+    z-index: 39;
+    height: 32px;
+    vertical-align: middle;
+    background: #353535;
+}
 
-        .prod-table-wrap {
-            overflow: auto;
-            max-height: calc(100vh - 300px);
-        }
+/* ===== FIX ROWSPAN (SPK, CUSTOMER, PRODUK, UK) ===== */
+.prod-table thead th[rowspan="2"] {
+    top: 0;
+    z-index: 50;
+    height: 68px; /* 36 + 32 */
+    vertical-align: middle;
+    background: var(--gray3);
+}
 
-        .prod-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 1000px;
-        }
+/* sub header */
+.prod-table thead th.sub {
+    font-size: 9px;
+    color: var(--gray5);
+    font-style: italic;
+    letter-spacing: .04em;
+}
 
-        .prod-table thead th {
-            position: sticky;
-            top: 0;
-            background: var(--gray3);
-            z-index: 10;
+/* body */
+.prod-table tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,.04);
+}
 
-            padding: 12px;
-            text-align: left;
-            font-size: 10px;
-            color: var(--gray4);
-            text-transform: uppercase;
-        }
+.prod-table tbody tr:nth-child(odd) {
+    background: rgba(255,255,255,.02);
+}
 
-        .prod-table tbody tr {
-            border-bottom: 1px solid rgba(255, 255, 255, .04);
-        }
+.prod-table tbody tr:hover {
+    background: rgba(255,255,255,.05);
+}
 
-        .prod-table tbody tr:nth-child(odd) {
-            background: rgba(255, 255, 255, .02);
-        }
+.prod-table td {
+    padding: 10px 12px;
+    white-space: nowrap;
+    font-size: 13px;
+    border-right: 1px solid rgba(255,255,255,.04);
+}
 
-        .prod-table tbody tr:hover {
-            background: rgba(255, 255, 255, .04);
-        }
+/* footer */
+tfoot td {
+    position: sticky;
+    bottom: 0;
+    z-index: 30;
+    background: var(--gray2);
+    font-weight: 600;
+    font-size: 12px;
+}
 
-        .prod-table td {
-            padding: 12px;
-            white-space: nowrap;
-        }
+/* divider kolom */
+.col-divider {
+    border-left: 1px solid var(--border);
+}
 
-        .num {
-            text-align: right;
-        }
+/* alignment */
+.num {
+    text-align: right;
+}
 
+.berat {
+    text-align: right;
+    font-size: 11px;
+    color: var(--gray5);
+    font-family: var(--font-mono);
+}
 
-        .col-mixing {
-            color: #60a5fa;
-        }
+/* warna divisi */
+.col-mixing { color: #60a5fa; }
+.col-hd { color: #a78bfa; }
+.col-potong { color: #34d399; }
+.col-packing { color: #f59e0b; }
+.col-sisa { color: #f87171; }
 
-        .col-hd {
-            color: #a78bfa;
-        }
+.col-mixing-dim { color: #3b6fa0; }
+.col-hd-dim { color: #6b58a0; }
+.col-potong-dim { color: #1f7a5a; }
+.col-packing-dim { color: #a06a1a; }
+.col-sisa-dim { color: #a04040; }
 
-        .col-potong {
-            color: #34d399;
-        }
+.zero {
+    color: var(--gray3) !important;
+}
 
-        .col-packing {
-            color: #f59e0b;
-        }
+.table-empty {
+    text-align: center;
+    color: var(--gray4);
+    padding: 40px;
+}
 
-        .col-sisa {
-            color: #f87171;
-        }
+        .num { text-align: right; }
+        .berat { text-align: right; font-size: 11px; color: var(--gray5); font-family: var(--font-mono); }
 
+        /* divisi colors */
+        .col-mixing  { color: #60a5fa; }
+        .col-hd      { color: #a78bfa; }
+        .col-potong  { color: #34d399; }
+        .col-packing { color: #f59e0b; }
+        .col-sisa    { color: #f87171; }
+
+        .col-mixing-dim  { color: #3b6fa0; }
+        .col-hd-dim      { color: #6b58a0; }
+        .col-potong-dim  { color: #1f7a5a; }
+        .col-packing-dim { color: #a06a1a; }
+        .col-sisa-dim    { color: #a04040; }
+
+        /* zero value */
+        .zero { color: var(--gray3) !important; }
 
         tfoot td {
             position: sticky;
             bottom: 0;
             background: var(--gray2);
             font-weight: 600;
+            font-size: 12px;
         }
 
-
-        .table-empty {
-            text-align: center;
-            color: var(--gray4);
-            padding: 40px;
-        }
+        .table-empty { text-align: center; color: var(--gray4); padding: 40px; }
 
         .spinner {
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(255, 255, 255, .3);
+            width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,.3);
             border-top-color: white;
             border-radius: 50%;
             animation: spin .7s linear infinite;
             display: none;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+        .toast { margin-top: 10px; font-size: 12px; font-family: var(--font-mono); }
+        .hidden { display: none; }
+
+
+        body.mode-compact .berat-row { display: none; }
+
+
+        /* ============ DIVIDER COL ============ */
+        .col-divider {
+            border-left: 1px solid var(--border);
         }
-
-        .toast {
-            margin-top: 10px;
-            font-size: 12px;
-            font-family: var(--font-mono);
-        }
-
-        .hidden {
-            display: none;
-        }
-
 
         @media(max-width:900px) {
-            .shell {
-                grid-template-columns: 1fr;
-            }
-
-            .sidebar {
-                display: none;
-            }
-
-            .main {
-                padding: 20px;
-            }
+            .shell { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .main { padding: 20px; }
         }
     </style>
 </head>
@@ -510,15 +429,10 @@
             <span class="topbar-logo">&#9632; STOK PRODUKSI</span>
             <span class="topbar-sep"></span>
             <span class="topbar-title">Rekap Stok per SPK</span>
-
             <div class="topbar-right">
                 <span class="clock" id="clock"></span>
-                <span class="user-name">
-                    &#128100; {{ current_user }}
-                </span>
-                <a href="/logout" class="btn-ghost">
-                    &#x2192; Logout
-                </a>
+                <span class="user-name">&#128100; {{ current_user }}</span>
+                <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
             </div>
         </header>
 
@@ -526,8 +440,7 @@
         <aside class="sidebar">
             <div style="flex:1; overflow-y:auto; min-height:0;">
                 {% if session.get('role') in ('administrator', 'adminwip') %}
-                <a href="/scan_pemakaian"
-                    class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
+                <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Admin Input
                 </a>
                 {% endif %}
@@ -536,51 +449,40 @@
                     <span class="sidebar-dot"></span>Checker Input
                 </a>
                 {% endif %}
-                {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
+                {% if session.get('role') in ('administrator', 'staff', 'adminwip') %}
                 <div class="sidebar-section">Stok Produksi</div>
-                <a href="/stok_produksi"
-                    class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
+                <a href="/stok_produksi" class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Stok Produksi
                 </a>
-                <a href="/stok_mixing"
-                    class="sidebar-item {% if active_page == 'stok_mixing' %}active{% endif %}">
+                <a href="/stok_mixing" class="sidebar-item {% if active_page == 'stok_mixing' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Stok Mixing
                 </a>
-                <a href="/stok_hd"
-                    class="sidebar-item {% if active_page == 'stok_hd' %}active{% endif %}">
+                <a href="/stok_hd" class="sidebar-item {% if active_page == 'stok_hd' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Stok HD
                 </a>
-                <a href="/stok_potong"
-                    class="sidebar-item {% if active_page == 'stok_potong' %}active{% endif %}">
+                <a href="/stok_potong" class="sidebar-item {% if active_page == 'stok_potong' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Stok Potong
                 </a>
-                <a href="/stok_packing"
-                    class="sidebar-item {% if active_page == 'stok_packing' %}active{% endif %}">
+                <a href="/stok_packing" class="sidebar-item {% if active_page == 'stok_packing' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Stok Packing
                 </a>
-                <a href="/stok_sisapack"
-                    class="sidebar-item {% if active_page == 'stok_sisapack' %}active{% endif %}">
+                <a href="/stok_sisapack" class="sidebar-item {% if active_page == 'stok_sisapack' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Stok Sisa Pack
                 </a>
                 <div class="sidebar-section">Hasil Produksi</div>
-                <a href="/hasil_produksi"
-                    class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+                <a href="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Summary
                 </a>
-                <a href="/hasil_produksi_mixing"
-                    class="sidebar-item {% if active_page == 'hasil_produksi_mixing' %}active{% endif %}">
+                <a href="/hasil_produksi_mixing" class="sidebar-item {% if active_page == 'hasil_produksi_mixing' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Hasil Mixing
                 </a>
-                <a href="/hasil_produksi_hd"
-                    class="sidebar-item {% if active_page == 'hasil_produksi_hd' %}active{% endif %}">
+                <a href="/hasil_produksi_hd" class="sidebar-item {% if active_page == 'hasil_produksi_hd' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Hasil HD
                 </a>
-                <a href="/hasil_produksi_potong"
-                    class="sidebar-item {% if active_page == 'hasil_produksi_potong' %}active{% endif %}">
+                <a href="/hasil_produksi_potong" class="sidebar-item {% if active_page == 'hasil_produksi_potong' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Hasil Potong
                 </a>
-                <a href="/hasil_produksi_packing"
-                    class="sidebar-item {% if active_page == 'hasil_produksi_packing' %}active{% endif %}">
+                <a href="/hasil_produksi_packing" class="sidebar-item {% if active_page == 'hasil_produksi_packing' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Hasil Packing
                 </a>
                 {% endif %}
@@ -633,12 +535,10 @@
                             <button class="btn-load" onclick="loadData()">
                                 <div class="spinner" id="load-spinner"></div>&#8635; Muat Data
                             </button>
-                            <button class="btn-reset" onclick="resetFilter()">&#10005; Reset
-                            </button>
+                            <button class="btn-reset" onclick="resetFilter()">&#10005; Reset</button>
                         </div>
                     </div>
-                    <div class="toast hidden" id="toast">
-                    </div>
+                    <div class="toast hidden" id="toast"></div>
                 </div>
             </div>
 
@@ -648,13 +548,15 @@
                     <span class="card-header-num">2</span>
                     <span class="card-header-title">Tabel Stok Produksi</span>
                 </div>
-                <!-- SEARCH -->
+                <!-- SEARCH + VIEW TOGGLE -->
                 <div class="search-section">
                     <div class="search-wrap">
-                        <span class="search-icon">
-                            &#128269;
-                        </span>
+                        <span class="search-icon">&#128269;</span>
                         <input type="text" id="tbl-search" placeholder="Cari SPK / Produk..." oninput="filterTable()">
+                    </div>
+                    <!-- Toggle tampilan -->
+                    <div class="view-toggle">
+                        <button id="btn-detail"  onclick="setView('detail')" class="active">Count + Berat</button>
                     </div>
                     <span class="tbl-count">
                         <span id="tbl-count">0</span> baris
@@ -663,56 +565,63 @@
 
                 <!-- TABLE -->
                 <div class="prod-table-wrap">
-                    <table class="prod-table">
+                    <table class="prod-table" id="main-table">
                         <thead>
                             <tr>
-                                <th>SPK</th>
-                                <th>Customer</th>
-                                <th>Produk</th>
-                                <th>Uk</th>
-                                <th class="num col-mixing">Mixing</th>
-                                <th class="num col-hd">
-                                    HD
-                                </th>
-                                <th class="num col-potong">
-                                    Potong
-                                </th>
-                                <th class="num col-packing">
-                                    Packing
-                                </th>
-                                <th class="num col-sisa">
-                                    Sisa Pack
-                                </th>
+                                <th rowspan="2">SPK</th>
+                                <th rowspan="2">Customer</th>
+                                <th rowspan="2">Produk</th>
+                                <th rowspan="2">Uk</th>
+                                <!-- Mixing -->
+                                <th colspan="2" class="num col-mixing col-divider">Mixing</th>
+                                <!-- HD -->
+                                <th colspan="2" class="num col-hd col-divider">HD</th>
+                                <!-- Potong -->
+                                <th colspan="2" class="num col-potong col-divider">Potong</th>
+                                <!-- Packing -->
+                                <th colspan="2" class="num col-packing col-divider">Packing</th>
+                                <!-- Sisa Pack -->
+                                <th colspan="2" class="num col-sisa col-divider">Sisa Pack</th>
+                            </tr>
+                            <tr>
+                                <th class="num sub col-mixing col-divider">Karung</th>
+                                <th class="num sub col-mixing-dim berat-row">kg</th>
+
+                                <th class="num sub col-hd col-divider">Roll</th>
+                                <th class="num sub col-hd-dim berat-row">kg</th>
+
+                                <th class="num sub col-potong col-divider">Roll</th>
+                                <th class="num sub col-potong-dim berat-row">kg</th>
+
+                                <th class="num sub col-packing col-divider">Karung</th>
+                                <th class="num sub col-packing-dim berat-row">kg</th>
+
+                                <th class="num sub col-sisa col-divider">Pack</th>
+                                <th class="num sub col-sisa-dim berat-row">kg</th>
                             </tr>
                         </thead>
                         <tbody id="prod-tbody">
                             <tr>
-                                <td colspan="9" class="table-empty">
-                                    Klik "Muat Data"
-                                    untuk menampilkan stok...
-                                </td>
+                                <td colspan="14" class="table-empty">Klik "Muat Data" untuk menampilkan stok...</td>
                             </tr>
                         </tbody>
-                        <tfoot id="prod-tfoot">
+                        <tfoot id="prod-tfoot" style="display:none">
                             <tr>
-                                <td colspan="4">
-                                    TOTAL
-                                </td>
-                                <td class="num" id="ft-mixing">
-                                    0
-                                </td>
-                                <td class="num" id="ft-hd">
-                                    0
-                                </td>
-                                <td class="num" id="ft-potong">
-                                    0
-                                </td>
-                                <td class="num" id="ft-packing">
-                                    0
-                                </td>
-                                <td class="num" id="ft-sisa">
-                                    0
-                                </td>
+                                <td colspan="4">TOTAL</td>
+                                <td class="num col-mixing col-divider"  id="ft-mixing">0</td>
+                                <td class="num berat col-mixing-dim berat-row" id="ft-mixing-berat">0</td>
+
+                                <td class="num col-hd col-divider"      id="ft-hd">0</td>
+                                <td class="num berat col-hd-dim berat-row" id="ft-hd-berat">0</td>
+
+                                <td class="num col-potong col-divider"  id="ft-potong">0</td>
+                                <td class="num berat col-potong-dim berat-row" id="ft-potong-berat">0</td>
+
+                                <td class="num col-packing col-divider" id="ft-packing">0</td>
+                                <td class="num berat col-packing-dim berat-row" id="ft-packing-berat">0</td>
+
+                                <td class="num col-sisa col-divider"    id="ft-sisa">0</td>
+                                <td class="num berat col-sisa-dim berat-row" id="ft-sisa-berat">0</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -720,474 +629,207 @@
             </div>
         </main>
     </div>
+
     <script>
         let allRows = [];
         let filtered = [];
         let toastTimer;
+        let currentView = 'detail'; 
 
-        // ======================
-        // INIT
-        // ======================
         document.addEventListener("DOMContentLoaded", () => {
-
             updateClock();
             setInterval(updateClock, 1000);
-
             document.getElementById("current-date").textContent =
-                new Date().toLocaleDateString(
-                    "id-ID",
-                    {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric"
-                    }
-                );
+                new Date().toLocaleDateString("id-ID", {
+                    weekday: "long", year: "numeric", month: "long", day: "numeric"
+                });
+            setView('detail');
         });
 
-        // ======================
-        // CLOCK
-        // ======================
         function updateClock() {
-
             const now = new Date();
-
-            const pad = n =>
-                String(n).padStart(2, "0");
-
+            const pad = n => String(n).padStart(2, "0");
             document.getElementById("clock").textContent =
                 `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
         }
 
-        // ======================
-        // TOAST
-        // ======================
-        function showToast(msg, type = "success") {
-
-            const t =
-                document.getElementById("toast");
-
-            t.textContent = msg;
-            t.className =
-                `toast ${type}`;
-
-            clearTimeout(toastTimer);
-
-            toastTimer =
-                setTimeout(() => {
-
-                    t.className =
-                        "toast hidden";
-
-                }, 4000);
+        function setView(mode) {
+            currentView = mode;
+            if (mode === 'compact') {
+                document.body.classList.add('mode-compact');
+                document.getElementById('btn-compact').classList.add('active');
+                document.getElementById('btn-detail').classList.remove('active');
+            } else {
+                document.body.classList.remove('mode-compact');
+                document.getElementById('btn-detail').classList.add('active');
+                document.getElementById('btn-compact').classList.remove('active');
+            }
         }
 
-        // ======================
-        // LOAD DATA
-        // ======================
+
+        function showToast(msg, type = "success") {
+            const t = document.getElementById("toast");
+            t.textContent = msg;
+            t.className = `toast ${type}`;
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { t.className = "toast hidden"; }, 4000);
+        }
+
         async function loadData() {
+            const spinner = document.getElementById("load-spinner");
+            spinner.style.display = "block";
 
-            const spinner =
-                document.getElementById("load-spinner");
+            const spk      = document.getElementById("filter-spk").value.trim();
+            const customer = document.getElementById("filter-customer").value.trim();
+            const produk   = document.getElementById("filter-produk").value.trim();
+            const uk       = document.getElementById("filter-uk").value.trim();
 
-            spinner.style.display =
-                "block";
-
-            const spk =
-                document.getElementById("filter-spk")
-                    .value.trim();
-
-            const customer =
-                document.getElementById("filter-customer")
-                    .value.trim();
-
-            const produk =
-                document.getElementById("filter-produk")
-                    .value.trim();
-
-            const uk =
-                document.getElementById("filter-uk")
-                    .value.trim();
-
-            showToast(
-                "⏳ Memuat data stok...",
-                "success"
-            );
+            showToast("⏳ Memuat data stok...", "success");
 
             try {
+                const params = new URLSearchParams();
+                if (spk)      params.set("spk",      spk);
+                if (customer) params.set("customer",  customer);
+                if (produk)   params.set("produk",    produk);
+                if (uk)       params.set("uk",        uk);
 
-                const params =
-                    new URLSearchParams();
+                const res  = await fetch("/api/stok_produksi?" + params.toString());
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-                if (spk)
-                    params.set(
-                        "spk",
-                        spk
-                    );
-
-                if (customer)
-                    params.set(
-                        "customer",
-                        customer
-                    );
-
-                if (produk)
-                    params.set(
-                        "produk",
-                        produk
-                    );
-
-                if (uk)
-                    params.set(
-                        "uk",
-                        uk
-                    );
-
-                const res =
-                    await fetch(
-                        "/api/stok_produksi?" +
-                        params.toString()
-                    );
-
-                if (!res.ok) {
-                    throw new Error(
-                        `HTTP ${res.status}`
-                    );
-                }
-
-                const data =
-                    await res.json();
-
-                allRows =
-                    data.rows || [];
-
-                filtered =
-                    [...allRows];
+                const data = await res.json();
+                allRows  = data.rows || [];
+                filtered = [...allRows];
 
                 renderTable(filtered);
 
-                document.getElementById(
-                    "sb-total"
-                ).textContent =
-                    filtered.length;
-
-                const now =
-                    new Date();
-
-                const pad =
-                    n =>
-                        String(n)
-                            .padStart(2, "0");
-
-                document.getElementById(
-                    "sb-time"
-                ).textContent =
+                document.getElementById("sb-total").textContent = filtered.length;
+                const now = new Date();
+                const pad = n => String(n).padStart(2, "0");
+                document.getElementById("sb-time").textContent =
                     `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
-                showToast(
-                    `✔ ${filtered.length} data berhasil dimuat`,
-                    "success"
-                );
+                showToast(`✔ ${filtered.length} data berhasil dimuat`, "success");
 
-            }
-            catch (err) {
-
+            } catch (err) {
                 console.error(err);
-
-                showToast(
-                    "❌ Gagal memuat data: " +
-                    err.message,
-                    "error"
-                );
+                showToast("❌ Gagal memuat data: " + err.message, "error");
             }
-
-            spinner.style.display =
-                "none";
+            spinner.style.display = "none";
         }
 
-        // ======================
-        // SEARCH TABLE
-        // ======================
+
         function filterTable() {
-
-            const q =
-                document
-                    .getElementById(
-                        "tbl-search"
-                    )
-                    .value
-                    .toLowerCase();
-
-            // auto load jika belum ada data
-            if (
-                allRows.length === 0 &&
-                q
-            ) {
-                loadData()
-                    .then(() => {
-                        filterTable();
-                    });
+            const q = document.getElementById("tbl-search").value.toLowerCase();
+            if (allRows.length === 0 && q) {
+                loadData().then(() => { filterTable(); });
                 return;
             }
-
-            filtered =
-                !q
-                    ? [...allRows]
-                    : allRows.filter(r =>
-
-                        String(r?.spk || "")
-                            .toLowerCase()
-                            .includes(q)
-
-                        ||
-
-                        String(r?.customer || "")
-                            .toLowerCase()
-                            .includes(q)
-
-                        ||
-
-                        String(r?.produk || "")
-                            .toLowerCase()
-                            .includes(q)
-
-                        ||
-
-                        String(r?.uk || "")
-                            .toLowerCase()
-                            .includes(q)
-                    );
-
+            filtered = !q ? [...allRows] : allRows.filter(r =>
+                String(r?.spk      || "").toLowerCase().includes(q) ||
+                String(r?.customer || "").toLowerCase().includes(q) ||
+                String(r?.produk   || "").toLowerCase().includes(q) ||
+                String(r?.uk       || "").toLowerCase().includes(q)
+            );
             renderTable(filtered);
         }
 
-        // ======================
-        // RENDER TABLE
-        // ======================
+
         function renderTable(rows) {
+            const tbody = document.getElementById("prod-tbody");
+            const tfoot = document.getElementById("prod-tfoot");
 
-            const tbody =
-                document.getElementById(
-                    "prod-tbody"
-                );
+            document.getElementById("tbl-count").textContent = rows.length;
 
-            const tfoot =
-                document.getElementById(
-                    "prod-tfoot"
-                );
-
-            document.getElementById(
-                "tbl-count"
-            ).textContent =
-                rows.length;
-
-            // kosong
             if (!rows.length) {
-
-                tbody.innerHTML =
-                    `
-            <tr>
-                <td colspan="9"
-                    class="table-empty">
-                    Tidak ada data
-                </td>
-            </tr>
-            `;
-
-                tfoot.style.display =
-                    "none";
-
+                tbody.innerHTML = `<tr><td colspan="14" class="table-empty">Tidak ada data</td></tr>`;
+                tfoot.style.display = "none";
                 return;
             }
 
             tbody.innerHTML = "";
-
             rows.forEach(r => {
+                const tr = document.createElement("tr");
 
-                const tr =
-                    document.createElement(
-                        "tr"
-                    );
+                const cnt = (v) => {
+                    const n = parseInt(v) || 0;
+                    return n === 0
+                        ? `<span class="zero">—</span>`
+                        : n.toLocaleString("id-ID");
+                };
+                const kg = (v) => {
+                    const n = parseFloat(v) || 0;
+                    return n === 0
+                        ? `<span class="zero">—</span>`
+                        : n.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                };
 
                 tr.innerHTML = `
-                <td>${esc(r.spk)}</td>
-                <td>${esc(r.customer)}</td>
-                <td>${esc(r.produk)}</td>
-                <td>${esc(r.uk)}</td>
+                    <td>${esc(r.spk)}</td>
+                    <td>${esc(r.customer)}</td>
+                    <td>${esc(r.produk)}</td>
+                    <td>${esc(r.uk)}</td>
 
-                <td class="num col-mixing">
-                    ${fmtNum(r.mixing)}
-                </td>
+                    <td class="num col-mixing col-divider">${cnt(r.mixing)}</td>
+                    <td class="berat col-mixing-dim berat-row">${kg(r.mixing_berat)}</td>
 
-                <td class="num col-hd">
-                    ${fmtNum(r.hd)}
-                </td>
+                    <td class="num col-hd col-divider">${cnt(r.hd)}</td>
+                    <td class="berat col-hd-dim berat-row">${kg(r.hd_berat)}</td>
 
-                <td class="num col-potong">
-                    ${fmtNum(r.potong)}
-                </td>
+                    <td class="num col-potong col-divider">${cnt(r.potong)}</td>
+                    <td class="berat col-potong-dim berat-row">${kg(r.potong_berat)}</td>
 
-                <td class="num col-packing">
-                    ${fmtNum(r.packing)}
-                </td>
+                    <td class="num col-packing col-divider">${cnt(r.packing)}</td>
+                    <td class="berat col-packing-dim berat-row">${kg(r.packing_berat)}</td>
 
-                <td class="num col-sisa">
-                    ${fmtNum(r.sisa_pack)}
-                </td>
-            `;
-
+                    <td class="num col-sisa col-divider">${cnt(r.sisa_pack)}</td>
+                    <td class="berat col-sisa-dim berat-row">${kg(r.sisa_pack_berat)}</td>
+                `;
                 tbody.appendChild(tr);
             });
 
-            // ======================
-            // FOOTER TOTAL
-            // ======================
-            const sum = key =>
-                rows.reduce(
-                    (a, r) =>
-                        a +
-                        (
-                            parseFloat(
-                                r[key]
-                            ) || 0
-                        ),
-                    0
-                );
+            // Footer totals
+            const sumInt  = key => rows.reduce((a, r) => a + (parseInt(r[key])   || 0), 0);
+            const sumFlt  = key => rows.reduce((a, r) => a + (parseFloat(r[key]) || 0), 0);
+            const fmtNum  = n   => n.toLocaleString("id-ID");
+            const fmtKg   = n   => n.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-            document.getElementById(
-                "ft-mixing"
-            ).textContent =
-                fmtNum(
-                    sum("mixing")
-                );
+            document.getElementById("ft-mixing").textContent        = fmtNum(sumInt("mixing"));
+            document.getElementById("ft-mixing-berat").textContent  = fmtKg(sumFlt("mixing_berat"));
+            document.getElementById("ft-hd").textContent            = fmtNum(sumInt("hd"));
+            document.getElementById("ft-hd-berat").textContent      = fmtKg(sumFlt("hd_berat"));
+            document.getElementById("ft-potong").textContent        = fmtNum(sumInt("potong"));
+            document.getElementById("ft-potong-berat").textContent  = fmtKg(sumFlt("potong_berat"));
+            document.getElementById("ft-packing").textContent       = fmtNum(sumInt("packing"));
+            document.getElementById("ft-packing-berat").textContent = fmtKg(sumFlt("packing_berat"));
+            document.getElementById("ft-sisa").textContent          = fmtNum(sumInt("sisa_pack"));
+            document.getElementById("ft-sisa-berat").textContent    = fmtKg(sumFlt("sisa_pack_berat"));
 
-            document.getElementById(
-                "ft-hd"
-            ).textContent =
-                fmtNum(
-                    sum("hd")
-                );
-
-            document.getElementById(
-                "ft-potong"
-            ).textContent =
-                fmtNum(
-                    sum("potong")
-                );
-
-            document.getElementById(
-                "ft-packing"
-            ).textContent =
-                fmtNum(
-                    sum("packing")
-                );
-
-            document.getElementById(
-                "ft-sisa"
-            ).textContent =
-                fmtNum(
-                    sum("sisa_pack")
-                );
-
-            tfoot.style.display =
-                "";
+            tfoot.style.display = "";
         }
 
-        // ======================
-        // RESET
-        // ======================
         function resetFilter() {
-
-            [
-                "filter-spk",
-                "filter-customer",
-                "filter-produk",
-                "filter-uk",
-                "tbl-search"
-            ].forEach(id => {
-
-                document.getElementById(id)
-                    .value = "";
-            });
+            ["filter-spk","filter-customer","filter-produk","filter-uk","tbl-search"]
+                .forEach(id => { document.getElementById(id).value = ""; });
 
             allRows = [];
             filtered = [];
 
-            document.getElementById(
-                "prod-tbody"
-            ).innerHTML =
-                `
-            <tr>
-                <td colspan="9"
-                    class="table-empty">
-                    Klik "Muat Data"
-                </td>
-            </tr>
-            `;
+            document.getElementById("prod-tbody").innerHTML =
+                `<tr><td colspan="14" class="table-empty">Klik "Muat Data"</td></tr>`;
+            document.getElementById("prod-tfoot").style.display = "none";
+            document.getElementById("tbl-count").textContent  = "0";
+            document.getElementById("sb-total").textContent   = "0";
+            document.getElementById("sb-time").textContent    = "—";
 
-            document.getElementById(
-                "prod-tfoot"
-            ).style.display =
-                "none";
-
-            document.getElementById(
-                "tbl-count"
-            ).textContent =
-                "0";
-
-            document.getElementById(
-                "sb-total"
-            ).textContent =
-                "0";
-
-            document.getElementById(
-                "sb-time"
-            ).textContent =
-                "—";
-
-            showToast(
-                "✔ Reset berhasil",
-                "success"
-            );
+            showToast("✔ Reset berhasil", "success");
         }
 
-        // ======================
-        // FORMAT NUMBER
-        // ======================
-        function fmtNum(val) {
-
-            const n =
-                parseFloat(val) || 0;
-
-            return n.toLocaleString(
-                "id-ID",
-                {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                }
-            );
-        }
-
-        // ======================
-        // ESCAPE HTML
-        // ======================
+  
         function esc(s) {
-
-            return String(
-                s || ""
-            )
-                .replace(
-                    /&/g,
-                    "&amp;"
-                )
-                .replace(
-                    /</g,
-                    "&lt;"
-                )
-                .replace(
-                    />/g,
-                    "&gt;"
-                );
+            return String(s || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
         }
     </script>
 </body>

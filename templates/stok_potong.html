@@ -407,7 +407,7 @@
         }
 
         .col-potong {
-            color: #34d399;
+            color: #22c55e;
         }
 
         tfoot td {
@@ -624,7 +624,8 @@
                                 <th>Customer</th>
                                 <th>Produk</th>
                                 <th>Uk</th>
-                                <th class="num col-potong">Keranjang</th>
+                                <th th class="num" style="color:#22c55e">Keranjang</th>
+                                <th class="num" style="color:#a78bfa">Berat (kg)</th>
                             </tr>
                         </thead>
                         <tbody id="prod-tbody">
@@ -638,6 +639,7 @@
                             <tr>
                                 <td colspan="4">TOTAL</td>
                                 <td class="num col-potong" id="ft-potong">0</td>
+                                <td class="num" style="color:#a78bfa" id="ft-berat">0</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -764,12 +766,16 @@
                     <td>${esc(r.produk)}</td>
                     <td>${esc(r.uk)}</td>
                     <td class="num col-potong">${fmtNum(r.potong)}</td>
+                    <td class="num" style="color:#a78bfa">${fmtNum(r.berat_bersih)}</td>
                 `;
                 tbody.appendChild(tr);
             });
 
             const totalPotong = rows.reduce((a, r) => a + (parseFloat(r.potong) || 0), 0);
+            const totalBerat = rows.reduce((a, r) => a + (parseFloat(r.berat_bersih) || 0), 0);
+
             document.getElementById("ft-potong").textContent = fmtNum(totalPotong);
+            document.getElementById("ft-berat").textContent = fmtNum(totalBerat);
             tfoot.style.display = "";
         }
 

@@ -425,7 +425,7 @@
         }
 
         .col-hd {
-            color: #a78bfa;
+            color: #22c55e;
         }
 
         tfoot td {
@@ -651,7 +651,8 @@
                                 <th>Customer</th>
                                 <th>Produk</th>
                                 <th>Uk</th>
-                                <th class="num col-hd">Roll</th>
+                                <th th class="num" style="color:#22c55e">Roll</th>
+                                <th class="num" style="color:#a78bfa">Berat (kg)</th>
                             </tr>
                         </thead>
                         <tbody id="prod-tbody">
@@ -666,6 +667,7 @@
                             <tr>
                                 <td colspan="4">TOTAL</td>
                                 <td class="num col-hd" id="ft-hd">0</td>
+                                <td class="num" style="color:#a78bfa" id="ft-berat">0</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -823,13 +825,17 @@
                     <td>${esc(r.produk)}</td>
                     <td>${esc(r.uk)}</td>
                     <td class="num col-hd">${fmtNum(r.hd)}</td>
+                    <td class="num" style="color:#a78bfa">${fmtNum(r.berat_bersih)}</td>
                 `;
                 tbody.appendChild(tr);
             });
 
             // FOOTER TOTAL
             const totalHD = rows.reduce((a, r) => a + (parseFloat(r.hd) || 0), 0);
+            const totalBerat = rows.reduce((a, r) => a + (parseFloat(r.berat_bersih) || 0), 0);
+
             document.getElementById("ft-hd").textContent = fmtNum(totalHD);
+            document.getElementById("ft-berat").textContent = fmtNum(totalBerat);
 
             tfoot.style.display = "";
         }

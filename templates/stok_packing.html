@@ -407,7 +407,7 @@
         }
 
         .col-packing {
-            color: #f59e0b;
+            color: #22c55e;
         }
 
         tfoot td {
@@ -500,6 +500,10 @@
                 <a href="/stok_produksi"
                     class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Stok Produksi
+                </a>
+                <a href="/stok_mixing"
+                    class="sidebar-item {% if active_page == 'stok_mixing' %}active{% endif %}">
+                    <span class="sidebar-dot"></span>Stok Mixing
                 </a>
                 <a href="/stok_hd"
                     class="sidebar-item {% if active_page == 'stok_hd' %}active{% endif %}">
@@ -620,7 +624,8 @@
                                 <th>Customer</th>
                                 <th>Produk</th>
                                 <th>Uk</th>
-                                <th class="num col-packing">Ball</th>
+                                <th th class="num" style="color:#22c55e">Ball</th>
+                                <th class="num" style="color:#a78bfa">Berat (kg)</th>
                             </tr>
                         </thead>
                         <tbody id="prod-tbody">
@@ -634,6 +639,7 @@
                             <tr>
                                 <td colspan="4">TOTAL</td>
                                 <td class="num col-packing" id="ft-packing">0</td>
+                                <td class="num" style="color:#a78bfa" id="ft-berat">0</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -760,12 +766,16 @@
                     <td>${esc(r.produk)}</td>
                     <td>${esc(r.uk)}</td>
                     <td class="num col-packing">${fmtNum(r.packing)}</td>
+                    <td class="num" style="color:#a78bfa">${fmtNum(r.berat_bersih)}</td>
                 `;
                 tbody.appendChild(tr);
             });
 
             const totalPacking = rows.reduce((a, r) => a + (parseFloat(r.packing) || 0), 0);
+            const totalBerat = rows.reduce((a, r) => a + (parseFloat(r.berat_bersih) || 0), 0);
+
             document.getElementById("ft-packing").textContent = fmtNum(totalPacking);
+            document.getElementById("ft-berat").textContent = fmtNum(totalBerat);
             tfoot.style.display = "";
         }
 
