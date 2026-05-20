@@ -946,7 +946,7 @@
             <div class="field">
               <label class="field-label">Shift<span class="req">*</span></label>
               <select id="shift" required>
-                <option value="">-- Pilih Shift --</option>
+                <option value="" disabled selected>-- Pilih Shift --</option>
                 <option value="P">P</option>
                 <option value="M">M</option>
               </select>
@@ -1304,10 +1304,24 @@
             const spinner = document.getElementById("spinner");
             const errorMsg = document.getElementById("error-msg");
 
+            // VALIDASI SHIFT WAJIB
+  const shiftEl = document.getElementById("shift");
+  const shiftVal = (shiftEl.value || "").trim();
+
+  if (!shiftVal) {
+    showAlert("Shift wajib dipilih");
+    shiftEl.focus();
+    shiftEl.style.borderColor = "var(--accent)";
+    return;
+  } else {
+    shiftEl.style.borderColor = "";
+  }
+
             // VALIDASI WAJIB
             const requiredFields = [
               { id: "operator_hd", name: "Operator HD" },
               { id: "checker", name: "Checker" },
+              { id: "shift", name: "Shift" },
               { id: "spk", name: "No. SPK" },
               { id: "mesin", name: "Mesin" },
               { id: "berat_kg", name: "Berat (kg)" },
@@ -1516,8 +1530,69 @@
           }
 
           // Tutup dengan Escape
+          // Button save
           document.addEventListener("keydown", function (e) {
-            if (e.key === "Escape") closeModal({ target: document.getElementById("modal-overlay") });
+
+            // hanya Enter / Tab
+            if (e.key !== "Enter" && e.key !== "Tab") return;
+
+            const active = document.activeElement;
+
+            // ambil field input yang aktif
+            const fields = [
+              ...document.querySelectorAll(
+                'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
+              )
+            ].filter(el => el.offsetParent !== null);
+
+            const index = fields.indexOf(active);
+            if (index === -1) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            // validasi field aktif kalau required
+            const value = (active.value || "").trim();
+
+            if (active.hasAttribute("required") && !value) {
+              showAlert("Field ini wajib diisi");
+              active.focus();
+              return;
+            }
+
+            // SHIFT + ENTER → mundur
+            if (e.shiftKey) {
+              const prev = fields[index - 1];
+              if (prev) {
+                prev.focus();
+                prev.select?.();
+              }
+              return;
+            }
+
+            // ENTER / TAB → next field
+            const next = fields[index + 1];
+
+            if (next) {
+              next.focus();
+              next.select?.();
+              return;
+            }
+
+            // kalau field terakhir → submit
+            const requiredFields = document.querySelectorAll("[required]");
+
+            for (const field of requiredFields) {
+              const val = (field.value || "").trim();
+
+              if (!val) {
+                showAlert("Masih ada field yang belum diisi");
+                field.focus();
+                return;
+              }
+            }
+
+            submitForm();
           });
         </script>
         <script>

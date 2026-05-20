@@ -315,25 +315,25 @@
     }
 
     input[type="text"],
-    input[type="datetime-local"],
-    select {
-      width: 100%;
-      height: var(--input-h);
-      background: var(--gray2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--white);
-      font-family: var(--font-mono);
-      font-size: 13px;
-      padding: 0 14px;
-      outline: none;
-      transition: border-color .15s, background .15s;
-      appearance: none;
-      -webkit-appearance: none;
-    }
+input[type="date"],
+select {
+  width: 100%;
+  height: var(--input-h);
+  background: var(--gray2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--white);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 0 14px;
+  outline: none;
+  transition: border-color .15s, background .15s;
+  appearance: none;
+  -webkit-appearance: none;
+}
 
     input[type="text"]:focus,
-    input[type="datetime-local"]:focus,
+    input[type="date"]:focus,
     select:focus {
       border-color: var(--accent);
       background: #222;
@@ -344,7 +344,7 @@
     }
 
     /* datetime-local calendar icon color fix */
-    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    input[type="date"]::-webkit-calendar-picker-indicator {
       filter: invert(0.5);
       cursor: pointer;
     }
@@ -897,6 +897,12 @@
         <a href="/barcode_aval_qc" class="sidebar-item {% if active_page == 'barcode_aval_qc' %}active{% endif %}">
           <span class="sidebar-dot"></span>Aval QC WIP
         </a>
+
+        <div class="sidebar-section">Mutasi SPK</div>
+        <a href="/mutasi_mixing"
+          class="sidebar-item {% if active_page == 'mutasi_mixing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Mutasi Mixing WIP
+        </a>
       </div>
 
       <!-- Stats — selalu terlihat di bawah -->
@@ -960,7 +966,7 @@
             <!-- TANGGAL -->
             <div class="field">
               <label class="field-label" for="tanggal">Tanggal &amp; Waktu<span class="req">*</span></label>
-              <input type="datetime-local" id="tanggal" required>
+              <input type="date" id="tanggal" required>
             </div>
 
             <!-- SHIFT -->
@@ -1150,8 +1156,8 @@
 
       const now = new Date();
       const pad = n => String(n).padStart(2, "0");
-      const localDT = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-      document.getElementById("tanggal").value = localDT;
+      const localDT = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+document.getElementById("tanggal").value = localDT;
 
       document.getElementById("scan-input").focus();
     });
@@ -1432,7 +1438,7 @@
         // Reset tanggal ke waktu sekarang
         const now = new Date();
         const pad = n => String(n).padStart(2, "0");
-        const localDT = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        const localDT = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
         document.getElementById("tanggal").value = localDT;
 
         // Reset shift

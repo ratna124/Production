@@ -944,7 +944,7 @@
             <div class="field">
               <label class="field-label">Shift<span class="req">*</span></label>
               <select id="shift" required>
-                <option value="">-- Pilih Shift --</option>
+                <option value="" disabled selected>-- Pilih Shift --</option>
                 <option value="P">P</option>
                 <option value="M">M</option>
               </select>
@@ -1285,6 +1285,7 @@
             const requiredFields = [
               { id: "operator_qc", name: "Operator QC" },
               { id: "checker", name: "Checker" },
+              { id: "shift", name: "Shift" },
               { id: "spk", name: "No. SPK" },
               { id: "kategori_qc", name: "Kategori Aval" },
               { id: "berat_bersih", name: "Aval Qty (kg)" },

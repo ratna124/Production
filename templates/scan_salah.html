@@ -324,6 +324,42 @@
       flex: 1;
     }
 
+    select {
+      width: 100%;
+      height: var(--input-h);
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--white);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      padding: 0 14px;
+      outline: none;
+      transition: border-color .15s, background .15s;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+
+      background-image:
+        linear-gradient(45deg, transparent 50%, var(--gray5) 50%),
+        linear-gradient(135deg, var(--gray5) 50%, transparent 50%);
+      background-position:
+        calc(100% - 18px) calc(50% - 3px),
+        calc(100% - 12px) calc(50% - 3px);
+      background-size: 6px 6px;
+      background-repeat: no-repeat;
+    }
+
+    select:focus {
+      border-color: var(--accent);
+      background-color: #222;
+    }
+
+    select option {
+      background: var(--gray2);
+      color: var(--white);
+    }
+
     input[type="text"] {
       width: 100%;
       height: var(--input-h);
@@ -759,7 +795,7 @@
           <span class="sidebar-dot"></span>Hasil Produksi
         </a>
         {% endif %}
-        
+
         {% if session.get('role') in ('administrator', 'adminwip') %}
         <div class="sidebar-section">Scan</div>
         <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
@@ -862,6 +898,17 @@
           <span class="card-header-title">Input Kode</span>
         </div>
         <div class="card-body">
+          <div class="field">
+            <label class="field-label">Keterangan</label>
+
+            <select id="keterangan" required>
+              <option value="">-- Pilih Keterangan --</option>
+              <option value="Salah Input Checker">Salah Input Checker</option>
+              <option value="Operator Salah Info">Operator Salah Info</option>
+              <option value="Mutasi">Mutasi</option>
+              <option value="Mutasi">Administrator</option>
+            </select>
+          </div>
           <div class="field-label">Kode Barcode / QR</div>
           <div class="scan-wrap">
             <div class="scan-input-wrap">
@@ -872,6 +919,7 @@
           </div>
           <div class="scan-hint">Tekan Enter setelah scan · Kode duplikat otomatis diabaikan</div>
           <div class="toast hidden" id="toast"></div>
+
         </div>
       </div>
 
@@ -894,6 +942,7 @@
           <span>Produk</span>
           <span>Checker</span>
           <span>Divisi</span>
+          <span>Keterangan</span>
           <span>Del</span>
         </div>
 
@@ -922,7 +971,7 @@
     let codes = [];
 
     // Field wajib
-    const REQUIRED_FIELDS = ['spk', 'checker'];
+    const REQUIRED_FIELDS = ['spk', 'checker', 'keterangan'];
 
     // Mirror PREFIX_CONFIG dari backend (untuk deteksi lokal)
     const PREFIX_LABEL = {
@@ -1019,6 +1068,7 @@
             code: val, prefix, divisi_label: divisiLabel, csv_file: csvFile,
             spk: data.spk, customer: data.customer,
             produk: data.produk, uk: data.uk, checker: data.checker,
+            keterangan: document.getElementById("keterangan").value || "-",
             found: true
           });
           showToast(`✔ [${prefix}] ${divisiLabel} — ${val}`, "success");
@@ -1026,6 +1076,7 @@
           codes.push({
             code: val, prefix, divisi_label: divisiLabel, csv_file: csvFile,
             spk: "-", customer: "-", produk: "-", uk: "-", checker: "-",
+            keterangan: document.getElementById("keterangan").value || "-",
             found: false
           });
           showToast(`⚠ [${prefix}] Kode tidak ditemukan di katalog: ${val}`, "warning");
@@ -1037,6 +1088,7 @@
           divisi_label: PREFIX_LABEL[localPrefix] || "?",
           csv_file: null,
           spk: "-", customer: "-", produk: "-", uk: "-", checker: "-",
+          keterangan: document.getElementById("keterangan").value || "-",
           found: false
         });
         showToast("⚠ Gagal lookup: " + val, "warning");
@@ -1065,7 +1117,7 @@
         const valid = isCodeValid(c);
         const row = document.createElement("div");
         row.className = "code-row" + (valid ? "" : " invalid");
-        row.style.gridTemplateColumns = "30px minmax(0,2fr) 50px minmax(0,1fr) minmax(0,1.5fr) 65px minmax(0,1fr) 36px";
+        row.style.gridTemplateColumns = "30px minmax(0,2fr) 50px minmax(0,1fr) minmax(0,1.5fr) 65px minmax(0,1fr) minmax(0,1fr) 36px";
 
         const cell = (val, baseColor) => {
           const missing = isFieldMissing(val);
@@ -1081,7 +1133,14 @@
   ${cell(c.customer)}
   ${cell(c.produk)}
   ${cell(c.checker)}
-  <span class="code-text" style="color:var(--accent2);font-size:10px;line-height:1.3">${escHtml(c.divisi_label || c.prefix || "?")}</span>
+
+  <span class="code-text"
+    style="color:var(--accent2);font-size:10px;line-height:1.3">
+    ${escHtml(c.divisi_label || c.prefix || "?")}
+  </span>
+
+  ${cell(c.keterangan)}
+
   <button class="btn-del" onclick="deleteCode(${i})">✕</button>
 `;
         list.appendChild(row);
@@ -1172,6 +1231,13 @@
     // ── SUBMIT ──
     async function submitCodes() {
       if (!codes.length) { alert("Belum ada kode."); return; }
+      const keterangan = document.getElementById("keterangan").value;
+
+      if (!keterangan) {
+        alert("⚠ Pilih keterangan terlebih dahulu.");
+        document.getElementById("keterangan").focus();
+        return;
+      }
 
       // Hanya blokir jika ada kode yang prefix/checker-nya tidak terdeteksi
       const invalid = codes.filter(c => !isCodeValid(c));
@@ -1189,7 +1255,10 @@
         const res = await fetch("/save_csv", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ records: codes })
+          body: JSON.stringify({
+            records: codes,
+            keterangan: keterangan
+          })
         });
 
         const ct = res.headers.get("content-type") || "";
@@ -1222,20 +1291,20 @@
     }
   </script>
   <script>
-          setInterval(async () => {
-            try {
-              const res = await fetch("/check_session");
-              const data = await res.json();
+    setInterval(async () => {
+      try {
+        const res = await fetch("/check_session");
+        const data = await res.json();
 
-              if (!data.active) {
-                alert("Session habis, silakan login kembali");
-                window.location.href = "/login";
-              }
-            } catch (err) {
-              console.error(err);
-            }
-          }, 60000);
-        </script>
+        if (!data.active) {
+          alert("Session habis, silakan login kembali");
+          window.location.href = "/login";
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 60000);
+  </script>
 </body>
 
 </html>

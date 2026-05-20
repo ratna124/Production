@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mutasi Mixing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --black: #0a0a0a;
+      --white: #f5f4f0;
+      --accent: #e8420a;
+      --accent2: #f5a623;
+      --gray1: #1a1a1a;
+      --gray2: #2c2c2c;
+      --gray3: #3e3e3e;
+      --gray4: #777;
+      --gray5: #aaa;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --border: #2e2e2e;
+      --radius: 4px;
+      --input-h: 44px;
+      --font-sans: 'IBM Plex Sans', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      grid-template-rows: 56px 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      grid-column: 1/-1;
+      background: var(--gray1);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-logo {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .topbar-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    .topbar-title {
+      font-size: 13px;
+      color: var(--gray5);
+      font-weight: 300;
+    }
+
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .clock {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--gray4);
+    }
+
+    .btn-ghost {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--gray5);
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--gray5);
+      color: var(--white);
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      background: var(--gray1);
+      border-right: 1px solid var(--border);
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 56px);
+      position: sticky;
+      top: 56px;
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--gray4);
+      padding: 16px 20px 6px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-left: 2px solid transparent;
+      transition: background .12s, border-color .12s;
+      font-size: 13px;
+      color: var(--gray5);
+      user-select: none;
+      text-decoration: none;
+    }
+
+    .sidebar-item:hover {
+      background: var(--gray2);
+      color: var(--white);
+    }
+
+    .sidebar-item.active {
+      border-left-color: var(--accent);
+      color: var(--white);
+      background: rgba(232, 66, 10, .08);
+    }
+
+    .sidebar-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gray3);
+      flex-shrink: 0;
+    }
+
+    .sidebar-item.active .sidebar-dot {
+      background: var(--accent);
+    }
+
+    /* ── MAIN ── */
+    .main {
+      overflow-y: auto;
+      padding: 32px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .page-title {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 12px;
+      border-radius: 20px;
+      background: rgba(245, 166, 35, .15);
+      color: var(--accent2);
+      border: 1px solid rgba(245, 166, 35, .3);
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--gray1);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--gray2);
+    }
+
+    .card-header-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: var(--accent);
+      color: white;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .card-header-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--white);
+    }
+
+    .card-header-extra {
+      margin-left: auto;
+    }
+
+    .card-body {
+      padding: 18px 20px;
+    }
+
+    /* ── FORM ── */
+    .form-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .form-grid.cols-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .form-grid.cols-3 {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--gray4);
+    }
+
+    .field-label .req {
+      color: var(--accent);
+      margin-left: 2px;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      height: var(--input-h);
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--white);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 0 14px;
+      outline: none;
+      transition: border-color .15s, background .15s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    textarea {
+      height: auto;
+      padding: 10px 14px;
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      background: #222;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--gray4);
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.5);
+      cursor: pointer;
+    }
+
+    input[type="number"]::-webkit-inner-spin-button {
+      opacity: 0.3;
+    }
+
+    input:disabled,
+    select:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .select-wrap {
+      position: relative;
+    }
+
+    .select-wrap::after {
+      content: '▾';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray4);
+      pointer-events: none;
+      font-size: 12px;
+    }
+
+    .select-wrap select {
+      padding-right: 32px;
+    }
+
+    select option {
+      background: var(--gray2);
+      color: var(--white);
+    }
+
+    /* shift pills */
+    .shift-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .shift-pill {
+      flex: 1;
+      height: var(--input-h);
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--gray5);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      user-select: none;
+    }
+
+    .shift-pill:hover {
+      border-color: var(--gray5);
+      color: var(--white);
+    }
+
+    .shift-pill.active-P {
+      background: rgba(232, 66, 10, .15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .shift-pill.active-M {
+      background: rgba(245, 166, 35, .15);
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    .shift-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: .7;
+    }
+
+    /* ── SCAN BOX ── */
+    .scan-wrap {
+      display: flex;
+      gap: 10px;
+    }
+
+    .scan-input-wrap {
+      flex: 1;
+    }
+
+    .btn-scan {
+      height: var(--input-h);
+      padding: 0 20px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+
+    .btn-scan:hover {
+      background: #c9360a;
+    }
+
+    /* ── TIKET AWAL BOX ── */
+    .tiket-box {
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px 20px;
+      display: none;
+      /* hidden until scan */
+      animation: fadeIn .2s ease;
+    }
+
+    .tiket-box.show {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .tiket-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--gray4);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tiket-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .tiket-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .tiket-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .tiket-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--gray4);
+    }
+
+    .tiket-val {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--white);
+      padding: 6px 0;
+    }
+
+    .tiket-val.accent {
+      color: var(--success);
+    }
+
+    .tiket-val.spk {
+      color: var(--accent2);
+    }
+
+    .tiket-code {
+      font-size: 11px;
+      color: var(--gray5);
+      word-break: break-all;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, .3);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      font-family: var(--font-mono);
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* ── TERPAKAI CALC ── */
+    .calc-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(34, 197, 94, .06);
+      border: 1px solid rgba(34, 197, 94, .2);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+    }
+
+    .calc-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--gray4);
+      flex: 1;
+    }
+
+    .calc-val {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--success);
+    }
+
+    .calc-unit {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--gray4);
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      margin-top: 8px;
+      min-height: 16px;
+      transition: opacity .3s;
+    }
+
+    .toast.success {
+      color: var(--success);
+    }
+
+    .toast.warning {
+      color: var(--accent2);
+    }
+
+    .toast.error {
+      color: var(--danger);
+    }
+
+    .toast.hidden {
+      opacity: 0;
+    }
+
+    /* ── ACTION ── */
+    .action-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-reset {
+      height: 48px;
+      padding: 0 20px;
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      color: var(--gray5);
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .btn-reset:hover {
+      border-color: var(--gray5);
+      color: var(--white);
+      background: var(--gray3);
+    }
+
+    .btn-submit {
+      height: 48px;
+      padding: 0 28px;
+      background: var(--accent);
+      border: none;
+      color: white;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: .04em;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-submit:hover {
+      background: #c9360a;
+    }
+
+    .btn-submit:active {
+      transform: scale(.98);
+    }
+
+    .btn-submit:disabled {
+      background: var(--gray3);
+      cursor: not-allowed;
+      opacity: .6;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, .3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .action-feedback {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .action-feedback.ok {
+      color: var(--success);
+    }
+
+    .action-feedback.err {
+      color: var(--danger);
+    }
+
+    /* ── SUCCESS PANEL ── */
+    .result-panel {
+      display: none;
+      background: var(--gray1);
+      border: 1px solid var(--success);
+      border-radius: 6px;
+      overflow: hidden;
+      animation: slideIn .3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .result-panel.show {
+      display: block;
+    }
+
+    .result-header {
+      background: rgba(34, 197, 94, .08);
+      border-bottom: 1px solid rgba(34, 197, 94, .2);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .result-body {
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .result-line {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--success);
+    }
+
+    .btn-new {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 38px;
+      padding: 0 16px;
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      color: var(--white);
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .15s;
+      margin-top: 4px;
+      width: fit-content;
+    }
+
+    .btn-new:hover {
+      border-color: var(--gray5);
+      background: var(--gray3);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 860px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .main {
+        padding: 20px 16px;
+      }
+
+      .form-grid.cols-2,
+      .form-grid.cols-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .tiket-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="shell">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <span class="topbar-logo">&#9632; MUTASI MIXING</span>
+      <span class="topbar-sep"></span>
+      <span class="topbar-title">Mutasi Bahan Mixing</span>
+      <div class="topbar-right">
+        <span class="clock" id="clock"></span>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4)">
+          &#128100; {{ current_user }}
+        </span>
+        <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div style="flex:1;overflow-y:auto;min-height:0">
+        {% if session.get('role') in ('administrator','adminwip') %}
+        <div class="sidebar-section">Mutasi</div>
+        <a href="/mutasi_mixing" class="sidebar-item {% if active_page == 'mutasi_mixing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Mutasi Mixing
+        </a>
+        <div class="sidebar-section">Scan</div>
+        <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Scan Pemakaian
+        </a>
+        <a href="/scan_salah" class="sidebar-item {% if active_page == 'scan_salah' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Scan Salah
+        </a>
+        <div class="sidebar-section">Hasil</div>
+        <a href="/barcode_mixing" class="sidebar-item"><span class="sidebar-dot"></span>Mixing WIP</a>
+        {% endif %}
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <div class="page-header">
+        <h1 class="page-title">MUTASI MIXING</h1>
+        <span class="badge">Divisi Mixing</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--gray4);font-family:var(--font-mono)"
+          id="current-date"></span>
+      </div>
+
+      <!-- SUCCESS PANEL -->
+      <div class="result-panel" id="result-panel">
+        <div class="result-header">
+          <span style="color:var(--success);font-size:16px">&#10003;</span>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--success)">MUTASI TERSIMPAN</span>
+        </div>
+        <div class="result-body">
+          <div class="result-line" id="res-code"></div>
+          <div class="result-line" id="res-spk"></div>
+          <div class="result-line" id="res-terpakai"></div>
+          <button class="btn-new" onclick="resetForm()">+ &nbsp;Input Mutasi Baru</button>
+        </div>
+      </div>
+
+      <!-- CARD 1: Scan Tiket Awal -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-num">1</span>
+          <span class="card-header-title">Scan Tiket Awal</span>
+          <span class="card-header-extra" style="font-family:var(--font-mono);font-size:11px;color:var(--gray4)">Kode
+            Barcode MI...</span>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+          <div class="field">
+            <label class="field-label">Kode Barcode <span class="req">*</span></label>
+            <div class="scan-wrap">
+              <div class="scan-input-wrap">
+                <input type="text" id="scan-input" placeholder="Scan atau ketik kode barcode MI…" autocomplete="off"
+                  spellcheck="false" onkeydown="if(event.key==='Enter') lookupCode()">
+              </div>
+              <button class="btn-scan" onclick="lookupCode()">&#128269; Cari</button>
+            </div>
+            <div class="toast hidden" id="toast-scan"></div>
+          </div>
+
+          <!-- TIKET AWAL INFO -->
+          <div class="tiket-box" id="tiket-box">
+            <div class="tiket-title">Info Tiket Awal</div>
+            <div style="margin-bottom:10px">
+              <div class="tiket-label" style="margin-bottom:4px">Kode Barcode</div>
+              <div class="tiket-code" id="t-code">—</div>
+            </div>
+            <div class="tiket-grid">
+              <div class="tiket-field">
+                <span class="tiket-label">TGL / Shift</span>
+                <span class="tiket-val" id="t-tgl">—</span>
+              </div>
+              <div class="tiket-field">
+                <span class="tiket-label">SPK</span>
+                <span class="tiket-val spk" id="t-spk">—</span>
+              </div>
+              <div class="tiket-field">
+                <span class="tiket-label">Customer</span>
+                <span class="tiket-val" id="t-customer" style="font-size:11px">—</span>
+              </div>
+              <div class="tiket-field">
+                <span class="tiket-label">Produk / UK</span>
+                <span class="tiket-val" id="t-produk" style="font-size:11px">—</span>
+              </div>
+              <div class="tiket-field">
+                <span class="tiket-label">Berat Awal (kg)</span>
+                <span class="tiket-val accent" id="t-berat">—</span>
+              </div>
+              <div class="tiket-field">
+                <span class="tiket-label">Checker</span>
+                <span class="tiket-val" id="t-checker" style="font-size:11px">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: Tiket Mutasi -->
+      <div class="card" id="card-mutasi" style="opacity:.4;pointer-events:none;transition:opacity .3s">
+        <div class="card-header">
+          <span class="card-header-num">2</span>
+          <span class="card-header-title">Tiket Mutasi</span>
+          <span class="card-header-extra" style="font-family:var(--font-mono);font-size:11px;color:var(--gray4)">Isi
+            data mutasi</span>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:20px">
+
+          <!-- Baris A: Tanggal + Shift -->
+          <div class="form-grid cols-2">
+            <div class="field">
+              <label class="field-label" for="m-tanggal">Tanggal Mutasi <span class="req">*</span></label>
+              <input type="date" id="m-tanggal">
+            </div>
+            <div class="field">
+              <label class="field-label">Shift <span class="req">*</span></label>
+              <div class="shift-group">
+                <div class="shift-pill" id="pill-P" onclick="selectShift('P')">
+                  <span class="shift-dot"></span> P — Pagi
+                </div>
+                <div class="shift-pill" id="pill-M" onclick="selectShift('M')">
+                  <span class="shift-dot"></span> M — Malam
+                </div>
+              </div>
+              <input type="hidden" id="m-shift" value="">
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Baris B: SPK Baru -->
+          <div class="form-grid cols-2">
+            <div class="field">
+              <label class="field-label" for="m-spk">SPK Baru <span class="req">*</span></label>
+              <input type="text" id="m-spk" placeholder="No. SPK tujuan mutasi…" oninput="lookupSpk(this.value)">
+            </div>
+            <div class="field">
+              <label class="field-label">Info SPK Baru</label>
+              <div style="display:flex;gap:8px;align-items:center;height:var(--input-h)">
+                <span id="spk-info" style="font-family:var(--font-mono);font-size:11px;color:var(--gray5)">— masukkan
+                  nomor SPK</span>
+              </div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Baris C: Hasil Timbang & Terpakai -->
+          <div class="form-grid cols-2">
+            <div class="field">
+              <label class="field-label" for="m-hasil">Hasil Timbang (kg) <span class="req">*</span></label>
+              <input type="number" id="m-hasil" step="0.01" min="0" placeholder="0.00" oninput="calcTerpakai()">
+            </div>
+            <div class="field">
+              <label class="field-label">Terpakai (kg)</label>
+              <div class="calc-row">
+                <span class="calc-label">Berat Awal − Hasil Timbang</span>
+                <span class="calc-val" id="calc-terpakai">—</span>
+                <span class="calc-unit">kg</span>
+              </div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Baris D: Operator + Admin -->
+          <div class="form-grid cols-2">
+            <div class="field">
+              <label class="field-label" for="m-operator">Operator <span class="req">*</span></label>
+              <div class="select-wrap">
+                <select id="m-operator">
+                  <option value="">— pilih operator —</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label">Admin (otomatis)</label>
+              <input type="text" id="m-admin" value="{{ current_user }}" disabled>
+            </div>
+          </div>
+
+          <!-- Baris E: Keterangan -->
+          <div class="field">
+            <label class="field-label" for="m-ket">Keterangan Mutasi</label>
+            <textarea id="m-ket" placeholder="Isi keterangan mutasi jika ada…" rows="2"></textarea>
+          </div>
+
+        </div><!-- /card-body -->
+
+        <div class="action-row">
+          <button class="btn-reset" onclick="resetForm()">✕ &nbsp;Reset</button>
+          <button class="btn-submit" id="btn-submit" onclick="submitMutasi()">
+            <span id="btn-text">SIMPAN MUTASI</span>
+            <div class="spinner" id="spinner"></div>
+          </button>
+          <span class="action-feedback" id="action-feedback"></span>
+        </div>
+      </div><!-- /card-mutasi -->
+
+    </main>
+  </div>
+
+  <script>
+    // ── STATE ──
+    let beratAwal = null;
+    let codeAwal = "";
+    let selectedShift = "";
+
+    // ── CLOCK ──
+    document.addEventListener("DOMContentLoaded", () => {
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      // tanggal mutasi default hari ini
+      const now = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      document.getElementById("m-tanggal").value =
+        `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+      document.getElementById("scan-input").focus();
+      loadOperators();
+    });
+
+    function updateClock() {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      document.getElementById("clock").textContent =
+        `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      document.getElementById("current-date").textContent =
+        now.toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    }
+
+    // ── SHIFT ──
+    function selectShift(val) {
+      selectedShift = val;
+      document.getElementById("m-shift").value = val;
+      document.getElementById("pill-P").className = "shift-pill" + (val === "P" ? " active-P" : "");
+      document.getElementById("pill-M").className = "shift-pill" + (val === "M" ? " active-M" : "");
+    }
+
+    // ── LOAD OPERATORS ──
+    async function loadOperators() {
+      try {
+        const res = await fetch("/api/operators/MIXING");
+        const ops = await res.json();
+        const sel = document.getElementById("m-operator");
+        sel.innerHTML = `<option value="">— pilih operator —</option>`;
+        ops.forEach(op => {
+          const opt = document.createElement("option");
+          opt.value = op;
+          opt.textContent = op;
+          sel.appendChild(opt);
+        });
+      } catch (e) {
+        console.warn("Gagal load operators:", e);
+      }
+    }
+
+    // ── LOOKUP CODE ──
+    async function lookupCode() {
+      const input = document.getElementById("scan-input");
+      const val = input.value.trim().toUpperCase();
+      if (!val) return;
+
+      if (!val.startsWith("MI")) {
+        showToast("toast-scan", "⛔ Kode harus diawali MI (Mixing)", "error");
+        return;
+      }
+
+      showToast("toast-scan", "⏳ Mencari kode...", "success");
+
+      try {
+        const res = await fetch("/api/lookup_code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: val })
+        });
+        const data = await res.json();
+
+        if (!data.found) {
+          showToast("toast-scan", `⚠ Kode tidak ditemukan di katalog: ${val}`, "warning");
+          return;
+        }
+
+        // Isi tiket awal
+        codeAwal = val;
+        beratAwal = parseFloat(String(data.berat_bersih).replace(",", ".")) || 0;
+
+        document.getElementById("t-code").textContent = val;
+        document.getElementById("t-spk").textContent = data.spk || "—";
+        document.getElementById("t-customer").textContent = data.customer || "—";
+        document.getElementById("t-produk").textContent = [data.produk, data.uk].filter(Boolean).join(" / ") || "—";
+        document.getElementById("t-berat").textContent = beratAwal.toFixed(2);
+        document.getElementById("t-checker").textContent = data.checker || "—";
+
+        // Ambil tanggal+shift dari kode (MI14-06-202510149P25.00083438 → 14-06-2025 shift P)
+        const tglShift = parseTglShift(val);
+        document.getElementById("t-tgl").textContent = tglShift;
+
+        document.getElementById("tiket-box").classList.add("show");
+
+        // Aktifkan form mutasi
+        const cardMutasi = document.getElementById("card-mutasi");
+        cardMutasi.style.opacity = "1";
+        cardMutasi.style.pointerEvents = "auto";
+
+        calcTerpakai();
+        showToast("toast-scan", `✔ Kode ditemukan — SPK ${data.spk}, Berat ${beratAwal.toFixed(2)} kg`, "success");
+
+        // Auto-isi SPK awal
+        const spkInput = document.getElementById("m-spk");
+        if (!spkInput.value) {
+          spkInput.value = data.spk || "";
+          lookupSpk(spkInput.value);
+        }
+
+        document.getElementById("m-hasil").focus();
+
+      } catch (e) {
+        showToast("toast-scan", "⚠ Gagal koneksi ke server", "error");
+        console.error(e);
+      }
+    }
+
+    function parseTglShift(code) {
+      // MI14-06-202510149P25.00083438
+      const m = code.match(/MI(\d{2}-\d{2}-\d{4})(\d+)([PM])/);
+      if (m) return `${m[1]} (${m[3]})`;
+      return "—";
+    }
+
+    // ── LOOKUP SPK ──
+    let spkTimer;
+    async function lookupSpk(val) {
+      clearTimeout(spkTimer);
+      const info = document.getElementById("spk-info");
+      if (!val || val.length < 3) { info.textContent = "— masukkan nomor SPK"; info.style.color = "var(--gray5)"; return; }
+      spkTimer = setTimeout(async () => {
+        try {
+          const res = await fetch(`/get-spk/${encodeURIComponent(val)}`);
+          const data = await res.json();
+          if (data.customer) {
+            info.textContent = `${data.customer} — ${data.product} (${data.uk})`;
+            info.style.color = "var(--success)";
+          } else {
+            info.textContent = "⚠ SPK tidak ditemukan";
+            info.style.color = "var(--danger)";
+          }
+        } catch (e) {
+          info.textContent = "—";
+        }
+      }, 400);
+    }
+
+    // ── HITUNG TERPAKAI ──
+    function calcTerpakai() {
+      const hasilEl = document.getElementById("m-hasil");
+      const hasil = parseFloat(hasilEl.value) || 0;
+      const el = document.getElementById("calc-terpakai");
+
+      if (beratAwal === null) { el.textContent = "—"; return; }
+
+      const terpakai = beratAwal - hasil;
+      el.textContent = terpakai >= 0 ? terpakai.toFixed(2) : "—";
+      el.style.color = terpakai < 0 ? "var(--danger)" : "var(--success)";
+
+      if (terpakai < 0) {
+        hasilEl.style.borderColor = "var(--danger)";
+      } else {
+        hasilEl.style.borderColor = "";
+      }
+    }
+
+    // ── SUBMIT ──
+    async function submitMutasi() {
+      if (!codeAwal) { alert("⚠ Scan kode tiket awal terlebih dahulu."); return; }
+
+      const tanggal = document.getElementById("m-tanggal").value;
+      const shift = document.getElementById("m-shift").value;
+      const spkBaru = document.getElementById("m-spk").value.trim();
+      const hasil = parseFloat(document.getElementById("m-hasil").value) || 0;
+      const operator = document.getElementById("m-operator").value;
+      const ket = document.getElementById("m-ket").value.trim();
+      const admin = "{{ current_user }}";
+
+      if (!tanggal) { alert("⚠ Tanggal mutasi wajib diisi."); return; }
+      if (!shift) { alert("⚠ Pilih shift terlebih dahulu."); return; }
+      if (!spkBaru) { alert("⚠ SPK baru wajib diisi."); return; }
+      if (!hasil && hasil !== 0) { alert("⚠ Hasil timbang wajib diisi."); return; }
+      if (!operator) { alert("⚠ Pilih operator terlebih dahulu."); return; }
+
+      const terpakai = beratAwal - hasil;
+      if (terpakai < 0) { alert("⚠ Hasil timbang melebihi berat awal!"); return; }
+
+      const btn = document.getElementById("btn-submit");
+      const spinner = document.getElementById("spinner");
+      btn.disabled = true;
+      spinner.style.display = "block";
+      document.getElementById("action-feedback").textContent = "";
+
+      try {
+        const res = await fetch("/api/mutasi_mixing", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code_awal: codeAwal,
+            tanggal: tanggal,
+            shift: shift,
+            spk_baru: spkBaru,
+            hasil_timbang: hasil,
+            terpakai: terpakai,
+            operator: operator,
+            admin: admin,
+            keterangan: ket,
+          })
+        });
+
+        const ct = res.headers.get("content-type") || "";
+        if (!ct.includes("application/json")) {
+          const txt = await res.text();
+          throw new Error("Server error: " + txt.substring(0, 120));
+        }
+
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Gagal menyimpan");
+
+        // ====================================
+        // AUTO PRINT VIA IFRAME (ANTI POPUP BLOCK)
+        // ====================================
+        if (data.print_urls?.length) {
+          const frame = document.getElementById("mutasi-frame");
+
+          const queue = [
+            data.print_urls[0], // sisa
+            data.print_urls[0], // sisa copy 2
+            data.print_urls[1], // mutasi
+            data.print_urls[1]  // mutasi copy 2
+          ];
+
+          let idx = 0;
+
+          function printNext() {
+            if (idx >= queue.length) return;
+
+            frame.onload = () => {
+              try {
+                frame.contentWindow.focus();
+                frame.contentWindow.print();
+              } catch (e) {
+                console.error("Print error:", e);
+              }
+
+              idx++;
+
+              // jeda antar print
+              setTimeout(printNext, 1000);
+            };
+
+            frame.src = queue[idx] + "?t=" + Date.now();
+          }
+
+          printNext();
+        }
+
+        // tampilkan sukses
+        document.getElementById("res-code").textContent =
+          "Kode      : " + codeAwal;
+
+        document.getElementById("res-spk").textContent =
+          "SPK Baru  : " + spkBaru;
+
+        document.getElementById("res-terpakai").textContent =
+          "Terpakai  : " + terpakai.toFixed(2) +
+          " kg  |  Sisa : " +
+          hasil.toFixed(2) + " kg";
+
+        document.getElementById("result-panel")
+          .classList.add("show");
+
+        document.getElementById("result-panel")
+          .scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+          });
+
+        document.getElementById("action-feedback").textContent =
+          "✔ Mutasi berhasil disimpan";
+
+        document.getElementById("action-feedback").className =
+          "action-feedback ok";
+
+        // reset otomatis setelah 2 detik
+        setTimeout(() => {
+          resetForm();
+        }, 2000);
+
+      } catch (err) {
+        document.getElementById("action-feedback").textContent = "❌ " + err.message;
+        document.getElementById("action-feedback").className = "action-feedback err";
+        alert("❌ Gagal: " + err.message);
+      }
+
+      btn.disabled = false;
+      spinner.style.display = "none";
+    }
+
+    // ── RESET ──
+    function resetForm() {
+      codeAwal = "";
+      beratAwal = null;
+      selectedShift = "";
+
+      // reset input
+      document.getElementById("scan-input").value = "";
+      document.getElementById("m-spk").value = "";
+      document.getElementById("m-hasil").value = "";
+      document.getElementById("m-operator").value = "";
+      document.getElementById("m-ket").value = "";
+      document.getElementById("m-shift").value = "";
+
+      // reset kalkulasi
+      document.getElementById("calc-terpakai").textContent = "—";
+      document.getElementById("calc-terpakai").style.color = "var(--success)";
+
+      // reset info SPK
+      const spkInfo = document.getElementById("spk-info");
+      spkInfo.textContent = "— masukkan nomor SPK";
+      spkInfo.style.color = "var(--gray5)";
+
+      // reset shift
+      document.getElementById("pill-P").className = "shift-pill";
+      document.getElementById("pill-M").className = "shift-pill";
+
+      // reset tiket awal
+      document.getElementById("t-code").textContent = "—";
+      document.getElementById("t-tgl").textContent = "—";
+      document.getElementById("t-spk").textContent = "—";
+      document.getElementById("t-customer").textContent = "—";
+      document.getElementById("t-produk").textContent = "—";
+      document.getElementById("t-berat").textContent = "—";
+      document.getElementById("t-checker").textContent = "—";
+
+      // hide panel
+      document.getElementById("tiket-box").classList.remove("show");
+      document.getElementById("result-panel").classList.remove("show");
+
+      // reset feedback
+      document.getElementById("action-feedback").textContent = "";
+
+      // disable card mutasi lagi
+      const cardMutasi = document.getElementById("card-mutasi");
+      cardMutasi.style.opacity = ".4";
+      cardMutasi.style.pointerEvents = "none";
+
+      // reset tanggal ke hari ini
+      const now = new Date();
+      const pad = n => String(n).padStart(2, "0");
+
+      document.getElementById("m-tanggal").value =
+        `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+      // fokus balik ke scan
+      document.getElementById("scan-input").focus();
+
+      // scroll ke atas
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    }
+    // ── TOAST ──
+    const _toastTimers = {};
+    function showToast(id, msg, type = "success") {
+      const t = document.getElementById(id);
+      if (!t) return;
+      t.textContent = msg;
+      t.className = "toast " + type;
+      clearTimeout(_toastTimers[id]);
+      _toastTimers[id] = setTimeout(() => t.className = "toast hidden", 4000);
+    }
+
+    // ── SESSION CHECK ──
+    setInterval(async () => {
+      try {
+        const res = await fetch("/check_session");
+        const data = await res.json();
+        if (!data.active) { alert("Session habis, silakan login kembali"); window.location.href = "/login"; }
+      } catch (e) { }
+    }, 60000);
+  </script>
+  <iframe id="mutasi-frame" style="display:none;"></iframe>
+</body>
+
+</html>

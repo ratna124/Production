@@ -924,8 +924,12 @@ input[readonly]:focus {
               <input type="datetime-local" id="tanggal" readonly>
             </div>
             <div class="field">
-              <label class="field-label">Shift</label>
-              <input type="text" id="shift" readonly>
+              <label class="field-label">Shift<span class="req">*</span></label>
+              <select id="shift" required>
+                <option value="">-- Pilih Shift --</option>
+                <option value="P">P</option>
+                <option value="M">M</option>
+              </select>
             </div>
             <div class="field">
               <label class="field-label">Operator Potong <span class="req">*</span></label>
@@ -1157,8 +1161,8 @@ input[readonly]:focus {
           function updateTime() {
             let now = new Date();
             let hour = now.getHours();
-            let shift = (hour >= 7 && hour < 19) ? "P" : "M";
-            document.getElementById("shift").value = shift;
+     //       let shift = (hour >= 7 && hour < 19) ? "P" : "M";
+     //       document.getElementById("shift").value = shift;
             // TANGGAL PRODUKSI
             let prodDate = new Date(now);
             if (hour < 7) {
