@@ -375,47 +375,47 @@
     }
 
     /* FIELD NORMAL */
-input,
-select,
-textarea {
-  width: 100%;
-  height: var(--input-h);
-  background: var(--gray2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--white);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  padding: 0 12px;
-  outline: none;
-  transition: all .15s ease;
-  appearance: none;
-  -webkit-appearance: none;
-}
+    input,
+    select,
+    textarea {
+      width: 100%;
+      height: var(--input-h);
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      padding: 0 12px;
+      outline: none;
+      transition: all .15s ease;
+      appearance: none;
+      -webkit-appearance: none;
+    }
 
-/* FIELD AKTIF */
-input:focus,
-select:focus,
-textarea:focus {
-  border: 1px solid #e8420a !important;
-  background: #9c310d;
-  color: #fff;
-  outline: none !important;
-  box-shadow: 0 0 0 2px rgba(232, 66, 10, .22);
-}
+    /* FIELD AKTIF */
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border: 1px solid #e8420a !important;
+      background: #9c310d;
+      color: #fff;
+      outline: none !important;
+      box-shadow: 0 0 0 2px rgba(232, 66, 10, .22);
+    }
 
-/* PLACEHOLDER PAS AKTIF */
-input:focus::placeholder,
-textarea:focus::placeholder {
-  color: rgba(255,255,255,.6);
-}
+    /* PLACEHOLDER PAS AKTIF */
+    input:focus::placeholder,
+    textarea:focus::placeholder {
+      color: rgba(255, 255, 255, .6);
+    }
 
-/* READONLY JANGAN ORANGE */
-input[readonly]:focus {
-  border-color: var(--border) !important;
-  background: var(--gray2);
-  box-shadow: none;
-}
+    /* READONLY JANGAN ORANGE */
+    input[readonly]:focus {
+      border-color: var(--border) !important;
+      background: var(--gray2);
+      box-shadow: none;
+    }
 
     textarea {
       height: 72px;
@@ -432,16 +432,16 @@ input[readonly]:focus {
     }
 
     select:focus option {
-  background: #1a1a1a;
-  color: #fff;
-}
+      background: #1a1a1a;
+      color: #fff;
+    }
 
-input[readonly]:focus {
-  background: var(--gray2);
-  border-color: var(--border);
-  color: var(--white);
-  box-shadow: none;
-}
+    input[readonly]:focus {
+      background: var(--gray2);
+      border-color: var(--border);
+      color: var(--white);
+      box-shadow: none;
+    }
 
     /* ── SHIFT SELECTOR (toggle pills) ───────────────────── */
     .shift-group {
@@ -1396,10 +1396,10 @@ input[readonly]:focus {
                   const el = document.getElementById(id);
                   if (el) el.value = '';
                 });
-                const opSelect = document.getElementById("operator_mix");
-                if (opSelect) opSelect.selectedIndex = 0;
+                //const opSelect = document.getElementById("operator_mix");
+                //if (opSelect) opSelect.selectedIndex = 0;
                 document.getElementById('result-panel').classList.remove('show');
-                document.getElementById("spk").focus();
+                document.getElementById("operator_mix").focus();
               }, 2000);
 
             } catch (err) {
@@ -1429,20 +1429,19 @@ input[readonly]:focus {
 
           // ── RESET ──
           function resetForm() {
-            document.getElementById('result-panel').classList.remove('show');
-
-            ['customer', 'product', 'uk', 'berat_kg', 'berat_bersih']
-              .forEach(id => {
+            setTimeout(() => {
+              ['spk', 'customer', 'product', 'uk', 'berat_kg', 'berat_bersih'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
               });
 
-            //const opSelect = document.getElementById("operator_mix");
-            //if (opSelect) opSelect.selectedIndex = 0;
+              // operator_mix TIDAK direset
+              document.getElementById('result-panel').classList.remove('show');
 
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+              // fokus balik ke SPK
+              document.getElementById("spk").focus();
 
-            document.getElementById("operator_mix").focus();
+            }, 2000);
           }
 
           function validateBerat(el) {

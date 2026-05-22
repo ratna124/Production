@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mutasi Mixing</title>
+  <title>Mutasi HD</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
@@ -795,9 +795,9 @@
 
     <!-- TOPBAR -->
     <header class="topbar">
-      <span class="topbar-logo">&#9632; MUTASI MIXING</span>
+      <span class="topbar-logo">&#9632; MUTASI HD</span>
       <span class="topbar-sep"></span>
-      <span class="topbar-title">Mutasi Bahan Mixing</span>
+      <span class="topbar-title">Mutasi Bahan HD</span>
       <div class="topbar-right">
         <span class="clock" id="clock"></span>
         <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4)">
@@ -855,8 +855,8 @@
     <main class="main">
 
       <div class="page-header">
-        <h1 class="page-title">MUTASI MIXING</h1>
-        <span class="badge">Divisi Mixing</span>
+        <h1 class="page-title">MUTASI HD</h1>
+        <span class="badge">Divisi HD</span>
         <span style="margin-left:auto;font-size:11px;color:var(--gray4);font-family:var(--font-mono)"
           id="current-date"></span>
       </div>
@@ -881,14 +881,14 @@
           <span class="card-header-num">1</span>
           <span class="card-header-title">Scan Tiket Awal</span>
           <span class="card-header-extra" style="font-family:var(--font-mono);font-size:11px;color:var(--gray4)">Kode
-            Barcode MI...</span>
+            Barcode HD...</span>
         </div>
         <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
           <div class="field">
             <label class="field-label">Kode Barcode <span class="req">*</span></label>
             <div class="scan-wrap">
               <div class="scan-input-wrap">
-                <input type="text" id="scan-input" placeholder="Scan atau ketik kode barcode MI…" autocomplete="off"
+                <input type="text" id="scan-input" placeholder="Scan atau ketik kode barcode HD…" autocomplete="off"
                   spellcheck="false" onkeydown="if(event.key==='Enter') lookupCode()">
               </div>
               <button class="btn-scan" onclick="lookupCode()">&#128269; Cari</button>
@@ -946,7 +946,7 @@
           <!-- Baris A: Tanggal + Shift -->
           <div class="form-grid cols-2">
             <div class="field">
-              <label class="field-label" for="m-tanggal">Tanggal Mutasi </label>
+              <label class="field-label" for="m-tanggal">Tanggal Mutasi</label>
               <input type="date" id="m-tanggal" readonly>
             </div>
             <div class="field">
@@ -1070,7 +1070,6 @@
       document.getElementById("pill-M").className = "shift-pill" + (val === "M" ? " active-M" : "");
     }
 
-    // ── LOAD OPERATORS ──
 
     // ── LOOKUP CODE ──
     async function lookupCode() {
@@ -1078,8 +1077,8 @@
       const val = input.value.trim().toUpperCase();
       if (!val) return;
 
-      if (!val.startsWith("MI")) {
-        showToast("toast-scan", "⛔ Kode harus diawali MI (Mixing)", "error");
+      if (!val.startsWith("HD")) {
+        showToast("toast-scan", "⛔ Kode harus diawali HD (HD)", "error");
         return;
       }
 
@@ -1109,7 +1108,6 @@
         document.getElementById("t-berat").textContent = beratAwal.toFixed(2);
         document.getElementById("t-checker").textContent = data.checker || "—";
 
-        // Ambil tanggal+shift dari kode (MI14-06-202510149P25.00083438 → 14-06-2025 shift P)
         const tglShift = parseTglShift(val);
         document.getElementById("t-tgl").textContent = tglShift;
 
@@ -1139,8 +1137,7 @@
     }
 
     function parseTglShift(code) {
-      // MI14-06-202510149P25.00083438
-      const m = code.match(/MI(\d{2}-\d{2}-\d{4})(\d+)([PM])/);
+      const m = code.match(/HD(\d{2}-\d{2}-\d{4})(\d+)([PM])/);
       if (m) return `${m[1]} (${m[3]})`;
       return "—";
     }
@@ -1215,7 +1212,7 @@
       document.getElementById("action-feedback").textContent = "";
 
       try {
-        const res = await fetch("/api/mutasi_mixing", {
+        const res = await fetch("/api/mutasi_hd", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1399,7 +1396,6 @@
         if (!data.active) { alert("Session habis, silakan login kembali"); window.location.href = "/login"; }
       } catch (e) { }
     }, 60000);
-    
   </script>
   <script>
   // ENTER / TAB auto next field + submit

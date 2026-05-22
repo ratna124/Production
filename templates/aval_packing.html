@@ -1373,15 +1373,14 @@ input[readonly]:focus {
             const errorMsg = document.getElementById("error-msg");
 
             const requiredFields = [
+              { id: "shift", name: "Shift" },
               { id: "operator_pa", name: "Operator Packing" },
               { id: "checker", name: "Checker" },
-              { id: "shift", name: "Shift" },
               { id: "spk", name: "No. SPK" },
               { id: "jenis_pa", name: "Jenis Aval" },
               { id: "kategori_pa", name: "Kategori Aval" },
               { id: "berat_bersih", name: "Aval Qty (kg)" },
               { id: "mesin", name: "Mesin" },
-
             ];
 
             for (let f of requiredFields) {
