@@ -32,6 +32,7 @@ USER_SHEET   = "User"
 CSV_MIXING      = r"Z:\Checker\Production\Database\katalogmixing.csv"
 CSV_HD          = r"Z:\Checker\Production\Database\kataloghd.csv"
 CSV_POTONG      = r"Z:\Checker\Production\Database\katalogpotong.csv"
+CSV_SISA_POTONG      = r"Z:\Checker\Production\Database\katalogsisapotong.csv"
 CSV_PACKING     = r"Z:\Checker\Production\Database\katalogpacking.csv"
 CSV_SISA_PACK   = r"Z:\Checker\Production\Database\katalogsisapack.csv"
 CSV_AVAL_MIXING = r"Z:\Checker\Production\Database\katalogavalmixing.csv"
@@ -45,6 +46,7 @@ CATALOG_MAP = {
     "MIXING":      CSV_MIXING,
     "HD":          CSV_HD,
     "POTONG":      CSV_POTONG,
+    "SISA_POTONG":      CSV_SISA_POTONG,
     "PACKING":     CSV_PACKING,
     "SISA_PACK":   CSV_SISA_PACK,
     "AVAL_MIXING": CSV_AVAL_MIXING,
@@ -75,8 +77,25 @@ PEMAKAIAN_MAP = {
     "HD": "scanhd.csv",
     "MI": "scanmixing.csv",
     "CU": "scanpotong.csv",
+    "CS": "scanpotong.csv",
     "PA": "scanpacking.csv",
     "PS": "scanpacking.csv",
+}
+
+SCAN_TDIR  = Path(r"Z:\Checker\Production\Database\scan_transfer")
+CSV_SCAN_TFILES = {
+    "scantransferhd.csv":      SCAN_TDIR / "scantransferhd.csv",
+    "scantransfermixing.csv":  SCAN_TDIR / "scantransfermixing.csv",
+    "scantransferpotong.csv":  SCAN_TDIR / "scantransferpotong.csv",
+    "scantransferpacking.csv": SCAN_TDIR / "scantransferpacking.csv",
+}
+
+TRANSFER_MAP = {
+    "HD": "scantransferhd.csv",
+    "MI": "scantransfermixing.csv",
+    "CU": "scantransferpotong.csv",
+    "PA": "scantransferpacking.csv",
+    "PS": "scantransferpacking.csv",
 }
 
 PREFIX_CONFIG = {
@@ -87,6 +106,7 @@ PREFIX_CONFIG = {
     "MI":  ("scansalahmixing.csv",  "MIXING",      "Mixing"),
     "AMS": ("scansalahmixing.csv",  "AVAL_MIXING", "Aval Mixing"),
     "CU":  ("scansalahpotong.csv",  "POTONG",      "Potong"),
+    "CS":  ("scansalahpotong.csv",  "SISA_POTONG",      "Sisa_Potong"),
     "ACP": ("scansalahpotong.csv",  "AVAL_POTONG", "Aval Potong — Plong"),
     "ACM": ("scansalahpotong.csv",  "AVAL_POTONG", "Aval Potong — Mesin"),
     "ACS": ("scansalahpotong.csv",  "AVAL_POTONG", "Aval Potong — Silet/Sapuan"),
@@ -103,6 +123,7 @@ PREFIX_CONFIG = {
 
 CSV_SCAN_COLUMNS = ["create_at", "divisi", "prefix", "divisi_label", "spk", "customer", "produk", "uk", "checker", "scanned_by", "code", "keterangan"]
 CSV_PSCAN_COLUMNS = ["create_at", "tanggal", "shift", "divisi", "prefix", "divisi_label", "spk", "customer", "produk", "uk", "checker", "scanned_by", "code", "mesin", "berat_bersih",]
+CSV_TSCAN_COLUMNS = ["create_at", "tanggal", "shift", "divisi", "prefix", "divisi_label", "spk", "customer", "produk", "uk", "checker", "scanned_by", "code", "foreman", "berat_bersih",]
 
 import re
 
@@ -209,6 +230,7 @@ def hasil_required(f):
 FIELD_MAP = {
     "MIXING":       {"operator": "operator_mix", "wadah": "karung"},
     "HD":           {"operator": "operator_hd",  "wadah": "bobin"},
+    "SISA_POTONG":           {"operator": "operator_cu",  "wadah": "bobin"},
     "POTONG":       {"operator": "operator_cu",  "wadah": "keranjang"},
     "PACKING":      {"operator": "operator_pa",  "wadah": ""},
     "SISA_PACK":    {"operator": "operator_sp",  "wadah": "sisa"},
@@ -394,6 +416,8 @@ def generate_label_image(order_id, data, source_route=None):
     label_tag = data.get("_label_tag", "")
     if show_tiket_sementara:
         label_tag = "TS"
+    if not label_tag and divisi_raw == "SISA_POTONG":
+        label_tag = "ROLL SISA"
 
     if label_tag:
         line2_bbox = draw.textbbox((0, 0), line2, font=font_md)
@@ -520,7 +544,7 @@ def generate_code(data):
 
     # Default mapping
     div_map = {
-        "MIXING": "MI", "HD": "HD", "POTONG": "CU",
+        "MIXING": "MI", "HD": "HD", "POTONG": "CU", "SISA_POTONG": "CS",
         "PACKING": "PA", "SISA_PACK": "PS",
         "AVAL_MIXING": "AMS", "AVAL_QC": "AQC",
     }
@@ -611,6 +635,16 @@ def init_db():
         spk TEXT, customer TEXT, produk TEXT, uk TEXT,
         operator_cu TEXT, checker TEXT,
         mesin REAL, berat_kg REAL, keranjang REAL, berat_bersih REAL,
+        created_at TEXT, code TEXT
+    )""")
+    
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS katalogsisapotong (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT,
+        operator_cu TEXT, checker TEXT,
+        mesin REAL, berat_kg REAL, bobin REAL, berat_bersih REAL,
         created_at TEXT, code TEXT
     )""")
 
@@ -729,6 +763,18 @@ def save_record(data):
         csv_path = CSV_POTONG
         headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_cu","checker","mesin","berat_kg","keranjang","berat_bersih","created_at","code"]
 
+    elif div == "SISA_POTONG":
+        c.execute("""
+        INSERT INTO katalogsisapotong (
+            tanggal, shift, divisi, spk, customer, produk, uk,
+            operator_cu, checker, mesin, berat_kg, bobin, berat_bersih, created_at, code
+        ) VALUES (
+            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
+            :operator_cu, :checker, :mesin, :berat_kg, :bobin, :berat_bersih, :created_at, :code
+        )""", data)
+        csv_path = CSV_SISA_POTONG
+        headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_cu","checker","mesin","berat_kg","bobin","berat_bersih","created_at","code"]
+        
     elif div == "PACKING":
         c.execute("""
         INSERT INTO katalogpacking (
@@ -940,6 +986,12 @@ def hd():
 def potong():
     return render_template("potong.html", active_page="potong", current_user=session.get("name"))
 
+@app.route("/sisa_potong")
+@login_required
+@checker_required
+def sisa_potong():
+    return render_template("sisa_potong.html", active_page="sisa_potong", current_user=session.get("name"))
+
 @app.route("/packing")
 @login_required
 @checker_required
@@ -993,6 +1045,11 @@ def scan_salah():
 def scan_pemakaian():
     return render_template("scan_pemakaian.html", active_page="scan_pemakaian", current_user=session.get("name"))
 
+@app.route("/scan_transfer")
+@adminwip_required
+def scan_transfer():
+    return render_template("scan_transfer.html", active_page="scan_transfer", current_user=session.get("name"))
+
 @app.route("/barcode_mixing")
 @adminwip_required
 def barcode_mixing():
@@ -1007,6 +1064,11 @@ def barcode_hd():
 @adminwip_required
 def barcode_potong():
     return render_template("barcode_potong.html", active_page="barcode_potong", current_user=session.get("name"))
+
+@app.route("/barcode_sisa_potong")
+@adminwip_required
+def barcode_sisa_potong():
+    return render_template("barcode_sisa_potong.html", active_page="barcode_sisa_potong", current_user=session.get("name"))
 
 @app.route("/barcode_packing")
 @adminwip_required
@@ -4906,6 +4968,75 @@ def format_tanggal(raw):
             continue
     return val
 
+@app.route("/save_transfer", methods=["POST"])
+@login_required
+def save_transfer():
+    print("=== SAVE TRANSFER ===")
+        
+    try:
+        data    = request.get_json()
+        print(data)
+        records = data.get("records", [])
+        tanggal = data.get("tanggal", "")
+        shift   = data.get("shift", "")
+        foreman = data.get("foreman", "")
+
+        if not records:
+            return jsonify(success=False, error="Tidak ada data")
+        if not tanggal:
+            return jsonify(success=False, error="Tanggal wajib diisi")
+        if not shift:
+            return jsonify(success=False, error="Shift wajib dipilih")
+        if not foreman:
+            return jsonify(success=False, error="Foreman wajib diisi")
+
+        tanggal_clean = format_tanggal(tanggal)
+
+        from collections import defaultdict
+        groups = defaultdict(list)
+
+        for rec in records:
+            prefix, _, _, _ = get_prefix_from_code(rec.get("code", ""))
+            csv_file = TRANSFER_MAP.get(prefix)
+
+            if not csv_file or csv_file not in CSV_SCAN_TFILES:
+                return jsonify(success=False, error=f"Kode '{rec.get('code')}' tidak bisa ditentukan CSV tujuannya (prefix: {prefix})")
+
+            groups[csv_file].append(rec)
+
+        for csv_filename, recs in groups.items():
+            path = CSV_SCAN_TFILES[csv_filename]
+            path.parent.mkdir(parents=True, exist_ok=True)
+            file_exists = path.exists()
+
+            with open(path, "a", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=CSV_TSCAN_COLUMNS)
+                if not file_exists:
+                    writer.writeheader()
+                for rec in recs:
+                    writer.writerow({
+                        "create_at":    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "tanggal":      tanggal_clean,
+                        "shift":        shift,
+                        "divisi":       rec.get("prefix", ""),
+                        "prefix":       rec.get("prefix", ""),
+                        "divisi_label": rec.get("divisi_label", ""),
+                        "spk":          rec.get("spk", ""),
+                        "customer":     rec.get("customer", ""),
+                        "produk":       rec.get("produk", ""),
+                        "uk":           rec.get("uk", ""),
+                        "checker":      rec.get("checker", ""),
+                        "scanned_by":   session.get("name", ""),
+                        "code":         rec.get("code", ""),
+                        "foreman":      foreman,
+                        "berat_bersih": rec.get("berat_bersih", ""),
+                    })
+
+        return jsonify(success=True, saved=len(records))
+
+    except Exception as e:
+        return jsonify(success=False, error=str(e))
+    
 # ─── API: SUBMIT PRODUKSI ───────────────────────────────────
 @app.route("/api/submit", methods=["POST"])
 @login_required
@@ -4939,6 +5070,19 @@ def submit():
                 "mesin": d.get("mesin"),
                 "berat_kg": float(d.get("berat_kg") or 0),
                 "keranjang": float(d.get("keranjang") or 0),
+                "berat_bersih": float(d.get("berat_bersih") or 0),
+                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
+            }
+        elif div == "SISA_POTONG":
+            record = {
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
+                "shift": d.get("shift"), "divisi": div,
+                "spk": d.get("spk"), "customer": d.get("customer"),
+                "produk": d.get("produk"), "uk": d.get("uk"),
+                "operator_cu": d.get("operator_cu"), "checker": d.get("checker"),
+                "mesin": d.get("mesin"),
+                "berat_kg": float(d.get("berat_kg") or 0),
+                "bobin": float(d.get("bobin") or 0),
                 "berat_bersih": float(d.get("berat_bersih") or 0),
                 "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
             }
@@ -5085,6 +5229,7 @@ def recent(divisi):
             "mixing":    CSV_MIXING,
             "hd":        CSV_HD,
             "potong":    CSV_POTONG,
+            "sisa_potong":    CSV_SISA_POTONG,
             "packing":   CSV_PACKING,
             "sisa_pack": CSV_SISA_PACK,
             "aval_mixing": CSV_AVAL_MIXING,
@@ -5113,6 +5258,7 @@ if __name__ == "__main__":
     init_csv(CSV_MIXING)
     init_csv(CSV_HD)
     init_csv(CSV_POTONG)
+    init_csv(CSV_SISA_POTONG)
     init_csv(CSV_PACKING)
     init_csv(CSV_SISA_PACK)
     init_csv(CSV_AVAL_MIXING)

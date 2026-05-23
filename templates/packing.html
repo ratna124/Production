@@ -47,14 +47,12 @@
     /* ITEM */
     .sidebar-item {
       display: flex;
-      /* 🔥 biar rapi horizontal icon + text */
       align-items: center;
       gap: 10px;
       padding: 10px 20px;
       cursor: pointer;
 
       text-decoration: none;
-      /* 🔥 HILANGIN GARIS BAWAH */
       color: #aaa;
 
       border-left: 3px solid transparent;
@@ -86,8 +84,6 @@
     .sidebar-item.active .sidebar-dot {
       background: #e8420a;
     }
-
-
 
     :root {
       --black: #0a0a0a;
@@ -454,47 +450,47 @@
       margin-left: 2px;
     }
 
-  input,
-select,
-textarea {
-  width: 100%;
-  height: var(--input-h);
-  background: var(--gray2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--white);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  padding: 0 12px;
-  outline: none;
-  transition: all .15s ease;
-  appearance: none;
-  -webkit-appearance: none;
-}
+    input,
+    select,
+    textarea {
+      width: 100%;
+      height: var(--input-h);
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      padding: 0 12px;
+      outline: none;
+      transition: all .15s ease;
+      appearance: none;
+      -webkit-appearance: none;
+    }
 
-/* FIELD AKTIF */
-input:focus,
-select:focus,
-textarea:focus {
-  border: 1px solid #e8420a !important;
-  background: #9c310d;
-  color: #fff;
-  outline: none !important;
-  box-shadow: 0 0 0 2px rgba(232, 66, 10, .22);
-}
+    /* FIELD AKTIF */
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border: 1px solid #e8420a !important;
+      background: #9c310d;
+      color: #fff;
+      outline: none !important;
+      box-shadow: 0 0 0 2px rgba(232, 66, 10, .22);
+    }
 
-/* PLACEHOLDER PAS AKTIF */
-input:focus::placeholder,
-textarea:focus::placeholder {
-  color: rgba(255,255,255,.6);
-}
+    /* PLACEHOLDER PAS AKTIF */
+    input:focus::placeholder,
+    textarea:focus::placeholder {
+      color: rgba(255, 255, 255, .6);
+    }
 
-/* READONLY JANGAN ORANGE */
-input[readonly]:focus {
-  border-color: var(--border) !important;
-  background: var(--gray2);
-  box-shadow: none;
-}
+    /* READONLY JANGAN ORANGE */
+    input[readonly]:focus {
+      border-color: var(--border) !important;
+      background: var(--gray2);
+      box-shadow: none;
+    }
 
     textarea {
       height: 72px;
@@ -836,6 +832,7 @@ input[readonly]:focus {
     <!-- ── SIDEBAR ── -->
     <aside class="sidebar">
       {% if session.get('role') in 'administrator' %}
+      
       <div class="sidebar-section">Production Input</div>
       <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
         <span class="sidebar-dot"></span>Admin Input
@@ -850,7 +847,10 @@ input[readonly]:focus {
         <span class="sidebar-dot"></span>Hasil Produksi
       </a>
       {% endif %}
-
+      <div class="sidebar-section">Scan Transfer</div>
+      <a href="/scan_transfer" class="sidebar-item {% if active_page == 'scan_transfer' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Scan Transfer
+      </a>
       <div class="sidebar-section">Hasil</div>
       <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
         <span class="sidebar-dot"></span>Mixing
@@ -860,6 +860,9 @@ input[readonly]:focus {
       </a>
       <a href="/potong" class="sidebar-item {% if active_page == 'potong' %}active{% endif %}">
         <span class="sidebar-dot"></span>Potong
+      </a>
+      <a href="/sisa_potong" class="sidebar-item {% if active_page == 'sisa_potong' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Sisa Roll (Potong)
       </a>
       <a href="/packing" class="sidebar-item {% if active_page == 'packing' %}active{% endif %}">
         <span class="sidebar-dot"></span>Packing

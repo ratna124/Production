@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scan Pemakaian</title>
+  <title>Scan Transfer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
@@ -871,9 +871,6 @@ select {
         <a href="/barcode_potong" class="sidebar-item {% if active_page == 'barcode_potong' %}active{% endif %}">
           <span class="sidebar-dot"></span>Potong WIP
         </a>
-        <a href="/barcode_sisa_potong" class="sidebar-item {% if active_page == 'barcode_sisa_potong' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Sisa Roll (Potong) WIP
-      </a>
         <a href="/barcode_packing" class="sidebar-item {% if active_page == 'barcode_packing' %}active{% endif %}">
           <span class="sidebar-dot"></span>Packing WIP
         </a>
@@ -1002,8 +999,8 @@ select {
               <input type="hidden" id="shift" value="">
             </div>
             <div class="field">
-              <label class="field-label">Mesin<span class="req">*</span></label>
-              <input type="text" id="mesin" required oninput="renderSummary()">
+              <label class="field-label">Foreman<span class="req">*</span></label>
+              <input type="text" id="foreman" required oninput="renderSummary()">
             </div>
           </div>
         </div>
@@ -1072,7 +1069,7 @@ select {
           <span class="card-header-num">4</span>
           <span class="card-header-title">Summary Total Berat</span>
           <span class="card-header-extra" style="font-family:var(--font-mono);font-size:11px;color:var(--gray4)">
-            group by SPK · Customer · Produk · UK · Mesin · Divisi
+            group by SPK · Customer · Produk · UK · Foreman · Divisi
           </span>
         </div>
 
@@ -1095,7 +1092,7 @@ select {
                   UK</th>
                 <th
                   style="padding:8px 14px;text-align:left;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
-                  Mesin</th>
+                  Foreman</th>
                 <th
                   style="padding:8px 14px;text-align:left;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
                   Divisi</th>
@@ -1394,7 +1391,7 @@ document.getElementById("tanggal").value = localDT;
       if (!codes.length) { alert("Belum ada kode."); return; }
 
       const tanggal = document.getElementById("tanggal").value;
-      const mesin = document.getElementById("mesin").value;
+      const foreman = document.getElementById("foreman").value;
       if (!tanggal) {
         alert("⚠ Tanggal & waktu wajib diisi.");
         document.getElementById("tanggal").focus();
@@ -1412,9 +1409,9 @@ document.getElementById("tanggal").value = localDT;
         return;
       }
 
-      if (!mesin) {
-        alert("⚠ Pilih mesin terlebih dahulu.");
-        document.getElementById("mesin").focus();
+      if (!foreman) {
+        alert("⚠ Pilih foreman terlebih dahulu.");
+        document.getElementById("foreman").focus();
         return;
       }
 
@@ -1427,7 +1424,7 @@ document.getElementById("tanggal").value = localDT;
       const created_at = new Date().toISOString();
 
       try {
-        const res = await fetch("/save_pemakaian", {
+        const res = await fetch("/save_transfer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1435,7 +1432,7 @@ document.getElementById("tanggal").value = localDT;
             tanggal: tanggal,       // tanggal input manual user
             shift: selectedShift,
             created_at: created_at,  // ← timestamp otomatis saat submit
-            mesin: mesin,
+            foreman: foreman,
           })
         });
 
@@ -1469,7 +1466,7 @@ document.getElementById("tanggal").value = localDT;
         if (statShift) { statShift.textContent = "—"; statShift.style.color = "var(--accent2)"; }
 
         // Reset mesin
-        document.getElementById("mesin").value = "";
+        document.getElementById("foreman").value = "";
 
         // Fokus ke scan input
         document.getElementById("scan-input").focus();
@@ -1487,20 +1484,6 @@ document.getElementById("tanggal").value = localDT;
       document.getElementById("result-panel").classList.remove("show");
       document.getElementById("scan-input").focus();
       window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    function validateMesin(el) {
-      const val = parseFloat(el.value);
-      const errorMsg = document.getElementById("error-msg");
-
-      if (el.value !== "" && (isNaN(val) || val <= 0)) {
-        errorMsg.innerText = "Mesin tidak boleh minus atau nol";
-        errorMsg.classList.add("show");
-        el.style.borderColor = "var(--accent)";
-      } else {
-        errorMsg.classList.remove("show");
-        el.style.borderColor = "";
-      }
     }
 
     // ── DIVISI COLOR MAP ──
@@ -1530,17 +1513,17 @@ document.getElementById("tanggal").value = localDT;
       card.style.display = "";
 
       // Ambil mesin dari input (live)
-      const mesinVal = document.getElementById("mesin").value.trim() || "—";
+      const foremanVal = document.getElementById("foreman").value.trim() || "—";
 
       // Group
       const map = {};
       codes.forEach(c => {
         const divisiVal = c.divisi_label || c.prefix || "—";
-        const key = [c.spk || "—", c.customer || "—", c.produk || "—", c.uk || "—", mesinVal, divisiVal].join("||");
+        const key = [c.spk || "—", c.customer || "—", c.produk || "—", c.uk || "—", foremanVal, divisiVal].join("||");
         if (!map[key]) map[key] = {
           spk: c.spk || "—", customer: c.customer || "—",
           produk: c.produk || "—", uk: c.uk || "—",
-          mesin: mesinVal, divisi: divisiVal,
+          foreman: foremanVal, divisi: divisiVal,
           qty: 0, berat: 0
         };
         map[key].qty++;
@@ -1558,7 +1541,7 @@ document.getElementById("tanggal").value = localDT;
     <td style="padding:8px 14px;color:var(--gray5)">${escHtml(r.customer)}</td>
     <td style="padding:8px 14px;color:var(--gray5)">${escHtml(r.produk)}</td>
     <td style="padding:8px 14px;color:var(--gray5)">${escHtml(r.uk)}</td>
-    <td style="padding:8px 14px;color:var(--accent2)">${escHtml(r.mesin)}</td>
+    <td style="padding:8px 14px;color:var(--accent2)">${escHtml(r.foreman)}</td>
     <td style="padding:8px 14px;font-size:10px;font-weight:500">
   <span style="
     color:${getDivisiColor(r.divisi)};

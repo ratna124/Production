@@ -843,6 +843,10 @@ input[readonly]:focus {
       {% endif %}
 
       {% if session.get('role') in ('administrator', 'checker') %}
+      <div class="sidebar-section">Scan Transfer</div>
+      <a href="/scan_transfer" class="sidebar-item {% if active_page == 'scan_transfer' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Scan Transfer
+      </a>
       <div class="sidebar-section">Hasil</div>
       <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
         <span class="sidebar-dot"></span>Mixing
@@ -852,6 +856,9 @@ input[readonly]:focus {
       </a>
       <a href="/potong" class="sidebar-item {% if active_page == 'potong' %}active{% endif %}">
         <span class="sidebar-dot"></span>Potong
+      </a>
+      <a href="/sisa_potong" class="sidebar-item {% if active_page == 'sisa_potong' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Sisa Roll (Potong)
       </a>
       <a href="/packing" class="sidebar-item {% if active_page == 'packing' %}active{% endif %}">
         <span class="sidebar-dot"></span>Packing
