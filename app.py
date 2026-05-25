@@ -2422,6 +2422,45 @@ def api_stok_potong():
             used_codes = set(dp[code_col].astype(str).str.strip().dropna())
 
         exclude = bad_codes | used_codes
+        
+        # Tambah stok sisa potong
+        stok_sisa_potong = {}
+        if os.path.exists(CSV_SISA_POTONG):
+            df_sisa = pd.read_csv(CSV_SISA_POTONG, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
+            df_sisa.columns = df_sisa.columns.str.strip()
+
+            cs_spk   = df_sisa.columns[3]
+            cs_berat = df_sisa.columns[12]
+            cs_code  = df_sisa.columns[14]
+
+            df_sisa[cs_spk]   = df_sisa[cs_spk].astype(str).str.strip()
+            df_sisa[cs_code]  = df_sisa[cs_code].astype(str).str.strip()
+            df_sisa[cs_berat] = pd.to_numeric(df_sisa[cs_berat], errors="coerce").fillna(0)
+
+            bad_sisa = set()
+            scan_salah_sisa = SCAN_DIR / "scansalahpotong.csv"
+            if scan_salah_sisa.exists():
+                ds2 = pd.read_csv(scan_salah_sisa, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
+                ds2.columns = ds2.columns.str.strip()
+                code_col2 = next((c for c in ds2.columns if c.lower() == "code"), ds2.columns[-1])
+                bad_sisa = set(ds2[code_col2].astype(str).str.strip().dropna())
+
+            used_sisa = set()
+            scan_used_sisa = SCAN_PDIR / "scanpotong.csv"
+            if scan_used_sisa.exists():
+                dp2 = pd.read_csv(scan_used_sisa, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
+                dp2.columns = dp2.columns.str.strip()
+                code_col2 = next((c for c in dp2.columns if c.lower() == "code"), dp2.columns[-1])
+                used_sisa = set(dp2[code_col2].astype(str).str.strip().dropna())
+
+            exclude_sisa = bad_sisa | used_sisa
+            df_sisa_valid = df_sisa[~df_sisa[cs_code].isin(exclude_sisa)]
+
+            for spk, group in df_sisa_valid.groupby(cs_spk, sort=False):
+                stok_sisa_potong[spk] = {
+                    "count": int(len(group)),
+                    "berat": round(float(group[cs_berat].sum()), 2),
+                }
 
         df_valid = df[
             ~df[c_code]
@@ -2439,7 +2478,9 @@ def api_stok_potong():
                 "produk": str(first.get(c_produk, "") or ""),
                 "uk": str(first.get(c_uk, "") or ""),
                 "potong": int(len(group)),
-                "berat_bersih": round(float(berat_total), 2)
+                "berat_bersih": round(float(berat_total), 2),
+                "sisa_potong": stok_sisa_potong.get(spk, {}).get("count", 0),
+                "sisa_berat":  stok_sisa_potong.get(spk, {}).get("berat", 0.0),
             })
 
         if spk_filter:

@@ -434,7 +434,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .toast {
@@ -451,9 +453,11 @@
             .shell {
                 grid-template-columns: 1fr;
             }
+
             .sidebar {
                 display: none;
             }
+
             .main {
                 padding: 20px;
             }
@@ -497,28 +501,22 @@
                 {% endif %}
                 {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
                 <div class="sidebar-section">Stok Produksi</div>
-                <a href="/stok_produksi"
-                    class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
+                <a href="/stok_produksi" class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Stok Produksi
                 </a>
-                <a href="/stok_mixing"
-                    class="sidebar-item {% if active_page == 'stok_mixing' %}active{% endif %}">
+                <a href="/stok_mixing" class="sidebar-item {% if active_page == 'stok_mixing' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Stok Mixing
                 </a>
-                <a href="/stok_hd"
-                    class="sidebar-item {% if active_page == 'stok_hd' %}active{% endif %}">
+                <a href="/stok_hd" class="sidebar-item {% if active_page == 'stok_hd' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Stok HD
                 </a>
-                <a href="/stok_potong"
-                    class="sidebar-item {% if active_page == 'stok_potong' %}active{% endif %}">
+                <a href="/stok_potong" class="sidebar-item {% if active_page == 'stok_potong' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Stok Potong
                 </a>
-                <a href="/stok_packing"
-                    class="sidebar-item {% if active_page == 'stok_packing' %}active{% endif %}">
+                <a href="/stok_packing" class="sidebar-item {% if active_page == 'stok_packing' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Stok Packing
                 </a>
-                <a href="/stok_sisapack"
-                    class="sidebar-item {% if active_page == 'stok_sisapack' %}active{% endif %}">
+                <a href="/stok_sisapack" class="sidebar-item {% if active_page == 'stok_sisapack' %}active{% endif %}">
                     <span class="sidebar-dot"></span>Stok Sisa Pack
                 </a>
                 <div class="sidebar-section">Hasil Produksi</div>
@@ -626,6 +624,8 @@
                                 <th>Uk</th>
                                 <th th class="num" style="color:#22c55e">Keranjang</th>
                                 <th class="num" style="color:#a78bfa">Berat (kg)</th>
+                                <th class="num" style="color:#fb923c">Sisa Roll</th>
+                                <th class="num" style="color:#f472b6">Sisa Berat (kg)</th>
                             </tr>
                         </thead>
                         <tbody id="prod-tbody">
@@ -640,6 +640,8 @@
                                 <td colspan="4">TOTAL</td>
                                 <td class="num col-potong" id="ft-potong">0</td>
                                 <td class="num" style="color:#a78bfa" id="ft-berat">0</td>
+                                <td class="num" style="color:#fb923c" id="ft-sisa-potong">0</td>
+                                <td class="num" style="color:#f472b6" id="ft-sisa-berat">0</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -659,7 +661,7 @@
             document.getElementById("current-date").textContent =
                 new Date().toLocaleDateString("id-ID", {
                     weekday: "long", year: "numeric",
-                    month: "long",  day: "numeric"
+                    month: "long", day: "numeric"
                 });
         });
 
@@ -682,25 +684,25 @@
             const spinner = document.getElementById("load-spinner");
             spinner.style.display = "block";
 
-            const spk      = document.getElementById("filter-spk").value.trim();
+            const spk = document.getElementById("filter-spk").value.trim();
             const customer = document.getElementById("filter-customer").value.trim();
-            const produk   = document.getElementById("filter-produk").value.trim();
-            const uk       = document.getElementById("filter-uk").value.trim();
+            const produk = document.getElementById("filter-produk").value.trim();
+            const uk = document.getElementById("filter-uk").value.trim();
 
             showToast("⏳ Memuat data stok Potong...", "success");
 
             try {
                 const params = new URLSearchParams();
-                if (spk)      params.set("spk",      spk);
-                if (customer) params.set("customer",  customer);
-                if (produk)   params.set("produk",    produk);
-                if (uk)       params.set("uk",        uk);
+                if (spk) params.set("spk", spk);
+                if (customer) params.set("customer", customer);
+                if (produk) params.set("produk", produk);
+                if (uk) params.set("uk", uk);
 
                 const res = await fetch("/api/stok_potong?" + params.toString());
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
                 const data = await res.json();
-                allRows  = data.rows || [];
+                allRows = data.rows || [];
                 filtered = [...allRows];
 
                 renderTable(filtered);
@@ -733,10 +735,10 @@
             filtered = !q
                 ? [...allRows]
                 : allRows.filter(r =>
-                    String(r?.spk      || "").toLowerCase().includes(q) ||
+                    String(r?.spk || "").toLowerCase().includes(q) ||
                     String(r?.customer || "").toLowerCase().includes(q) ||
-                    String(r?.produk   || "").toLowerCase().includes(q) ||
-                    String(r?.uk       || "").toLowerCase().includes(q)
+                    String(r?.produk || "").toLowerCase().includes(q) ||
+                    String(r?.uk || "").toLowerCase().includes(q)
                 );
 
             renderTable(filtered);
@@ -767,12 +769,18 @@
                     <td>${esc(r.uk)}</td>
                     <td class="num col-potong">${fmtNum(r.potong)}</td>
                     <td class="num" style="color:#a78bfa">${fmtNum(r.berat_bersih)}</td>
+                    <td class="num" style="color:#fb923c">${fmtNum(r.sisa_potong)}</td>
+<td class="num" style="color:#f472b6">${fmtNum(r.sisa_berat)}</td>
                 `;
                 tbody.appendChild(tr);
             });
 
             const totalPotong = rows.reduce((a, r) => a + (parseFloat(r.potong) || 0), 0);
             const totalBerat = rows.reduce((a, r) => a + (parseFloat(r.berat_bersih) || 0), 0);
+            const totalSisaPotong = rows.reduce((a, r) => a + (parseFloat(r.sisa_potong) || 0), 0);
+            const totalSisaBerat = rows.reduce((a, r) => a + (parseFloat(r.sisa_berat) || 0), 0);
+            document.getElementById("ft-sisa-potong").textContent = fmtNum(totalSisaPotong);
+            document.getElementById("ft-sisa-berat").textContent = fmtNum(totalSisaBerat);
 
             document.getElementById("ft-potong").textContent = fmtNum(totalPotong);
             document.getElementById("ft-berat").textContent = fmtNum(totalBerat);
@@ -783,7 +791,7 @@
             ["filter-spk", "filter-customer", "filter-produk", "filter-uk", "tbl-search"]
                 .forEach(id => { document.getElementById(id).value = ""; });
 
-            allRows  = [];
+            allRows = [];
             filtered = [];
 
             document.getElementById("prod-tbody").innerHTML = `
@@ -792,9 +800,9 @@
                 </tr>`;
 
             document.getElementById("prod-tfoot").style.display = "none";
-            document.getElementById("tbl-count").textContent  = "0";
-            document.getElementById("sb-total").textContent   = "0";
-            document.getElementById("sb-time").textContent    = "—";
+            document.getElementById("tbl-count").textContent = "0";
+            document.getElementById("sb-total").textContent = "0";
+            document.getElementById("sb-time").textContent = "—";
 
             showToast("✔ Reset berhasil", "success");
         }
