@@ -315,22 +315,22 @@
     }
 
     input[type="text"],
-input[type="date"],
-select {
-  width: 100%;
-  height: var(--input-h);
-  background: var(--gray2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--white);
-  font-family: var(--font-mono);
-  font-size: 13px;
-  padding: 0 14px;
-  outline: none;
-  transition: border-color .15s, background .15s;
-  appearance: none;
-  -webkit-appearance: none;
-}
+    input[type="date"],
+    select {
+      width: 100%;
+      height: var(--input-h);
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--white);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 0 14px;
+      outline: none;
+      transition: border-color .15s, background .15s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
 
     input[type="text"]:focus,
     input[type="date"]:focus,
@@ -842,11 +842,13 @@ select {
         {% endif %}
         {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
         <div class="sidebar-section">Production Stock</div>
-        <a href="/stok_produksi" class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
+        <a data-port="5001" data-path="/stok_produksi"
+          class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
           <span class="sidebar-dot"></span>Stok Produksi
         </a>
         <div class="sidebar-section">Production Output</div>
-        <a href="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+        <a data-port="5001" data-path="/hasil_produksi"
+          class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
           <span class="sidebar-dot"></span>Hasil Produksi
         </a>
         {% endif %}
@@ -871,9 +873,10 @@ select {
         <a href="/barcode_potong" class="sidebar-item {% if active_page == 'barcode_potong' %}active{% endif %}">
           <span class="sidebar-dot"></span>Potong WIP
         </a>
-        <a href="/barcode_sisa_potong" class="sidebar-item {% if active_page == 'barcode_sisa_potong' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Sisa Roll (Potong) WIP
-      </a>
+        <a href="/barcode_sisa_potong"
+          class="sidebar-item {% if active_page == 'barcode_sisa_potong' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Sisa Roll (Potong) WIP
+        </a>
         <a href="/barcode_packing" class="sidebar-item {% if active_page == 'barcode_packing' %}active{% endif %}">
           <span class="sidebar-dot"></span>Packing WIP
         </a>
@@ -902,24 +905,19 @@ select {
         </a>
 
         <div class="sidebar-section">Mutasi SPK</div>
-        <a href="/mutasi_mixing"
-          class="sidebar-item {% if active_page == 'mutasi_mixing' %}active{% endif %}">
+        <a href="/mutasi_mixing" class="sidebar-item {% if active_page == 'mutasi_mixing' %}active{% endif %}">
           <span class="sidebar-dot"></span>Mutasi Mixing WIP
         </a>
-        <a href="/mutasi_hd"
-          class="sidebar-item {% if active_page == 'mutasi_hd' %}active{% endif %}">
+        <a href="/mutasi_hd" class="sidebar-item {% if active_page == 'mutasi_hd' %}active{% endif %}">
           <span class="sidebar-dot"></span>Mutasi HD WIP
         </a>
-        <a href="/mutasi_potong"
-          class="sidebar-item {% if active_page == 'mutasi_potong' %}active{% endif %}">
+        <a href="/mutasi_potong" class="sidebar-item {% if active_page == 'mutasi_potong' %}active{% endif %}">
           <span class="sidebar-dot"></span>Mutasi Potong WIP
         </a>
-        <a href="/mutasi_packing"
-          class="sidebar-item {% if active_page == 'mutasi_packing' %}active{% endif %}">
+        <a href="/mutasi_packing" class="sidebar-item {% if active_page == 'mutasi_packing' %}active{% endif %}">
           <span class="sidebar-dot"></span>Mutasi Packing WIP
         </a>
-        <a href="/mutasi_sisapack"
-          class="sidebar-item {% if active_page == 'mutasi_sisapack' %}active{% endif %}">
+        <a href="/mutasi_sisapack" class="sidebar-item {% if active_page == 'mutasi_sisapack' %}active{% endif %}">
           <span class="sidebar-dot"></span>Mutasi Sisa Packing WIP
         </a>
       </div>
@@ -1176,9 +1174,15 @@ select {
       const now = new Date();
       const pad = n => String(n).padStart(2, "0");
       const localDT = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-document.getElementById("tanggal").value = localDT;
+      document.getElementById("tanggal").value = localDT;
 
       document.getElementById("scan-input").focus();
+
+      // Set href multi-port
+      const host = window.location.hostname;
+      document.querySelectorAll('a[data-port]').forEach(link => {
+        link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
+      });
     });
 
     function updateClock() {

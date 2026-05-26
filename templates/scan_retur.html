@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scan Transfer</title>
+  <title>Scan Retur</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
@@ -23,6 +23,7 @@
       --white: #f5f4f0;
       --accent: #e8420a;
       --accent2: #f5a623;
+      --accent3: #3b82f6;
       --gray1: #1a1a1a;
       --gray2: #2c2c2c;
       --gray3: #3e3e3e;
@@ -30,6 +31,7 @@
       --gray5: #aaa;
       --success: #22c55e;
       --danger: #ef4444;
+      --warning: #f59e0b;
       --border: #2e2e2e;
       --radius: 4px;
       --input-h: 44px;
@@ -71,7 +73,7 @@
       font-family: var(--font-mono);
       font-size: 13px;
       font-weight: 500;
-      color: var(--accent);
+      color: var(--accent3);
       letter-spacing: .05em;
       text-transform: uppercase;
     }
@@ -128,7 +130,6 @@
       flex-direction: column;
       gap: 2px;
       overflow-y: auto;
-
       height: calc(100vh - 56px);
       position: sticky;
       top: 56px;
@@ -163,9 +164,9 @@
     }
 
     .sidebar-item.active {
-      border-left-color: var(--accent);
+      border-left-color: var(--accent3);
       color: var(--white);
-      background: rgba(232, 66, 10, .08);
+      background: rgba(59, 130, 246, .08);
     }
 
     .sidebar-dot {
@@ -177,7 +178,7 @@
     }
 
     .sidebar-item.active .sidebar-dot {
-      background: var(--accent);
+      background: var(--accent3);
     }
 
     .sidebar-stats {
@@ -230,13 +231,14 @@
       font-weight: 500;
     }
 
-    .divisi-badge {
+    .retur-badge {
       font-family: var(--font-mono);
       font-size: 11px;
       padding: 3px 12px;
       border-radius: 20px;
-      background: var(--gray3);
-      color: var(--gray5);
+      background: rgba(59, 130, 246, .15);
+      color: var(--accent3);
+      border: 1px solid rgba(59, 130, 246, .3);
     }
 
     /* ── CARD ── */
@@ -259,7 +261,7 @@
     .card-header-num {
       font-family: var(--font-mono);
       font-size: 11px;
-      background: var(--accent);
+      background: var(--accent3);
       color: white;
       width: 22px;
       height: 22px;
@@ -335,7 +337,7 @@
     input[type="text"]:focus,
     input[type="date"]:focus,
     select:focus {
-      border-color: var(--accent);
+      border-color: var(--accent3);
       background: #222;
     }
 
@@ -343,35 +345,9 @@
       color: var(--gray4);
     }
 
-    /* datetime-local calendar icon color fix */
     input[type="date"]::-webkit-calendar-picker-indicator {
       filter: invert(0.5);
       cursor: pointer;
-    }
-
-    select option {
-      background: var(--gray2);
-      color: var(--white);
-    }
-
-    /* custom select arrow */
-    .select-wrap {
-      position: relative;
-    }
-
-    .select-wrap::after {
-      content: '▾';
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--gray4);
-      pointer-events: none;
-      font-size: 12px;
-    }
-
-    .select-wrap select {
-      padding-right: 32px;
     }
 
     /* shift pills */
@@ -438,7 +414,7 @@
     .btn-add {
       height: var(--input-h);
       padding: 0 20px;
-      background: var(--accent);
+      background: var(--accent3);
       color: white;
       border: none;
       border-radius: var(--radius);
@@ -452,7 +428,7 @@
     }
 
     .btn-add:hover {
-      background: #c9360a;
+      background: #2563eb;
     }
 
     .scan-hint {
@@ -476,7 +452,7 @@
     }
 
     .toast.warning {
-      color: var(--accent2);
+      color: var(--warning);
     }
 
     .toast.error {
@@ -490,7 +466,7 @@
     /* ── TABLE ── */
     .col-header {
       display: grid;
-      grid-template-columns: 30px minmax(0, 2fr) 50px minmax(0, 1fr) minmax(0, 1.5fr) 100px 65px minmax(0, 1fr) 36px;
+      grid-template-columns: 30px minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr) 90px 60px minmax(0, 1.2fr) 36px;
       gap: 8px;
       padding: 6px 16px;
       background: var(--gray3);
@@ -506,7 +482,7 @@
     }
 
     .code-list {
-      max-height: 320px;
+      max-height: 340px;
       overflow-y: auto;
       overflow-x: hidden;
     }
@@ -526,7 +502,7 @@
 
     .code-row {
       display: grid;
-      grid-template-columns: 30px minmax(0, 2fr) 50px minmax(0, 1fr) minmax(0, 1.5fr) 100px 65px minmax(0, 1fr) 36px;
+      grid-template-columns: 30px minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr) 90px 60px minmax(0, 1.2fr) 36px;
       align-items: start;
       gap: 8px;
       padding: 8px 16px;
@@ -559,10 +535,22 @@
       background: rgba(255, 255, 255, .03);
     }
 
-    .code-row.invalid {
-      background: rgba(239, 68, 68, .08) !important;
+    /* STATUS VARIANTS */
+    .code-row.status-found {
+      border-left: 3px solid var(--success);
+      padding-left: 13px;
+    }
+
+    .code-row.status-notfound {
+      background: rgba(239, 68, 68, .06) !important;
       border-left: 3px solid var(--danger);
       padding-left: 13px;
+    }
+
+    .code-row.status-pending {
+      border-left: 3px solid var(--warning);
+      padding-left: 13px;
+      opacity: .7;
     }
 
     .code-text {
@@ -573,15 +561,38 @@
       white-space: normal;
     }
 
-    .code-text.missing {
-      color: var(--danger) !important;
-      font-style: italic;
-    }
-
     .code-idx {
       font-family: var(--font-mono);
       font-size: 10px;
       color: var(--gray4);
+    }
+
+    .status-pill {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 20px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .status-pill.found {
+      background: rgba(34, 197, 94, .15);
+      color: var(--success);
+      border: 1px solid rgba(34, 197, 94, .3);
+    }
+
+    .status-pill.notfound {
+      background: rgba(239, 68, 68, .15);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, .3);
+    }
+
+    .status-pill.pending {
+      background: rgba(245, 158, 11, .15);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, .3);
     }
 
     .btn-del {
@@ -609,20 +620,34 @@
       font-family: var(--font-mono);
     }
 
-    /* ── VALIDATION BANNER ── */
-    .validate-banner {
+    /* ── INFO BANNER ── */
+    .info-banner {
       display: none;
-      background: rgba(239, 68, 68, .1);
-      border-top: 1px solid rgba(239, 68, 68, .3);
-      border-bottom: 1px solid rgba(239, 68, 68, .3);
-      padding: 12px 18px;
+      background: rgba(59, 130, 246, .08);
+      border-top: 1px solid rgba(59, 130, 246, .25);
+      padding: 10px 18px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent3);
+      line-height: 1.7;
+    }
+
+    .info-banner.show {
+      display: block;
+    }
+
+    .warn-banner {
+      display: none;
+      background: rgba(239, 68, 68, .08);
+      border-top: 1px solid rgba(239, 68, 68, .25);
+      padding: 10px 18px;
       font-family: var(--font-mono);
       font-size: 11px;
       color: var(--danger);
       line-height: 1.7;
     }
 
-    .validate-banner.show {
+    .warn-banner.show {
       display: block;
     }
 
@@ -658,7 +683,7 @@
     .btn-submit {
       height: 48px;
       padding: 0 28px;
-      background: var(--accent);
+      background: var(--danger);
       border: none;
       color: white;
       border-radius: var(--radius);
@@ -674,7 +699,7 @@
     }
 
     .btn-submit:hover {
-      background: #c9360a;
+      background: #dc2626;
     }
 
     .btn-submit:active {
@@ -701,6 +726,10 @@
       color: var(--danger);
     }
 
+    .action-feedback.warn {
+      color: var(--warning);
+    }
+
     /* ── SPINNER ── */
     .spinner {
       width: 16px;
@@ -716,6 +745,14 @@
       to {
         transform: rotate(360deg);
       }
+    }
+
+    /* ── SUMMARY CARD ── */
+    #summary-card table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 12px;
     }
 
     /* ── RESULT PANEL ── */
@@ -815,9 +852,9 @@
 
     <!-- TOPBAR -->
     <header class="topbar">
-      <span class="topbar-logo">&#9632; SCAN PEMAKAIAN</span>
+      <span class="topbar-logo">&#9632; SCAN RETUR</span>
       <span class="topbar-sep"></span>
-      <span class="topbar-title">Input Kode Pemakaian</span>
+      <span class="topbar-title">Retur WIP dari Transfer</span>
       <div class="topbar-right">
         <span class="clock" id="clock"></span>
         <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">
@@ -829,110 +866,121 @@
 
     <!-- SIDEBAR -->
     <aside class="sidebar">
-      {% if session.get('role') in 'administrator' %}
-      <div class="sidebar-section">Production Input</div>
-      <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Admin Input
-      </a>
-      <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Checker Input
-      </a>
-      {% endif %}
-      {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
-      <div class="sidebar-section">Production Output</div>
-      <a data-port="5001" data-path="/hasil_produksi"
-        class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Hasil Produksi
-      </a>
-      {% endif %}
-      <div class="sidebar-section">Scan Transfer</div>
-      <a href="/scan_transfer" class="sidebar-item {% if active_page == 'scan_transfer' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Scan Transfer
-      </a>
-      <div class="sidebar-section">Scan Retur</div>
-      <a href="/scan_retur" class="sidebar-item {% if active_page == 'scan_retur' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Scan Retur
-      </a>
-      <div class="sidebar-section">Hasil</div>
-      <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Mixing
-      </a>
-      <a href="/hd" class="sidebar-item {% if active_page == 'hd' %}active{% endif %}">
-        <span class="sidebar-dot"></span>HD
-      </a>
-      <a href="/potong" class="sidebar-item {% if active_page == 'potong' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Potong
-      </a>
-      <a href="/sisa_potong" class="sidebar-item {% if active_page == 'sisa_potong' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Sisa Roll (Potong)
-      </a>
-      <a href="/packing" class="sidebar-item {% if active_page == 'packing' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Packing
-      </a>
-      <a href="/sisa_pack" class="sidebar-item {% if active_page == 'sisa_pack' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Sisa Pack
-      </a>
+      <div style="flex:1; overflow-y:auto; min-height:0;">
+        {% if session.get('role') in 'administrator' %}
+        <div class="sidebar-section">Production Input</div>
+        <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Admin Input
+        </a>
+        <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Checker Input
+        </a>
+        {% endif %}
+        {% if session.get('role') in ('administrator', 'staff', 'adminwip') %}
+        <div class="sidebar-section">Production Stock</div>
+        <a data-port="5001" data-path="/stok_produksi"
+          class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Stok Produksi
+        </a>
+        <div class="sidebar-section">Production Output</div>
+        <a data-port="5001" data-path="/hasil_produksi"
+          class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Hasil Produksi
+        </a>
+        {% endif %}
 
-      <div class="sidebar-section">Aval</div>
-      <a href="/aval_mixing" class="sidebar-item {% if active_page == 'aval_mixing' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Aval Mixing
-      </a>
-      <a href="/aval_hd" class="sidebar-item {% if active_page == 'aval_hd' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Aval HD
-      </a>
-      <a href="/aval_potong" class="sidebar-item {% if active_page == 'aval_potong' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Aval Potong
-      </a>
-      <a href="/aval_packing" class="sidebar-item {% if active_page == 'aval_packing' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Aval Packing
-      </a>
-      <a href="/aval_qc" class="sidebar-item {% if active_page == 'aval_qc' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Aval QC
-      </a>
+        {% if session.get('role') in ('administrator', 'adminwip') %}
+        <div class="sidebar-section">Scan</div>
+        <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Scan Pemakaian
+        </a>
+        <a href="/scan_salah" class="sidebar-item {% if active_page == 'scan_salah' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Scan Salah
+        </a>
+        <a href="/scan_transfer" class="sidebar-item {% if active_page == 'scan_transfer' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Scan Transfer
+        </a>
+        <a href="/scan_retur" class="sidebar-item {% if active_page == 'scan_retur' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Scan Retur
+        </a>
+
+        <div class="sidebar-section">Hasil</div>
+        <a href="/barcode_mixing" class="sidebar-item {% if active_page == 'barcode_mixing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Mixing WIP
+        </a>
+        <a href="/barcode_hd" class="sidebar-item {% if active_page == 'barcode_hd' %}active{% endif %}">
+          <span class="sidebar-dot"></span>HD WIP
+        </a>
+        <a href="/barcode_potong" class="sidebar-item {% if active_page == 'barcode_potong' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Potong WIP
+        </a>
+        <a href="/barcode_packing" class="sidebar-item {% if active_page == 'barcode_packing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Packing WIP
+        </a>
+        <a href="/barcode_sisa_pack" class="sidebar-item {% if active_page == 'barcode_sisa_pack' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Sisa Pack WIP
+        </a>
+        {% endif %}
+      </div>
+
+      <!-- Stats sidebar -->
+      <div class="sidebar-stats">
+        <div class="stat-row">
+          <span class="stat-label">Kode discan</span>
+          <span class="stat-val" id="stat-count">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Ditemukan</span>
+          <span class="stat-val" id="stat-found" style="font-size:16px;color:var(--success)">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Tidak ditemukan</span>
+          <span class="stat-val" id="stat-notfound" style="font-size:16px;color:var(--danger)">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Shift</span>
+          <span class="stat-val" id="stat-shift" style="font-size:16px;color:var(--accent2)">—</span>
+        </div>
+      </div>
     </aside>
 
     <!-- MAIN -->
     <main class="main">
 
       <div class="page-header">
-        <h1 class="page-title">SCAN KODE PEMAKAIAN</h1>
-        <span class="divisi-badge" id="divisi-badge">— pilih divisi</span>
+        <h1 class="page-title">SCAN RETUR WIP</h1>
+        <span class="retur-badge">Hapus dari Transfer</span>
         <span style="margin-left:auto;font-size:11px;color:var(--gray4);font-family:var(--font-mono)"
           id="current-date"></span>
       </div>
 
-      <!-- SUCCESS PANEL -->
+      <!-- RESULT PANEL (setelah simpan) -->
       <div class="result-panel" id="result-panel">
         <div class="result-header">
           <span style="color:var(--success);font-size:16px">&#10003;</span>
-          <span style="font-family:var(--font-mono);font-size:12px;color:var(--success)">DATA TERSIMPAN</span>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--success)">RETUR BERHASIL</span>
           <span style="font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--white);margin-left:8px"
             id="result-title"></span>
         </div>
         <div class="result-body">
           <div class="result-line" id="result-line1"></div>
           <div class="result-line" id="result-line2"></div>
-          <div class="result-line" id="result-line3"></div>
-          <button class="btn-new" onclick="resetSession()">+ &nbsp;Scan Baru</button>
+          <button class="btn-new" onclick="resetSession()">+ &nbsp;Retur Baru</button>
         </div>
       </div>
 
-      <!-- CARD 1: Info Produksi (Tanggal + Shift) -->
+      <!-- CARD 1: Info Retur -->
       <div class="card">
         <div class="card-header">
           <span class="card-header-num">1</span>
-          <span class="card-header-title">Info Produksi</span>
+          <span class="card-header-title">Info Retur</span>
         </div>
         <div class="card-body">
           <div class="form-grid cols-2">
-
-            <!-- TANGGAL -->
             <div class="field">
-              <label class="field-label" for="tanggal">Tanggal &amp; Waktu<span class="req">*</span></label>
+              <label class="field-label" for="tanggal">Tanggal<span class="req">*</span></label>
               <input type="date" id="tanggal" required>
             </div>
-
-            <!-- SHIFT -->
             <div class="field">
               <label class="field-label">Shift<span class="req">*</span></label>
               <div class="shift-group">
@@ -947,7 +995,11 @@
             </div>
             <div class="field">
               <label class="field-label">Foreman<span class="req">*</span></label>
-              <input type="text" id="foreman" required oninput="renderSummary()">
+              <input type="text" id="foreman" placeholder="Nama foreman..." autocomplete="off">
+            </div>
+            <div class="field">
+              <label class="field-label">Keterangan</label>
+              <input type="text" id="keterangan" placeholder="Alasan retur" autocomplete="off">
             </div>
           </div>
         </div>
@@ -957,7 +1009,7 @@
       <div class="card">
         <div class="card-header">
           <span class="card-header-num">2</span>
-          <span class="card-header-title">Input Kode</span>
+          <span class="card-header-title">Input Kode Retur</span>
         </div>
         <div class="card-body">
           <div class="field-label">Kode Barcode / QR</div>
@@ -968,7 +1020,9 @@
             </div>
             <button class="btn-add" onclick="addCode()">&#43; Tambah</button>
           </div>
-          <div class="scan-hint">Tekan Enter setelah scan · Kode duplikat otomatis diabaikan</div>
+          <div class="scan-hint">
+            Tekan Enter setelah scan · Kode akan dicek di file scan_transfer · Duplikat diabaikan
+          </div>
           <div class="toast hidden" id="toast"></div>
         </div>
       </div>
@@ -977,7 +1031,7 @@
       <div class="card">
         <div class="card-header">
           <span class="card-header-num">3</span>
-          <span class="card-header-title">Daftar Kode Discan</span>
+          <span class="card-header-title">Daftar Kode Retur</span>
           <span class="card-header-extra" style="font-family:var(--font-mono);font-size:11px;color:var(--gray4)">
             <span id="list-count">0</span> kode
           </span>
@@ -991,7 +1045,7 @@
           <span>Produk</span>
           <span>Berat</span>
           <span>Checker</span>
-          <span>Divisi</span>
+          <span>Status</span>
           <span>Del</span>
         </div>
 
@@ -999,30 +1053,33 @@
           <div class="list-empty" id="list-empty">Belum ada kode discan…</div>
         </div>
 
-        <div class="validate-banner" id="validate-banner"></div>
+        <!-- Banner warning: ada kode tidak ditemukan -->
+        <div class="warn-banner" id="warn-banner"></div>
+
+        <!-- Banner info: semua valid -->
+        <div class="info-banner" id="info-banner"></div>
 
         <div class="action-row">
           <button class="btn-clear" onclick="clearAll()">✕ &nbsp;Hapus Semua</button>
-          <button class="btn-submit" id="btn-submit" onclick="submitCodes()">
-            <span id="btn-text">SIMPAN</span>
+          <button class="btn-submit" id="btn-submit" onclick="submitRetur()">
+            <span id="btn-text">⟲ &nbsp;PROSES RETUR</span>
             <div class="spinner" id="spinner"></div>
           </button>
           <span class="action-feedback" id="action-feedback"></span>
         </div>
       </div>
-      <!-- CARD 4: Summary Berat per SPK -->
+
+      <!-- CARD 4: Summary -->
       <div class="card" id="summary-card" style="display:none">
         <div class="card-header">
           <span class="card-header-num">4</span>
-          <span class="card-header-title">Summary Total Berat</span>
+          <span class="card-header-title">Summary Retur</span>
           <span class="card-header-extra" style="font-family:var(--font-mono);font-size:11px;color:var(--gray4)">
-            group by SPK · Customer · Produk · UK · Foreman · Divisi
+            group by SPK · Divisi
           </span>
         </div>
-
         <div style="overflow-x:auto">
-          <table id="summary-table"
-            style="width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:12px">
+          <table id="summary-table">
             <thead>
               <tr style="background:var(--gray3);color:var(--gray4)">
                 <th
@@ -1036,12 +1093,6 @@
                   Produk</th>
                 <th
                   style="padding:8px 14px;text-align:left;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
-                  UK</th>
-                <th
-                  style="padding:8px 14px;text-align:left;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
-                  Foreman</th>
-                <th
-                  style="padding:8px 14px;text-align:left;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
                   Divisi</th>
                 <th
                   style="padding:8px 14px;text-align:right;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
@@ -1049,6 +1100,9 @@
                 <th
                   style="padding:8px 14px;text-align:right;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
                   Total Berat (kg)</th>
+                <th
+                  style="padding:8px 14px;text-align:center;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">
+                  Status</th>
               </tr>
             </thead>
             <tbody id="summary-tbody"></tbody>
@@ -1056,6 +1110,7 @@
           </table>
         </div>
       </div>
+
     </main>
   </div>
 
@@ -1084,14 +1139,12 @@
       return "";
     }
 
-    // ── SHIFT SELECTOR ──
+    // ── SHIFT ──
     function selectShift(val) {
       selectedShift = val;
       document.getElementById("shift").value = val;
-
       document.getElementById("pill-P").className = "shift-pill" + (val === "P" ? " active-P" : "");
       document.getElementById("pill-M").className = "shift-pill" + (val === "M" ? " active-M" : "");
-
       const el = document.getElementById("stat-shift");
       if (el) {
         el.textContent = val === "P" ? "P — Pagi" : "M — Malam";
@@ -1100,16 +1153,12 @@
     }
 
     // ── HELPERS ──
-    function isFieldMissing(val) {
-      return !val || String(val).trim() === '' || String(val).trim() === '-';
-    }
-
-    function isCodeValid(c) {
-      return !isFieldMissing(c.code) && !isFieldMissing(c.checker) && !isFieldMissing(c.prefix);
-    }
-
     function escHtml(s) {
       return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function isFieldMissing(val) {
+      return !val || String(val).trim() === '' || String(val).trim() === '-';
     }
 
     // ── INIT ──
@@ -1119,14 +1168,12 @@
 
       const now = new Date();
       const pad = n => String(n).padStart(2, "0");
-      const localDT = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-      document.getElementById("tanggal").value = localDT;
-
+      document.getElementById("tanggal").value =
+        `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
       document.getElementById("scan-input").focus();
 
-      // Set href multi-port
-      const host = window.location.hostname;
       document.querySelectorAll('a[data-port]').forEach(link => {
+        const host = window.location.hostname;
         link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
       });
     });
@@ -1134,10 +1181,8 @@
     function updateClock() {
       const now = new Date();
       const pad = n => String(n).padStart(2, "0");
-
       document.getElementById("clock").textContent =
         `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-
       document.getElementById("current-date").textContent =
         now.toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
     }
@@ -1145,7 +1190,7 @@
     // ── ADD CODE ──
     async function addCode() {
       const input = document.getElementById("scan-input");
-      const val = input.value.trim();
+      const val = input.value.trim().toUpperCase();
       input.value = "";
       input.focus();
       if (!val) return;
@@ -1161,51 +1206,57 @@
         return;
       }
 
-      showToast("⏳ Mencari kode...", "success");
+      // tambah dulu ke list dengan status pending, lookup async
+      const entry = {
+        code: val,
+        prefix: localPrefix,
+        divisi_label: PREFIX_LABEL[localPrefix] || localPrefix,
+        spk: "…", customer: "…", produk: "…",
+        berat_bersih: "…", checker: "…",
+        status: "pending"  // pending | found | notfound
+      };
+      codes.push(entry);
+      renderList();
+      updateStats();
+      showToast("⏳ Mencari kode di scan_transfer…", "success");
 
       try {
-        const res = await fetch("/api/lookup_code", {
+        const res = await fetch("/api/lookup_transfer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code: val })
         });
         const data = await res.json();
 
-        const prefix = data.prefix || localPrefix;
-        const divisiLabel = data.divisi_label || PREFIX_LABEL[prefix] || "?";
-        const csvFile = data.csv_file || null;
-
-        if (!csvFile) {
-          showToast("⛔ Prefix tidak dikenal di server: " + val, "error");
-          return;
-        }
+        const idx = codes.findIndex(c => c.code === val);
+        if (idx === -1) return; // sudah dihapus user
 
         if (data.found) {
-          codes.push({
-            code: val, prefix, divisi_label: divisiLabel, csv_file: csvFile,
-            spk: data.spk, customer: data.customer,
-            produk: data.produk, uk: data.uk, berat_bersih: data.berat_bersih, checker: data.checker,
-            found: true
-          });
-          showToast(`✔ [${prefix}] ${divisiLabel} — ${val}`, "success");
+          codes[idx] = {
+            ...codes[idx],
+            spk: data.spk || "—",
+            customer: data.customer || "—",
+            produk: data.produk || "—",
+            berat_bersih: data.berat_bersih || "—",
+            checker: data.checker || "—",
+            divisi_label: data.divisi_label || codes[idx].divisi_label,
+            transfer_file: data.transfer_file || null,
+            status: "found"
+          };
+          showToast(`✔ Ditemukan: ${val}`, "success");
         } else {
-          codes.push({
-            code: val, prefix, divisi_label: divisiLabel, csv_file: csvFile,
-            spk: "-", customer: "-", produk: "-", uk: "-", berat_bersih: "-", checker: "-",
-            found: false
-          });
-          showToast(`⚠ [${prefix}] Kode tidak ditemukan di katalog: ${val}`, "warning");
+          codes[idx] = {
+            ...codes[idx],
+            spk: "—", customer: "—", produk: "—",
+            berat_bersih: "—", checker: "—",
+            status: "notfound"
+          };
+          showToast(`⚠ Tidak ditemukan di scan_transfer: ${val}`, "warning");
         }
-
       } catch (e) {
-        codes.push({
-          code: val, prefix: localPrefix,
-          divisi_label: PREFIX_LABEL[localPrefix] || "?",
-          csv_file: null,
-          spk: "-", customer: "-", produk: "-", uk: "-", berat_bersih: "-", checker: "-",
-          found: false
-        });
-        showToast("⚠ Gagal lookup: " + val, "warning");
+        const idx = codes.findIndex(c => c.code === val);
+        if (idx !== -1) { codes[idx].status = "notfound"; }
+        showToast("⚠ Gagal lookup: " + val, "error");
       }
 
       renderList();
@@ -1222,81 +1273,117 @@
 
       if (!codes.length) {
         empty.style.display = "";
-        hideBanner();
+        hideBanners();
         updateSubmitState();
         return;
       }
       empty.style.display = "none";
 
       codes.forEach((c, i) => {
-        const valid = isCodeValid(c);
         const row = document.createElement("div");
-        row.className = "code-row" + (valid ? "" : " invalid");
+        const rowClass = {
+          found: "code-row status-found",
+          notfound: "code-row status-notfound",
+          pending: "code-row status-pending"
+        }[c.status] || "code-row";
+        row.className = rowClass;
 
-        const cell = (val, baseColor) => {
-          const missing = isFieldMissing(val);
-          const cls = "code-text" + (missing ? " missing" : "");
-          const color = missing ? "var(--danger)" : (baseColor || "var(--gray5)");
-          return `<span class="${cls}" style="color:${color}">${missing ? "⚠ kosong" : escHtml(val)}</span>`;
+        const pillHtml = {
+          found: `<span class="status-pill found">✔ Ada</span>`,
+          notfound: `<span class="status-pill notfound">✕ Tidak ada</span>`,
+          pending: `<span class="status-pill pending">⋯ Cek</span>`
+        }[c.status] || "";
+
+        const cell = (val, color) => {
+          const missing = isFieldMissing(val) || val === "…";
+          const style = missing ? "color:var(--gray4);font-style:italic" : (color ? `color:${color}` : "color:var(--gray5)");
+          return `<span class="code-text" style="${style}">${escHtml(val)}</span>`;
         };
 
         row.innerHTML = `
-  <span class="code-idx">${i + 1}</span>
-  ${cell(c.code, 'var(--white)')}
-  ${cell(c.spk)}
-  ${cell(c.customer)}
-  ${cell(c.produk)}
-  ${cell(c.berat_bersih, 'var(--success)')}
-  ${cell(c.checker)}
-  <span class="code-text" style="color:var(--accent2);font-size:10px;line-height:1.3">${escHtml(c.divisi_label || c.prefix || "?")}</span>
-  <button class="btn-del" onclick="deleteCode(${i})">✕</button>
-`;
+          <span class="code-idx">${i + 1}</span>
+          ${cell(c.code, 'var(--white)')}
+          ${cell(c.spk)}
+          ${cell(c.customer)}
+          ${cell(c.produk)}
+          ${cell(c.berat_bersih, 'var(--success)')}
+          ${cell(c.checker)}
+          <span>${pillHtml}</span>
+          <button class="btn-del" onclick="deleteCode(${i})">✕</button>
+        `;
         list.appendChild(row);
       });
 
       list.scrollTop = list.scrollHeight;
       updateSubmitState();
-      renderSummary();
     }
 
-    // ── VALIDATION BANNER & SUBMIT STATE ──
+    // ── BANNER & SUBMIT STATE ──
     function updateSubmitState() {
-      const invalidRows = codes.filter(c => !isCodeValid(c));
-      const banner = document.getElementById("validate-banner");
+      const warnBanner = document.getElementById("warn-banner");
+      const infoBanner = document.getElementById("info-banner");
       const btn = document.getElementById("btn-submit");
       const fb = document.getElementById("action-feedback");
 
-      if (invalidRows.length > 0) {
-        const lines = invalidRows.map(c =>
-          `• ${escHtml(c.code || "?")} &rarr; checker atau divisi tidak terdeteksi`
-        ).join("<br>");
+      hideBanners();
 
-        banner.className = "validate-banner show";
-        banner.innerHTML = `
-          <strong>⛔ ${invalidRows.length} kode tidak valid — tidak bisa disimpan</strong><br>
+      const pending = codes.filter(c => c.status === "pending");
+      const notfound = codes.filter(c => c.status === "notfound");
+      const found = codes.filter(c => c.status === "found");
+
+      if (!codes.length) {
+        btn.disabled = true;
+        fb.textContent = "";
+        fb.className = "action-feedback";
+        return;
+      }
+
+      if (pending.length > 0) {
+        btn.disabled = true;
+        fb.textContent = `⋯ ${pending.length} kode masih dicek…`;
+        fb.className = "action-feedback warn";
+        return;
+      }
+
+      if (notfound.length > 0) {
+        warnBanner.className = "warn-banner show";
+        const lines = notfound.map(c => `• ${escHtml(c.code)} → tidak ditemukan di scan_transfer`).join("<br>");
+        warnBanner.innerHTML = `
+          <strong>⚠ ${notfound.length} kode tidak ditemukan — akan diabaikan saat simpan</strong><br>
           <span style="opacity:.75;font-size:10px;display:block;margin-top:4px">${lines}</span>
         `;
-        btn.disabled = true;
-        fb.textContent = `${invalidRows.length} kode tidak valid`;
-        fb.className = "action-feedback err";
-      } else {
-        hideBanner();
-        btn.disabled = (codes.length === 0);
-        if (codes.length > 0) {
-          const groups = {};
-          codes.forEach(c => { groups[c.divisi_label] = (groups[c.divisi_label] || 0) + 1; });
-          const summary = Object.entries(groups).map(([k, v]) => `${k}: ${v}`).join(" · ");
-          fb.textContent = `✔ ${codes.length} kode siap simpan — ${summary}`;
-          fb.className = "action-feedback ok";
+      }
+
+      if (found.length > 0) {
+        // masih bisa submit selama ada yang found
+        btn.disabled = false;
+        if (notfound.length > 0) {
+          fb.textContent = `${found.length} ditemukan, ${notfound.length} diabaikan`;
+          fb.className = "action-feedback warn";
         } else {
-          fb.textContent = "";
-          fb.className = "action-feedback";
+          infoBanner.className = "info-banner show";
+          infoBanner.innerHTML = `✔ ${found.length} kode siap diretur dari scan_transfer`;
+          fb.textContent = `✔ ${found.length} kode siap diretur`;
+          fb.className = "action-feedback ok";
         }
+      } else {
+        // semua notfound
+        btn.disabled = true;
+        fb.textContent = "Tidak ada kode yang ditemukan";
+        fb.className = "action-feedback err";
       }
     }
 
-    function hideBanner() {
-      document.getElementById("validate-banner").className = "validate-banner";
+    function hideBanners() {
+      document.getElementById("warn-banner").className = "warn-banner";
+      document.getElementById("info-banner").className = "info-banner";
+    }
+
+    // ── STATS ──
+    function updateStats() {
+      document.getElementById("stat-count").textContent = codes.length;
+      document.getElementById("stat-found").textContent = codes.filter(c => c.status === "found").length;
+      document.getElementById("stat-notfound").textContent = codes.filter(c => c.status === "notfound").length;
     }
 
     // ── DELETE / CLEAR ──
@@ -1316,40 +1403,6 @@
       renderSummary();
     }
 
-    function updateStats() {
-      const statCount = document.getElementById("stat-count");
-      const statInvalid = document.getElementById("stat-invalid");
-      const statDivisi = document.getElementById("stat-divisi");
-
-      // jumlah kode
-      if (statCount) {
-        statCount.textContent = codes.length;
-      }
-
-      // invalid
-      const inv = codes.filter(c => !isCodeValid(c)).length;
-
-      if (statInvalid) {
-        statInvalid.textContent = inv;
-      }
-
-      // summary divisi
-      const groups = {};
-      codes.forEach(c => {
-        groups[c.divisi_label || "?"] =
-          (groups[c.divisi_label || "?"] || 0) + 1;
-      });
-
-      const summary = Object.entries(groups)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join(" · ");
-
-      if (statDivisi) {
-        statDivisi.textContent = summary || "—";
-      }
-    }
-
-
     // ── TOAST ──
     let toastTimer;
     function showToast(msg, type = "success") {
@@ -1357,93 +1410,98 @@
       t.textContent = msg;
       t.className = "toast " + type;
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => t.className = "toast hidden", 3000);
+      toastTimer = setTimeout(() => t.className = "toast hidden", 3500);
     }
 
     // ── SUBMIT ──
-    async function submitCodes() {
-      if (!codes.length) { alert("Belum ada kode."); return; }
-
+    async function submitRetur() {
       const tanggal = document.getElementById("tanggal").value;
-      const foreman = document.getElementById("foreman").value;
+      const foreman = document.getElementById("foreman").value.trim();
+      const keterangan = document.getElementById("keterangan").value.trim();
+
       if (!tanggal) {
-        alert("⚠ Tanggal & waktu wajib diisi.");
+        alert("⚠ Tanggal wajib diisi.");
         document.getElementById("tanggal").focus();
         return;
       }
-
       if (!selectedShift) {
-        alert("⚠ Pilih shift terlebih dahulu (P atau M).");
+        alert("⚠ Pilih shift terlebih dahulu.");
         return;
       }
-
-      const invalid = codes.filter(c => !isCodeValid(c));
-      if (invalid.length > 0) {
-        alert(`⛔ Ada ${invalid.length} kode yang checker atau divisnya tidak terdeteksi.\nHapus kode tersebut terlebih dahulu.`);
-        return;
-      }
-
       if (!foreman) {
-        alert("⚠ Pilih foreman terlebih dahulu.");
+        alert("⚠ Foreman wajib diisi.");
         document.getElementById("foreman").focus();
         return;
       }
+
+      const foundCodes = codes.filter(c => c.status === "found");
+      if (!foundCodes.length) {
+        alert("⛔ Tidak ada kode yang ditemukan di scan_transfer.");
+        return;
+      }
+
+      if (!confirm(`Proses retur ${foundCodes.length} kode? Retur akan diproses.`))
+        return;
 
       const btn = document.getElementById("btn-submit");
       const spinner = document.getElementById("spinner");
       btn.disabled = true;
       spinner.style.display = "block";
-
-      // ← Tambah created_at di sini
-      const created_at = new Date().toISOString();
+      document.getElementById("btn-text").textContent = "Memproses…";
 
       try {
-        const res = await fetch("/save_transfer", {
+        const res = await fetch("/save_retur", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            records: codes,
-            tanggal: tanggal,       // tanggal input manual user
+            records: foundCodes,
+            tanggal: tanggal,
             shift: selectedShift,
-            created_at: created_at,  // ← timestamp otomatis saat submit
             foreman: foreman,
+            keterangan: keterangan,
+            created_at: new Date().toISOString(),
           })
         });
 
         const ct = res.headers.get("content-type") || "";
         if (!ct.includes("application/json")) {
           const text = await res.text();
-          throw new Error("Server error: " + text.substring(0, 100));
+          throw new Error("Server error: " + text.substring(0, 120));
         }
 
         const result = await res.json();
-        if (!result.success) throw new Error(result.error);
+        if (!result.success) throw new Error(result.error || "Gagal simpan");
 
-        alert("✅ " + codes.length + " kode berhasil disimpan.");
+        // Tampilkan result panel
+        document.getElementById("result-title").textContent =
+          `${result.deleted} kode diretur`;
+        document.getElementById("result-line1").textContent =
+          result.skipped > 0
+            ? `⚠ ${result.skipped} kode dilewati (tidak ditemukan saat proses)`
+            : `✔ Retur berhasil diproses`;
+        document.getElementById("result-panel").classList.add("show");
+
+        // Reset state
         codes = [];
         renderList();
         updateStats();
         renderSummary();
 
-        // Reset tanggal ke waktu sekarang
         const now = new Date();
         const pad = n => String(n).padStart(2, "0");
-        const localDT = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-        document.getElementById("tanggal").value = localDT;
+        document.getElementById("tanggal").value =
+          `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
-        // Reset shift
         selectedShift = "";
         document.getElementById("shift").value = "";
         document.getElementById("pill-P").className = "shift-pill";
         document.getElementById("pill-M").className = "shift-pill";
         const statShift = document.getElementById("stat-shift");
         if (statShift) { statShift.textContent = "—"; statShift.style.color = "var(--accent2)"; }
-
-        // Reset mesin
         document.getElementById("foreman").value = "";
+        document.getElementById("keterangan").value = "";
 
-        // Fokus ke scan input
-        document.getElementById("scan-input").focus();
+        window.scrollTo({ top: 0, behavior: "smooth" });
 
       } catch (err) {
         alert("❌ Gagal: " + err.message);
@@ -1451,6 +1509,7 @@
 
       btn.disabled = false;
       spinner.style.display = "none";
+      document.getElementById("btn-text").textContent = "⟲ \u00a0PROSES RETUR";
     }
 
     // ── RESET ──
@@ -1460,50 +1519,34 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    // ── DIVISI COLOR MAP ──
-    function getDivisiColor(divisi) {
-      const d = (divisi || "").toLowerCase();
-      if (d.includes("mixing") && d.includes("aval")) return "#e879f9";  // ungu — Aval Mixing
-      if (d.includes("mixing")) return "#e879f9";  // fushia
-      if (d.includes("hd") && d.includes("prong")) return "#60a5fa";  // merah muda — HD Prong
-      if (d.includes("hd") && d.includes("daun")) return "#60a5fa";  // oranye — HD Daun
-      if (d.includes("hd") && d.includes("sapuan")) return "#60a5fa";  // kuning — HD Sapuan
-      if (d.includes("hd")) return "#60a5fa";  // biru — HD
-      if (d.includes("potong") && d.includes("aval")) return "#34d399";  // ungu muda — Aval Potong
-      if (d.includes("potong")) return "#34d399";  // teal — Potong
-      if (d.includes("sisa")) return "#f472b6";  // pink — Sisa Pack
-      if (d.includes("packing") && d.includes("aval")) return "#a78bfa";  // fuchsia — Aval Packing
-      if (d.includes("packing")) return "#a78bfa";  // sky — Packing
-      if (d.includes("qc")) return "#facc15";  // kuning — QC
+    // ── DIVISI COLOR ──
+    function getDivisiColor(d) {
+      d = (d || "").toLowerCase();
+      if (d.includes("mixing")) return "#e879f9";
+      if (d.includes("hd")) return "#60a5fa";
+      if (d.includes("potong")) return "#34d399";
+      if (d.includes("packing") || d.includes("sisa")) return "#a78bfa";
+      if (d.includes("qc")) return "#facc15";
       return "var(--gray5)";
     }
 
+    // ── SUMMARY ──
     function renderSummary() {
       const card = document.getElementById("summary-card");
       const tbody = document.getElementById("summary-tbody");
       const tfoot = document.getElementById("summary-tfoot");
 
-      if (!codes.length) {
-        card.style.display = "none";
-        tbody.innerHTML = "";
-        tfoot.innerHTML = "";
-        return;
-      }
+      const validCodes = codes.filter(c => c.status !== "pending");
+      if (!validCodes.length) { card.style.display = "none"; return; }
       card.style.display = "";
 
-      // Ambil mesin dari input (live)
-      const foremanVal = document.getElementById("foreman").value.trim() || "—";
-
-      // Group
       const map = {};
-      codes.forEach(c => {
-        const divisiVal = c.divisi_label || c.prefix || "—";
-        const key = [c.spk || "—", c.customer || "—", c.produk || "—", c.uk || "—", foremanVal, divisiVal].join("||");
+      validCodes.forEach(c => {
+        const key = [c.spk || "—", c.customer || "—", c.produk || "—", c.divisi_label || "—", c.status].join("||");
         if (!map[key]) map[key] = {
           spk: c.spk || "—", customer: c.customer || "—",
-          produk: c.produk || "—", uk: c.uk || "—",
-          foreman: foremanVal, divisi: divisiVal,
-          qty: 0, berat: 0
+          produk: c.produk || "—", divisi: c.divisi_label || "—",
+          status: c.status, qty: 0, berat: 0
         };
         map[key].qty++;
         const b = parseFloat(String(c.berat_bersih).replace(",", "."));
@@ -1513,52 +1556,61 @@
       const rows = Object.values(map);
       const totalQty = rows.reduce((s, r) => s + r.qty, 0);
       const totalBerat = rows.reduce((s, r) => s + r.berat, 0);
+      const foundRows = rows.filter(r => r.status === "found");
+      const foundQty = foundRows.reduce((s, r) => s + r.qty, 0);
+      const foundBerat = foundRows.reduce((s, r) => s + r.berat, 0);
 
-      tbody.innerHTML = rows.map((r, i) => `
-  <tr style="border-bottom:1px solid rgba(46,46,46,.5);${i % 2 === 0 ? 'background:rgba(255,255,255,.01)' : 'background:rgba(0,0,0,.15)'}">
-    <td style="padding:8px 14px;color:var(--white)">${escHtml(r.spk)}</td>
-    <td style="padding:8px 14px;color:var(--gray5)">${escHtml(r.customer)}</td>
-    <td style="padding:8px 14px;color:var(--gray5)">${escHtml(r.produk)}</td>
-    <td style="padding:8px 14px;color:var(--gray5)">${escHtml(r.uk)}</td>
-    <td style="padding:8px 14px;color:var(--accent2)">${escHtml(r.foreman)}</td>
-    <td style="padding:8px 14px;font-size:10px;font-weight:500">
-  <span style="
-    color:${getDivisiColor(r.divisi)};
-    background:${getDivisiColor(r.divisi)}22;
-    border:1px solid ${getDivisiColor(r.divisi)}55;
-    padding:2px 8px;
-    border-radius:20px;
-    white-space:nowrap;
-    display:inline-block;
-  ">${escHtml(r.divisi)}</span>
-</td>
-    <td style="padding:8px 14px;text-align:right;color:var(--white);font-weight:500">${r.qty}</td>
-    <td style="padding:8px 14px;text-align:right;color:var(--success);font-weight:500">${r.berat > 0 ? r.berat.toFixed(2) : '—'}</td>
-  </tr>
-`).join("");
+      tbody.innerHTML = rows.map((r, i) => {
+        const col = getDivisiColor(r.divisi);
+        const statusHtml = r.status === "found"
+          ? `<span class="status-pill found">✔ Ada</span>`
+          : `<span class="status-pill notfound">✕ Tidak ada</span>`;
+        return `
+        <tr style="border-bottom:1px solid rgba(46,46,46,.5);${i % 2 === 0 ? 'background:rgba(255,255,255,.01)' : 'background:rgba(0,0,0,.15)'}">
+          <td style="padding:8px 14px;color:var(--white)">${escHtml(r.spk)}</td>
+          <td style="padding:8px 14px;color:var(--gray5)">${escHtml(r.customer)}</td>
+          <td style="padding:8px 14px;color:var(--gray5)">${escHtml(r.produk)}</td>
+          <td style="padding:8px 14px;font-size:10px">
+            <span style="color:${col};background:${col}22;border:1px solid ${col}55;
+              padding:2px 8px;border-radius:20px;white-space:nowrap;display:inline-block">
+              ${escHtml(r.divisi)}
+            </span>
+          </td>
+          <td style="padding:8px 14px;text-align:right;color:var(--white);font-weight:500">${r.qty}</td>
+          <td style="padding:8px 14px;text-align:right;color:var(--success);font-weight:500">
+            ${r.berat > 0 ? r.berat.toFixed(2) : '—'}
+          </td>
+          <td style="padding:8px 14px;text-align:center">${statusHtml}</td>
+        </tr>`;
+      }).join("");
 
       tfoot.innerHTML = `
-  <tr style="border-top:2px solid var(--border);background:var(--gray2)">
-    <td colspan="6" style="padding:10px 14px;font-family:var(--font-mono);font-size:11px;color:var(--gray4);letter-spacing:.08em;text-transform:uppercase">TOTAL</td>
-    <td style="padding:10px 14px;text-align:right;color:var(--white);font-weight:500;font-size:14px">${totalQty}</td>
-    <td style="padding:10px 14px;text-align:right;color:var(--success);font-weight:500;font-size:14px">${totalBerat > 0 ? totalBerat.toFixed(2) : '—'}</td>
-  </tr>
-`;
+        <tr style="border-top:2px solid var(--border);background:var(--gray2)">
+          <td colspan="4" style="padding:10px 14px;font-family:var(--font-mono);font-size:11px;color:var(--gray4);letter-spacing:.08em;text-transform:uppercase">
+            TOTAL RETUR (ditemukan)
+          </td>
+          <td style="padding:10px 14px;text-align:right;color:var(--white);font-weight:500;font-size:14px">${foundQty}</td>
+          <td style="padding:10px 14px;text-align:right;color:var(--success);font-weight:500;font-size:14px">
+            ${foundBerat > 0 ? foundBerat.toFixed(2) : '—'}
+          </td>
+          <td style="padding:10px 14px;text-align:center">
+            <span class="status-pill found">✔ Akan diretur</span>
+          </td>
+        </tr>
+      `;
     }
   </script>
+
   <script>
     setInterval(async () => {
       try {
         const res = await fetch("/check_session");
         const data = await res.json();
-
         if (!data.active) {
           alert("Session habis, silakan login kembali");
           window.location.href = "/login";
         }
-      } catch (err) {
-        console.error(err);
-      }
+      } catch (err) { console.error(err); }
     }, 60000);
   </script>
 </body>

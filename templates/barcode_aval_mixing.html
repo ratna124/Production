@@ -839,13 +839,13 @@
         {% endif %}
         {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
         <div class="sidebar-section">Production Stock</div>
-        <a href="/stok_produksi" class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
+        <a data-port="5001" data-path="/stok_produksi" class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
           <span class="sidebar-dot"></span>Stok Produksi
         </a>
         <div class="sidebar-section">Production Output</div>
-        <a href="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Hasil Produksi
-        </a>
+      <a data-port="5001" data-path="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Hasil Produksi
+      </a>
         {% endif %}
         {% if session.get('role') in ('administrator', 'adminwip') %}
         <div class="sidebar-section">Scan</div>
@@ -1100,6 +1100,12 @@
             document.getElementById("tanggal").value = localDT;
 
             document.getElementById("scan-input").focus();
+
+            // Set href multi-port
+            const host = window.location.hostname;
+            document.querySelectorAll('a[data-port]').forEach(link => {
+                link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
+            });
           });
 
           function updateClock() {

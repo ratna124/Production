@@ -125,6 +125,12 @@ CSV_SCAN_COLUMNS = ["create_at", "divisi", "prefix", "divisi_label", "spk", "cus
 CSV_PSCAN_COLUMNS = ["create_at", "tanggal", "shift", "divisi", "prefix", "divisi_label", "spk", "customer", "produk", "uk", "checker", "scanned_by", "code", "mesin", "berat_bersih",]
 CSV_TSCAN_COLUMNS = ["create_at", "tanggal", "shift", "divisi", "prefix", "divisi_label", "spk", "customer", "produk", "uk", "checker", "scanned_by", "code", "foreman", "berat_bersih",]
 
+CSV_RETUR_DIR = Path(r"Z:\Checker\Production\Database\scan_retur")
+CSV_RETUR_LOG = CSV_RETUR_DIR / "scanretur.csv"
+CSV_RETUR_COLUMNS = ["create_at", "tanggal", "shift", "divisi", "prefix", 
+                     "divisi_label", "spk", "customer", "produk", "uk",
+                     "checker", "scanned_by", "code", "foreman", "berat_bersih", "keterangan"]
+
 import re
 
 def get_prefix_from_code(code: str):
@@ -1046,9 +1052,14 @@ def scan_pemakaian():
     return render_template("scan_pemakaian.html", active_page="scan_pemakaian", current_user=session.get("name"))
 
 @app.route("/scan_transfer")
-@adminwip_required
+@checker_required
 def scan_transfer():
     return render_template("scan_transfer.html", active_page="scan_transfer", current_user=session.get("name"))
+
+@app.route("/scan_retur")
+@checker_required
+def scan_retur():
+    return render_template("scan_retur.html", active_page="scan_retur", current_user=session.get("name"))
 
 @app.route("/barcode_mixing")
 @adminwip_required
@@ -1135,1671 +1146,11 @@ def barcode_aval_qc():
 def stok_produksi():
     return render_template("stok_produksi.html", active_page="stok_produksi", current_user=session.get("name"))
 
-@app.route("/stok_hd")
-@hasil_required
-def stok_hd():
-    return render_template("stok_hd.html", active_page="stok_hd", current_user=session.get("name"))
-
-@app.route("/stok_potong")
-@hasil_required
-def stok_potong():
-    return render_template("stok_potong.html", active_page="stok_potong", current_user=session.get("name"))
-
-@app.route("/stok_mixing")
-@hasil_required
-def stok_mixing():
-    return render_template("stok_mixing.html", active_page="stok_mixing", current_user=session.get("name"))
-
-@app.route("/stok_packing")
-@hasil_required
-def stok_packing():
-    return render_template("stok_packing.html", active_page="stok_packing", current_user=session.get("name"))
-
-@app.route("/stok_sisapack")
-@hasil_required
-def stok_sisapack():
-    return render_template("stok_sisapack.html", active_page="stok_sisapack", current_user=session.get("name"))
-
-
 @app.route("/hasil_produksi")
 @hasil_required
 def hasil_produksi():
     return render_template("hasil_produksi.html", active_page="hasil_produksi", current_user=session.get("name"))
 
-@app.route("/hasil_produksi_hd")
-@hasil_required
-def hasil_produksi_hd():
-    return render_template("hasil_produksi_hd.html", active_page="hasil_produksi_hd", current_user=session.get("name"))
-
-@app.route("/hasil_produksi_mixing")
-@hasil_required
-def hasil_produksi_mixing():
-    return render_template("hasil_produksi_mixing.html", active_page="hasil_produksi_mixing", current_user=session.get("name"))
-
-@app.route("/hasil_produksi_potong")
-@hasil_required
-def hasil_produksi_potong():
-    return render_template("hasil_produksi_potong.html", active_page="hasil_produksi_potong", current_user=session.get("name"))
-
-@app.route("/hasil_produksi_packing")
-@hasil_required
-def hasil_produksi_packing():
-    return render_template("hasil_produksi_packing.html", active_page="hasil_produksi_packing", current_user=session.get("name"))
-
-# HASIL PRODUKSI
-@app.route("/api/hasil_produksi")
-@hasil_required
-def api_hasil_produksi():
-    try:
-        # 1. Load master SPK — tambah on_bad_lines & engine
-        df_spk = pd.read_csv(SPK_CSV, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-        df_spk.columns = df_spk.columns.str.strip()
-        df_spk["No. SPK"] = df_spk["No. SPK"].astype(str).str.strip()
-        raw_order = df_spk.iloc[:, 15].astype(str).str.strip()
-        raw_order = raw_order.str.replace(r'[^\d,\.]', '', regex=True)
-        raw_order = raw_order.str.replace('.', '', regex=False)
-        raw_order = raw_order.str.replace(',', '.', regex=False)
-        df_spk["order_qty"] = pd.to_numeric(raw_order, errors="coerce").fillna(0)
-        df_spk = df_spk.tail(500)
-
-        # 2. katalog
-        def load_catalog_by_code(path, spk_col, berat_col):
-            result = {}
-            if not os.path.exists(path):
-                return result
-            df = pd.read_csv(path, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-            df.columns = df.columns.str.strip()
-            col_spk   = df.columns[spk_col]
-            col_berat = df.columns[berat_col]
-            code_candidates = [c for c in df.columns if c.lower() == "code"]
-            col_code = code_candidates[0] if code_candidates else df.columns[-1]
-            df[col_spk]   = df[col_spk].astype(str).str.strip()
-            df[col_berat] = pd.to_numeric(df[col_berat], errors="coerce").fillna(0)
-            df[col_code]  = df[col_code].astype(str).str.strip()
-            for _, row in df.iterrows():
-                spk   = row[col_spk]
-                code  = row[col_code]
-                berat = row[col_berat]
-                if spk not in result:
-                    result[spk] = {}
-                result[spk][code] = berat
-            return result
-
-        # 3. scan_salah
-        def load_salah_codes(path, spk_col, code_col):
-            result = {}
-            if not os.path.exists(path):
-                return result
-            df = pd.read_csv(path, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-            df.columns = df.columns.str.strip()
-            col_spk  = df.columns[spk_col]
-            col_code = df.columns[code_col]
-            df[col_spk]  = df[col_spk].astype(str).str.strip()
-            df[col_code] = df[col_code].astype(str).str.strip()
-            for _, row in df.iterrows():
-                spk  = row[col_spk]
-                code = row[col_code]
-                if spk not in result:
-                    result[spk] = set()
-                result[spk].add(code)
-            return result
-
-        # 4. hitung total bersih = sum semua - sum yang salah
-        def calc_net(catalog, salah, spk):
-            """catalog = {spk: {code: berat}}, salah = {spk: set(codes)}"""
-            all_codes   = catalog.get(spk, {})
-            salah_codes = salah.get(spk, set())
-            total_all   = sum(all_codes.values())
-            total_salah = sum(v for k, v in all_codes.items() if k in salah_codes)
-            return round(total_all - total_salah, 2), len(salah_codes) > 0
-
-        # 5. Load katalog
-        cat_mixing  = load_catalog_by_code(CSV_MIXING,    3, 10)
-        cat_hd      = load_catalog_by_code(CSV_HD,        3, 12)
-        cat_potong  = load_catalog_by_code(CSV_POTONG,    3, 12)
-        cat_packing = load_catalog_by_code(CSV_PACKING,   3, 10)
-        cat_sisa    = load_catalog_by_code(CSV_SISA_PACK, 3, 10)
-
-        # 6. Load scan salah — SPK=E(4), code=K(10)
-        salah_mixing  = load_salah_codes(SCAN_DIR / "scansalahmixing.csv",  4, 10)
-        salah_hd      = load_salah_codes(SCAN_DIR / "scansalahhd.csv",      4, 10)
-        salah_potong  = load_salah_codes(SCAN_DIR / "scansalahpotong.csv",  4, 10)
-        salah_packing = load_salah_codes(SCAN_DIR / "scansalahpacking.csv", 4, 10)
-
-        # 7. Gabungkan per SPK
-        rows = []
-        for _, r in df_spk.iterrows():
-            spk = str(r["No. SPK"]).strip()
-
-            mixing_net,  has_salah_mix  = calc_net(cat_mixing,  salah_mixing,  spk)
-            hd_net,      has_salah_hd   = calc_net(cat_hd,      salah_hd,      spk)
-            potong_net,  has_salah_pot  = calc_net(cat_potong,  salah_potong,  spk)
-            packing_net, has_salah_pack = calc_net(cat_packing, salah_packing, spk)
-            sisa_net,    has_salah_sisa = calc_net(cat_sisa,    salah_packing, spk)
-
-            rows.append({
-                "spk":      spk,
-                "customer": str(r.get("CUSTOMER", "") or ""),
-                "produk":   str(r.get("PRODUCT",  "") or ""),
-                "uk":       str(r.get("UK",        "") or ""),
-                "order":    round(float(r.get("order_qty", 0) or 0), 2),
-                "mixing":   mixing_net,
-                "hd":       hd_net,
-                "potong":   potong_net,
-                "packing":  packing_net,
-                "sisa":     sisa_net,
-                "salah_mixing":  has_salah_mix,
-                "salah_hd":      has_salah_hd,
-                "salah_potong":  has_salah_pot,
-                "salah_packing": has_salah_pack,
-                "salah_sisa":    has_salah_sisa,
-            })
-
-        # 8. Filter query param
-        f_spk      = request.args.get("spk",      "").strip().lower()
-        f_customer = request.args.get("customer", "").strip().lower()
-        f_produk   = request.args.get("produk",   "").strip().lower()
-
-        if f_spk:      rows = [r for r in rows if f_spk      in r["spk"].lower()]
-        if f_customer: rows = [r for r in rows if f_customer in r["customer"].lower()]
-        if f_produk:   rows = [r for r in rows if f_produk   in r["produk"].lower()]
-
-        rows.sort(key=lambda r: r["spk"])
-        return jsonify({"rows": rows})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
-@app.route("/api/hasil_produksi_hd")
-@hasil_required
-def api_hasil_produksi_hd():
-    try:
-        if not os.path.exists(CSV_HD):
-            return jsonify({"rows": [], "newest_created": ""})
-
-        df = pd.read_csv(CSV_HD, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-        df.columns = df.columns.str.strip()
-        
-        c_tanggal  = df.columns[0]
-        c_shift    = df.columns[1]
-        c_spk      = df.columns[3]
-        c_customer = df.columns[4]
-        c_produk   = df.columns[5]
-        c_uk       = df.columns[6]
-        c_mesin    = df.columns[9]
-        c_berat    = df.columns[12]
-        c_created  = df.columns[13]
-        c_code     = df.columns[14]
-
-        df[c_berat]   = pd.to_numeric(df[c_berat], errors="coerce").fillna(0)
-        df[c_spk]     = df[c_spk].astype(str).str.strip()
-        df[c_tanggal] = df[c_tanggal].astype(str).str.strip()
-        df[c_shift]   = df[c_shift].astype(str).str.strip()
-        df[c_mesin]   = df[c_mesin].astype(str).str.strip()
-        df[c_code]    = df[c_code].astype(str).str.strip()
-        df[c_created] = df[c_created].astype(str).str.strip()
-
-        newest_created = df[c_created].dropna().iloc[-1] if len(df) > 0 else ""
-
-        # ── Baca scansalahhd.csv
-        bad_codes = set()
-        scan_salah_path = SCAN_DIR / "scansalahhd.csv"
-        if scan_salah_path.exists():
-            ds = pd.read_csv(scan_salah_path, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-            ds.columns = ds.columns.str.strip()
-            code_candidates = [c for c in ds.columns if c.lower() == "code"]
-            code_col = code_candidates[0] if code_candidates else ds.columns[-1]
-            bad_codes = set(ds[code_col].astype(str).str.strip().dropna())
-
-        df["_salah"] = df[c_code].isin(bad_codes)
-
-        spk_valid = (
-            df[~df["_salah"]]
-            .groupby([c_tanggal, c_shift])[c_spk]
-            .nunique()
-            .to_dict()
-        ) 
-        def flt(col, param):
-            val = request.args.get(param, "").strip()
-            if not val:
-                return pd.Series(True, index=df.index)
-
-    # FILTER TANGGAL
-            if param == "tanggal":
-                try:
-                    target = pd.to_datetime(val).normalize()
-
-                    csv_dates = pd.to_datetime(
-                        df[col].astype(str).str.strip(),
-                        dayfirst=True,
-                        errors="coerce"
-                    ).dt.normalize()
-                    return csv_dates == target
-
-                except Exception as e:
-                    print("ERROR FILTER TANGGAL:", e)
-                    return pd.Series(False, index=df.index)
-
-            return df[col].astype(str).str.strip().str.contains(
-                val,
-                case=False,
-                na=False
-            )
-        mask = (flt(c_tanggal, "tanggal") & flt(c_spk, "spk") &
-                flt(c_customer, "customer") & flt(c_produk, "produk") &
-                flt(c_mesin, "mesin") & flt(c_shift, "shift"))
-        df = df[mask]
-
-        # ── Group by (tanggal, spk, shift, mesin) ──
-        grp_key = [c_tanggal, c_spk, c_shift, c_mesin]
-        agg = df.groupby(grp_key, sort=False).apply(
-            lambda g: pd.Series({
-                "customer":     g[c_customer].iloc[0],
-                "produk":       g[c_produk].iloc[0],
-                "uk":           g[c_uk].iloc[0],
-                "berat_bersih": round(g.loc[~g["_salah"], c_berat].sum(), 2),
-                "total_roll":   int((~g["_salah"]).sum()),
-                "has_salah":    bool(g["_salah"].any()),
-            })).reset_index()
-
-        # ── Baca katalogavalhd.csv ──
-        aval_daun    = {}
-        aval_prong   = {}
-        aval_sapuan  = {}
-
-        if os.path.exists(CSV_AVAL_HD):
-            da = pd.read_csv(CSV_AVAL_HD, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-            da.columns = da.columns.str.strip()
-            ca_tgl   = da.columns[0]
-            ca_shift = da.columns[1]
-            ca_spk   = da.columns[3]
-            ca_mesin = da.columns[9]
-            ca_jenis = da.columns[10]
-            ca_berat = da.columns[14]
-
-            da[ca_berat] = pd.to_numeric(da[ca_berat], errors="coerce").fillna(0)
-            da[ca_spk]   = da[ca_spk].astype(str).str.strip()
-            da[ca_tgl]   = da[ca_tgl].astype(str).str.strip()
-            da[ca_shift] = da[ca_shift].astype(str).str.strip()
-            da[ca_mesin] = da[ca_mesin].astype(str).str.strip()
-            da[ca_jenis] = da[ca_jenis].astype(str).str.strip()
-
-            aval_code_candidates = [c for c in da.columns if c.lower() == "code"]
-            if aval_code_candidates:
-                ca_code = aval_code_candidates[0]
-                da[ca_code] = da[ca_code].astype(str).str.strip()
-                da["_salah"] = da[ca_code].isin(bad_codes)
-            else:
-                da["_salah"] = False
-
-            # Daun & Prong: group normal per (tanggal, spk, shift, mesin)
-            def aval_sum(jenis_val):
-                sub = da[
-                    (da[ca_jenis].str.lower() == jenis_val.lower()) &
-                    (~da["_salah"])
-                ]
-                return sub.groupby([ca_tgl, ca_spk, ca_shift, ca_mesin])[ca_berat].sum().to_dict()
-
-            aval_daun  = aval_sum("daun")
-            aval_prong = aval_sum("prong")
-
-            # ── Sapuan: total per (tanggal, shift)
-            sub_sap = da[
-                (da[ca_jenis].str.lower() == "sapuan") &
-                (~da["_salah"])
-            ]
-            sapuan_per_tgl_shift = (
-                sub_sap.groupby([ca_tgl, ca_shift])[ca_berat]
-                .sum()
-                .to_dict()
-            )
-
-            for _, r in agg.iterrows():
-                tgl   = str(r[c_tanggal])
-                spk   = str(r[c_spk])
-                shift = str(r[c_shift])
-                mesin = str(r[c_mesin])
-                key   = (tgl, spk, shift, mesin)
-
-                total_sap = sapuan_per_tgl_shift.get((tgl, shift), 0)
-                count_spk = spk_valid.get((tgl, shift), 1)
-                aval_sapuan[key] = round(total_sap / count_spk, 2) if count_spk > 0 else 0
-
-        rows = []
-        for _, r in agg.iterrows():
-            key = (str(r[c_tanggal]), str(r[c_spk]), str(r[c_shift]), str(r[c_mesin]))
-            rows.append({
-                "tanggal":      r[c_tanggal],
-                "mesin":        r[c_mesin],
-                "spk":          r[c_spk],
-                "customer":     r["customer"],
-                "produk":       r["produk"],
-                "uk":           r["uk"],
-                "berat_bersih": float(r["berat_bersih"]),
-                "total_roll":   int(r["total_roll"]),
-                "shift":        r[c_shift],
-                "afal_daun":    round(float(aval_daun.get(key, 0)), 2),
-                "afal_prong":   round(float(aval_prong.get(key, 0)), 2),
-                "afal_sapuan":  round(float(aval_sapuan.get(key, 0)), 2),
-                "has_salah":    r["has_salah"],
-            })
-
-        from datetime import datetime
-        def parse_tgl(t):
-            for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y"):
-                try:
-                    return datetime.strptime(str(t), fmt)
-                except:
-                    continue
-            return datetime.min
-
-        rows.sort(key=lambda r: parse_tgl(r["tanggal"]), reverse=True)
-        return jsonify(safe_json({"rows": rows, "newest_created": newest_created}))
-
-    except Exception as e:
-        import traceback
-        return jsonify({"error": str(e), "detail": traceback.format_exc()}), 500
-    
-@app.route("/api/hasil_produksi_mixing")
-@hasil_required
-def api_hasil_produksi_mixing():
-    try:
-        if not os.path.exists(CSV_MIXING):
-            return jsonify({
-                "rows": [],
-                "newest_created": ""
-            })
-        df = pd.read_csv(CSV_MIXING, encoding="utf-8-sig", on_bad_lines="skip", engine="python")
-        df.columns = df.columns.str.strip()
-
-        # Struktur katalogmixing
-        c_tanggal  = df.columns[0]
-        c_shift    = df.columns[1]
-        c_spk      = df.columns[3]
-        c_customer = df.columns[4]
-        c_produk   = df.columns[5]
-        c_uk       = df.columns[6]
-        c_berat    = df.columns[10]
-        c_created  = df.columns[12]
-        c_code     = df.columns[13]
-
-        df[c_berat] = pd.to_numeric(df[c_berat], errors="coerce").fillna(0)
-        cols_to_clean = [c_spk, c_tanggal, c_shift, c_customer, c_produk, c_uk, c_code, c_created]
-
-        for col in cols_to_clean:
-            df[col] = (df[col].fillna("").astype(str).str.strip()
-            )
-        newest_created = (df[c_created].iloc[-1]
-            if len(df) > 0
-            else ""
-        )
-
-        bad_codes = set()
-
-        scan_salah_path = SCAN_DIR / "scansalahmixing.csv"
-        if scan_salah_path.exists():
-            ds = pd.read_csv(scan_salah_path, encoding="utf-8-sig", on_bad_lines="skip", engine="python")
-            ds.columns = ds.columns.str.strip()
-            code_candidates = [
-                c for c in ds.columns
-                if c.lower() == "code"
-            ]
-            code_col = (
-                code_candidates[0]
-                if code_candidates
-                else ds.columns[-1]
-            )
-            bad_codes = set(ds[code_col].fillna("").astype(str).str.strip())
-
-        df["_salah"] = df[c_code].isin(bad_codes)
-        spk_valid = (df[~df["_salah"]].groupby([c_tanggal, c_shift])[c_spk].nunique().to_dict())
-
-        def flt(col, param):
-            val = request.args.get(param, "").strip()
-
-            if not val:
-                return pd.Series(
-                    True,
-                    index=df.index
-                )
-
-            if param == "tanggal":
-                try:
-                    target = pd.to_datetime(val).normalize()
-
-                    csv_dates = pd.to_datetime(
-                        df[col].astype(str).str.strip(),
-                        dayfirst=True, errors="coerce").dt.normalize()
-
-                    return csv_dates == target
-
-                except:
-                    return pd.Series(
-                        False,
-                        index=df.index)
-
-            return (
-                df[col].astype(str).str.strip().str.contains(val, case=False, na=False
-                )
-            )
-
-        mask = (
-            flt(c_tanggal, "tanggal")
-            & flt(c_spk, "spk")
-            & flt(c_customer, "customer")
-            & flt(c_produk, "produk")
-            & flt(c_shift, "shift")
-        )
-
-        df = df[mask]
-        grp_key = [c_tanggal, c_spk, c_shift]
-        agg = (
-            df.groupby(grp_key,sort=False)
-            .apply(
-                lambda g: pd.Series({
-                    "customer":g[c_customer].iloc[0],
-                    "produk":g[c_produk].iloc[0],
-                    "uk":g[c_uk].iloc[0],
-                    "berat_bersih":round(g.loc[~g["_salah"],c_berat].sum(),2),
-                    "total_karung":int((~g["_salah"]).sum()),
-                    "has_salah":bool(g["_salah"].any())
-                })
-            )
-            .reset_index()
-        )
-
-        aval_sapuan = {}
-
-        if os.path.exists(CSV_AVAL_MIXING):
-            da = pd.read_csv(CSV_AVAL_MIXING, encoding="utf-8-sig", on_bad_lines="skip", engine="python")
-            da.columns = da.columns.str.strip()
-
-            ca_tgl   = da.columns[0]
-            ca_shift = da.columns[1]
-            ca_berat = da.columns[9]
-
-            da[ca_berat] = pd.to_numeric(da[ca_berat],errors="coerce").fillna(0)
-            da[ca_tgl] = (da[ca_tgl].fillna("").astype(str).str.strip())
-            da[ca_shift] = (da[ca_shift].fillna("").astype(str).str.strip())
-
-            aval_code_candidates = [
-                c for c in da.columns
-                if c.lower() == "code"
-            ]
-
-            if aval_code_candidates:
-                ca_code = aval_code_candidates[0]
-                da[ca_code] = (da[ca_code].fillna("").astype(str).str.strip())
-                da["_salah"] = (da[ca_code].isin(bad_codes))
-            else:
-                da["_salah"] = False
-
-            sapuan_per_tgl_shift = (da[~da["_salah"]].groupby([ca_tgl,ca_shift])[ca_berat].sum().to_dict())
-
-            for _, r in agg.iterrows():
-
-                tgl = str(r[c_tanggal])
-                spk = str(r[c_spk])
-                shift = str(r[c_shift])
-                key = (tgl,spk,shift)
-                total_sap = (sapuan_per_tgl_shift.get((tgl, shift), 0))
-                count_spk = (spk_valid.get((tgl, shift), 1))
-                aval_sapuan[key] = (round(total_sap / count_spk,2)
-                    if count_spk > 0
-                    else 0
-                )
-
-        rows = []
-
-        for _, r in agg.iterrows():
-
-            tgl = str(r[c_tanggal])
-            spk = str(r[c_spk])
-            shift = str(r[c_shift])
-
-            key = (tgl,spk,shift)
-            count_spk = (spk_valid.get((tgl, shift), 0))
-
-            rows.append({
-                "tanggal": tgl,
-                "spk": spk,
-                "customer": str(r["customer"]),
-                "produk": str(r["produk"]),
-                "uk": str(r["uk"]),
-                "berat_bersih":float(r["berat_bersih"]),
-                "total_karung":int(r["total_karung"]),
-                "shift": shift,
-                "count_spk":int(count_spk),
-                "aval_mixing":round(float(aval_sapuan.get(key,0)),2),
-                "has_salah":bool(r["has_salah"])
-            })
-
-        from datetime import datetime
-
-        def parse_tgl(t):
-            for fmt in ("%d-%m-%Y","%Y-%m-%d","%d/%m/%Y"
-            ):
-                try:
-                    return datetime.strptime(str(t),fmt)
-                except:
-                    continue
-
-            return datetime.min
-
-        rows.sort(
-            key=lambda r:
-                parse_tgl(r["tanggal"]),reverse=True
-        )
-
-        return jsonify(
-            safe_json({
-                "rows": rows,
-                "newest_created":newest_created})
-        )
-
-    except Exception as e:
-        import traceback
-
-        return jsonify({
-            "error": str(e),
-            "detail":traceback.format_exc()}), 500
-        
-@app.route("/api/hasil_produksi_potong")
-@hasil_required
-def api_hasil_produksi_potong():
-    try:
-        if not os.path.exists(CSV_POTONG):
-            return jsonify({"rows": [], "newest_created": ""})
-
-        df = pd.read_csv(CSV_POTONG, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-        df.columns = df.columns.str.strip()
-
-        # Struktur katalogpotong
-        c_tanggal  = df.columns[0]
-        c_shift    = df.columns[1]
-        c_spk      = df.columns[3]
-        c_customer = df.columns[4]
-        c_produk   = df.columns[5]
-        c_uk       = df.columns[6]
-        c_mesin    = df.columns[9]
-        c_berat    = df.columns[12]
-        c_created  = df.columns[13]
-        c_code     = df.columns[14]
-
-        df[c_berat]   = pd.to_numeric(df[c_berat], errors="coerce").fillna(0)
-        df[c_spk]     = df[c_spk].astype(str).str.strip()
-        df[c_tanggal] = df[c_tanggal].astype(str).str.strip()
-        df[c_shift]   = df[c_shift].astype(str).str.strip()
-        df[c_mesin]   = df[c_mesin].astype(str).str.strip()
-        df[c_code]    = df[c_code].astype(str).str.strip()
-        df[c_created] = df[c_created].astype(str).str.strip()
-
-        newest_created = df[c_created].dropna().iloc[-1] if len(df) > 0 else ""
-
-        # ── Baca scansalahpotong.csv
-        bad_codes = set()
-        scan_salah_path = SCAN_DIR / "scansalahpotong.csv"
-        if scan_salah_path.exists():
-            ds = pd.read_csv(scan_salah_path, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-            ds.columns = ds.columns.str.strip()
-            code_candidates = [c for c in ds.columns if c.lower() == "code"]
-            code_col = code_candidates[0] if code_candidates else ds.columns[-1]
-            bad_codes = set(ds[code_col].astype(str).str.strip().dropna())
-
-        df["_salah"] = df[c_code].isin(bad_codes)
-
-        # ── Count SPK unik per (tanggal, shift)
-        spk_valid = (
-            df[~df["_salah"]]
-            .groupby([c_tanggal, c_shift])[c_spk]
-            .nunique()
-            .to_dict()
-        )
-
-        def flt(col, param):
-            val = request.args.get(param, "").strip()
-
-            if not val:
-                return pd.Series(True, index=df.index)
-
-            if param == "tanggal":
-                try:
-                    target = pd.to_datetime(val).normalize()
-                    csv_dates = pd.to_datetime(
-                        df[col].astype(str).str.strip(),
-                        dayfirst=True,
-                        errors="coerce"
-                    ).dt.normalize()
-
-                    return csv_dates == target
-
-                except Exception as e:
-                    print("ERROR FILTER TANGGAL:", e)
-                    return pd.Series(False, index=df.index)
-
-            return df[col].astype(str).str.strip().str.contains(
-                val,
-                case=False,
-                na=False
-            )
-
-        mask = (flt(c_tanggal, "tanggal") & flt(c_spk, "spk") &
-                flt(c_customer, "customer") & flt(c_produk, "produk") &
-                flt(c_mesin, "mesin") & flt(c_shift, "shift"))
-        df = df[mask]
-
-        grp_key = [c_tanggal, c_spk, c_shift, c_mesin]
-        agg = df.groupby(grp_key, sort=False).apply(
-            lambda g: pd.Series({
-                "customer":     g[c_customer].iloc[0],
-                "produk":       g[c_produk].iloc[0],
-                "uk":           g[c_uk].iloc[0],
-                "berat_bersih": round(g.loc[~g["_salah"], c_berat].sum(), 2),
-                "total_roll":   int((~g["_salah"]).sum()),
-                "has_salah":    bool(g["_salah"].any()),
-            })
-        ).reset_index()
-
-        aval_plong   = {}
-        aval_mesin   = {}
-        aval_silet   = {}
-        aval_mutasi  = {}
-        aval_reject  = {}
-        aval_sapuan  = {}
-
-        if os.path.exists(CSV_AVAL_POTONG):
-            da = pd.read_csv(CSV_AVAL_POTONG, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-            da.columns = da.columns.str.strip()
-            ca_tgl   = da.columns[0]
-            ca_shift = da.columns[1]
-            ca_spk   = da.columns[3]
-            ca_mesin = da.columns[9]
-            ca_jenis = da.columns[10]
-            ca_berat = da.columns[14]
-
-            da[ca_berat] = pd.to_numeric(da[ca_berat], errors="coerce").fillna(0)
-            da[ca_spk]   = da[ca_spk].astype(str).str.strip()
-            da[ca_tgl]   = da[ca_tgl].astype(str).str.strip()
-            da[ca_shift] = da[ca_shift].astype(str).str.strip()
-            da[ca_mesin] = da[ca_mesin].astype(str).str.strip()
-            da[ca_jenis] = da[ca_jenis].astype(str).str.strip()
-
-            aval_code_candidates = [c for c in da.columns if c.lower() == "code"]
-            if aval_code_candidates:
-                ca_code = aval_code_candidates[0]
-                da[ca_code] = da[ca_code].astype(str).str.strip()
-                da["_salah"] = da[ca_code].isin(bad_codes)
-            else:
-                da["_salah"] = False
-
-            def aval_sum(jenis_val):
-                sub = da[
-                    (da[ca_jenis].str.lower() == jenis_val.lower()) &
-                    (~da["_salah"])
-                ]
-                return sub.groupby([ca_tgl, ca_spk, ca_shift, ca_mesin])[ca_berat].sum().to_dict()
-
-            aval_plong  = aval_sum("plong")
-            aval_mesin  = aval_sum("mesin")
-            aval_silet  = aval_sum("silet")
-            aval_mutasi = aval_sum("mutasi")
-            aval_reject = aval_sum("reject")
-
-            sub_sap = da[
-                (da[ca_jenis].str.lower() == "sapuan") &
-                (~da["_salah"])
-            ]
-            sapuan_per_tgl_shift = (
-                sub_sap.groupby([ca_tgl, ca_shift])[ca_berat]
-                .sum()
-                .to_dict()
-            )
-
-            for _, r in agg.iterrows():
-                tgl   = str(r[c_tanggal])
-                spk   = str(r[c_spk])
-                shift = str(r[c_shift])
-                mesin = str(r[c_mesin])
-                key   = (tgl, spk, shift, mesin)
-
-                total_sap = sapuan_per_tgl_shift.get((tgl, shift), 0)
-                count_spk = spk_valid.get((tgl, shift), 1)
-                aval_sapuan[key] = round(total_sap / count_spk, 2) if count_spk > 0 else 0
-
-        rows = []
-        for _, r in agg.iterrows():
-            key = (str(r[c_tanggal]), str(r[c_spk]), str(r[c_shift]), str(r[c_mesin]))
-            rows.append({
-                "tanggal":      r[c_tanggal],
-                "mesin":        r[c_mesin],
-                "spk":          r[c_spk],
-                "customer":     r["customer"],
-                "produk":       r["produk"],
-                "uk":           r["uk"],
-                "berat_bersih": float(r["berat_bersih"]),
-                "total_roll":   int(r["total_roll"]),
-                "shift":        r[c_shift],
-                "afal_plong":   round(float(aval_plong.get(key, 0)), 2),
-                "afal_mesin":   round(float(aval_mesin.get(key, 0)), 2),
-                "afal_silet":   round(float(aval_silet.get(key, 0)), 2),
-                "afal_mutasi":  round(float(aval_mutasi.get(key, 0)), 2),
-                "afal_reject":  round(float(aval_reject.get(key, 0)), 2),
-                "afal_sapuan":  round(float(aval_sapuan.get(key, 0)), 2),
-                "has_salah":    r["has_salah"],
-            })
-
-        from datetime import datetime
-        def parse_tgl(t):
-            for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y"):
-                try:
-                    return datetime.strptime(str(t), fmt)
-                except:
-                    continue
-            return datetime.min
-
-        rows.sort(key=lambda r: parse_tgl(r["tanggal"]), reverse=True)
-        return jsonify(safe_json({"rows": rows, "newest_created": newest_created}))
-
-    except Exception as e:
-        import traceback
-        return jsonify({"error": str(e), "detail": traceback.format_exc()}), 500
-
-@app.route("/api/hasil_produksi_packing")
-@hasil_required
-def api_hasil_produksi_packing():
-    try:
-        if not os.path.exists(CSV_PACKING):
-            return jsonify({"rows": [], "newest_created": ""})
-
-        df = pd.read_csv(CSV_PACKING, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-        df.columns = df.columns.str.strip()
-
-        c_tanggal  = df.columns[0]
-        c_shift    = df.columns[1]
-        c_spk      = df.columns[3]
-        c_customer = df.columns[4]
-        c_produk   = df.columns[5]
-        c_uk       = df.columns[6]
-        c_mesin    = df.columns[9]
-        c_berat    = df.columns[10]
-        c_created  = df.columns[11]
-        c_code     = df.columns[12]
-
-        df[c_berat]   = pd.to_numeric(df[c_berat], errors="coerce").fillna(0)
-        df[c_spk]     = df[c_spk].astype(str).str.strip()
-        df[c_tanggal] = df[c_tanggal].astype(str).str.strip()
-        df[c_shift]   = df[c_shift].astype(str).str.strip()
-        df[c_mesin]   = df[c_mesin].astype(str).str.strip()
-        df[c_code]    = df[c_code].astype(str).str.strip()
-        df[c_created] = df[c_created].astype(str).str.strip()
-
-        newest_created = df[c_created].dropna().iloc[-1] if len(df) > 0 else ""
-
-        bad_codes = set()
-        scan_salah_path = SCAN_DIR / "scansalahpacking.csv"
-        if scan_salah_path.exists():
-            ds = pd.read_csv(scan_salah_path, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-            ds.columns = ds.columns.str.strip()
-            code_candidates = [c for c in ds.columns if c.lower() == "code"]
-            code_col = code_candidates[0] if code_candidates else ds.columns[-1]
-            bad_codes = set(ds[code_col].astype(str).str.strip().dropna())
-
-        df["_salah"] = df[c_code].isin(bad_codes)
-
-        def flt(col, param):
-            val = request.args.get(param, "").strip()
-
-            if not val:
-                return pd.Series(True, index=df.index)
-
-            if param == "tanggal":
-                try:
-                    target = pd.to_datetime(val).normalize()
-
-                    csv_dates = pd.to_datetime(
-                        df[col].astype(str).str.strip(),
-                        dayfirst=True,
-                        errors="coerce"
-                    ).dt.normalize()
-
-                    return csv_dates == target
-
-                except Exception as e:
-                    print("ERROR FILTER TANGGAL:", e)
-                    return pd.Series(False, index=df.index)
-
-            return df[col].astype(str).str.strip().str.contains(
-                val,
-                case=False,
-                na=False
-            )
-
-        mask = (flt(c_tanggal, "tanggal") & flt(c_spk, "spk") &
-                flt(c_customer, "customer") & flt(c_produk, "produk") &
-                flt(c_mesin, "mesin") & flt(c_shift, "shift"))
-        df = df[mask]
-
-        grp_key = [c_tanggal, c_spk, c_shift, c_mesin]
-        agg = df.groupby(grp_key, sort=False).apply(
-            lambda g: pd.Series({
-                "customer":     g[c_customer].iloc[0],
-                "produk":       g[c_produk].iloc[0],
-                "uk":           g[c_uk].iloc[0],
-                "berat_bersih": round(g.loc[~g["_salah"], c_berat].sum(), 2),
-                "total_karung": int((~g["_salah"]).sum()),
-                "has_salah":    bool(g["_salah"].any()),
-            })
-        ).reset_index()
-
-        sisa_berat = {}
-        sisa_pack  = {}
-
-        if os.path.exists(CSV_SISA_PACK):
-            ds = pd.read_csv(CSV_SISA_PACK, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-            ds.columns = ds.columns.str.strip()
-            cs_tgl   = ds.columns[0]
-            cs_shift = ds.columns[1]
-            cs_spk   = ds.columns[3]
-            cs_mesin = ds.columns[9]
-            cs_berat = ds.columns[10]
-            cs_sisa  = ds.columns[11]
-            cs_code  = ds.columns[12]
-
-            ds[cs_berat] = pd.to_numeric(ds[cs_berat], errors="coerce").fillna(0)
-            ds[cs_sisa]  = pd.to_numeric(ds[cs_sisa],  errors="coerce").fillna(0)
-            ds[cs_spk]   = ds[cs_spk].astype(str).str.strip()
-            ds[cs_tgl]   = ds[cs_tgl].astype(str).str.strip()
-            ds[cs_shift] = ds[cs_shift].astype(str).str.strip()
-            ds[cs_mesin] = ds[cs_mesin].astype(str).str.strip()
-
-            sisa_code_candidates = [c for c in ds.columns if c.lower() == "code"]
-            if sisa_code_candidates:
-                cs_code = sisa_code_candidates[0]
-                ds[cs_code]   = ds[cs_code].astype(str).str.strip()
-                ds["_salah"]  = ds[cs_code].isin(bad_codes)
-            else:
-                ds["_salah"] = False
-
-            ds_valid = ds[~ds["_salah"]]
-
-            sisa_berat = (
-                ds_valid.groupby([cs_tgl, cs_spk, cs_shift, cs_mesin])[cs_berat]
-                .sum().to_dict()
-            )
-            sisa_pack = (
-                ds_valid.groupby([cs_tgl, cs_spk, cs_shift, cs_mesin])[cs_sisa]
-                .sum().to_dict()
-            )
-
-        aval_plastik  = {}
-        aval_rafia    = {}
-        aval_blongsong = {}
-        aval_mutasi   = {}
-
-        if os.path.exists(CSV_AVAL_PACKING):
-            da = pd.read_csv(CSV_AVAL_PACKING, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-            da.columns = da.columns.str.strip()
-            ca_tgl   = da.columns[0]
-            ca_shift = da.columns[1]
-            ca_spk   = da.columns[3]
-            ca_mesin = da.columns[9]
-            ca_jenis = da.columns[10]
-            ca_berat = da.columns[12]
-
-            da[ca_berat] = pd.to_numeric(da[ca_berat], errors="coerce").fillna(0)
-            da[ca_spk]   = da[ca_spk].astype(str).str.strip()
-            da[ca_tgl]   = da[ca_tgl].astype(str).str.strip()
-            da[ca_shift] = da[ca_shift].astype(str).str.strip()
-            da[ca_mesin] = da[ca_mesin].astype(str).str.strip()
-            da[ca_jenis] = da[ca_jenis].astype(str).str.strip()
-
-            aval_code_candidates = [c for c in da.columns if c.lower() == "code"]
-            if aval_code_candidates:
-                ca_code = aval_code_candidates[0]
-                da[ca_code] = da[ca_code].astype(str).str.strip()
-                da["_salah"] = da[ca_code].isin(bad_codes)
-            else:
-                da["_salah"] = False
-
-            def aval_sum(jenis_val):
-                sub = da[
-                    (da[ca_jenis].str.lower() == jenis_val.lower()) &
-                    (~da["_salah"])
-                ]
-                return sub.groupby([ca_tgl, ca_spk, ca_shift, ca_mesin])[ca_berat].sum().to_dict()
-
-            aval_plastik   = aval_sum("plastik")
-            aval_rafia     = aval_sum("rafia")
-            aval_blongsong = aval_sum("blongsong")
-            aval_mutasi    = aval_sum("mutasi")
-
-        rows = []
-        for _, r in agg.iterrows():
-            key = (str(r[c_tanggal]), str(r[c_spk]), str(r[c_shift]), str(r[c_mesin]))
-            rows.append({
-                "tanggal":       r[c_tanggal],
-                "mesin":         r[c_mesin],
-                "spk":           r[c_spk],
-                "customer":      r["customer"],
-                "produk":        r["produk"],
-                "uk":            r["uk"],
-                "berat_bersih":  float(r["berat_bersih"]),
-                "total_karung":  int(r["total_karung"]),
-                "sisa_berat":    round(float(sisa_berat.get(key, 0)), 2),
-                "sisa_pack":     round(float(sisa_pack.get(key, 0)), 2),
-                "shift":         r[c_shift],
-                "afal_plastik":  round(float(aval_plastik.get(key, 0)), 2),
-                "afal_rafia":    round(float(aval_rafia.get(key, 0)), 2),
-                "afal_blongsong":round(float(aval_blongsong.get(key, 0)), 2),
-                "afal_mutasi":   round(float(aval_mutasi.get(key, 0)), 2),
-                "has_salah":     r["has_salah"],
-            })
-
-        from datetime import datetime
-        def parse_tgl(t):
-            for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y"):
-                try:
-                    return datetime.strptime(str(t), fmt)
-                except:
-                    continue
-            return datetime.min
-
-        rows.sort(key=lambda r: parse_tgl(r["tanggal"]), reverse=True)
-        return jsonify(safe_json({"rows": rows, "newest_created": newest_created}))
-
-    except Exception as e:
-        import traceback
-        return jsonify({"error": str(e), "detail": traceback.format_exc()}), 500
-
-  
-@app.route("/api/stok_produksi")
-@hasil_required
-def api_stok_produksi():
-    try:
-        spk_filter      = request.args.get("spk",      "").strip().lower()
-        customer_filter = request.args.get("customer", "").strip().lower()
-        produk_filter   = request.args.get("produk",   "").strip().lower()
-        uk_filter       = request.args.get("uk",       "").strip().lower()
-
-        df_spk = pd.read_csv(SPK_CSV, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-        df_spk.columns = df_spk.columns.str.strip().str.lower()
-        df_spk = df_spk.tail(500)
-
-        rename_map = {}
-        for c in df_spk.columns:
-            if c in ("no. spk", "no.spk", "no spk"):
-                rename_map[c] = "spk"
-            elif c in ("product", "produk", "products"):
-                rename_map[c] = "produk"
-            elif c == "customer":
-                rename_map[c] = "customer"
-            elif c == "uk":
-                rename_map[c] = "uk"
-        df_spk.rename(columns=rename_map, inplace=True)
-
-        for col in ["spk", "customer", "produk", "uk"]:
-            if col not in df_spk.columns:
-                df_spk[col] = ""
-
-        df_spk = df_spk[["spk", "customer", "produk", "uk"]].fillna("")
-
-        def load_codes(path):
-            if not os.path.exists(path):
-                return set()
-            try:
-                df = pd.read_csv(path, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-                df.columns = df.columns.str.strip().str.lower()
-                code_col = next((c for c in df.columns if c == "code"), None)
-                if not code_col:
-                    return set()
-                return set(df[code_col].str.strip().dropna())
-            except Exception as e:
-                print(f"WARN load_codes({path}): {e}")
-                return set()
-
-        def calc_stok(cat_path, bad_codes, used_codes, berat_col_idx):
-            if not os.path.exists(cat_path):
-                return {}
-            try:
-                df = pd.read_csv(cat_path, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-                df.columns = df.columns.str.strip().str.lower()
-
-                spk_col = next(
-                    (c for c in df.columns if c in ("spk", "no. spk", "no.spk", "no spk")),
-                    None
-                )
-                if not spk_col:
-                    spk_col = df.columns[3]
-
-                code_col  = next((c for c in df.columns if c == "code"), df.columns[-1])
-                berat_col = df.columns[berat_col_idx]
-
-                df[spk_col]   = df[spk_col].astype(str).str.strip()
-                df[code_col]  = df[code_col].astype(str).str.strip()
-                df[berat_col] = pd.to_numeric(df[berat_col], errors="coerce").fillna(0)
-
-                exclude  = bad_codes | used_codes
-                df_valid = df[~df[code_col].isin(exclude)]
-
-                result = {}
-                for spk, grp in df_valid.groupby(spk_col):
-                    result[spk] = {
-                        "count": int(len(grp)),
-                        "berat": round(float(grp[berat_col].sum()), 2),
-                    }
-                return result
-
-            except Exception as e:
-                print(f"WARN calc_stok({cat_path}): {e}")
-                return {}
-
-        bad_mixing  = load_codes(str(SCAN_DIR / "scansalahmixing.csv"))
-        bad_hd      = load_codes(str(SCAN_DIR / "scansalahhd.csv"))
-        bad_potong  = load_codes(str(SCAN_DIR / "scansalahpotong.csv"))
-        bad_packing = load_codes(str(SCAN_DIR / "scansalahpacking.csv"))
-        bad_sisa    = load_codes(str(SCAN_DIR / "scansalahqc.csv"))
-
-        used_mixing  = load_codes(str(SCAN_PDIR / "scanmixing.csv"))
-        used_hd      = load_codes(str(SCAN_PDIR / "scanhd.csv"))
-        used_potong  = load_codes(str(SCAN_PDIR / "scanpotong.csv"))
-        used_packing = load_codes(str(SCAN_PDIR / "scanpacking.csv"))
-        used_sisa    = load_codes(str(SCAN_PDIR / "scanpacking.csv"))
-
-        stok_mixing  = calc_stok(CSV_MIXING,    bad_mixing,  used_mixing,  berat_col_idx=10)
-        stok_hd      = calc_stok(CSV_HD,        bad_hd,      used_hd,      berat_col_idx=12)
-        stok_potong  = calc_stok(CSV_POTONG,    bad_potong,  used_potong,  berat_col_idx=12)
-        stok_packing = calc_stok(CSV_PACKING,   bad_packing, used_packing, berat_col_idx=10)
-        stok_sisa    = calc_stok(CSV_SISA_PACK, bad_sisa,    used_sisa,    berat_col_idx=10)
-
-        def _v(d, key, field):
-            entry = d.get(key, {})
-            if isinstance(entry, dict):
-                return entry.get(field, 0)
-            return 0
-
-        rows = []
-        for _, r in df_spk.iterrows():
-            spk = str(r["spk"]).strip()
-            rows.append({
-                "spk":             spk,
-                "customer":        r["customer"],
-                "produk":          r["produk"],
-                "uk":              r["uk"],
-                "mixing":          _v(stok_mixing,  spk, "count"),
-                "mixing_berat":    _v(stok_mixing,  spk, "berat"),
-                "hd":              _v(stok_hd,      spk, "count"),
-                "hd_berat":        _v(stok_hd,      spk, "berat"),
-                "potong":          _v(stok_potong,  spk, "count"),
-                "potong_berat":    _v(stok_potong,  spk, "berat"),
-                "packing":         _v(stok_packing, spk, "count"),
-                "packing_berat":   _v(stok_packing, spk, "berat"),
-                "sisa_pack":       _v(stok_sisa,    spk, "count"),
-                "sisa_pack_berat": _v(stok_sisa,    spk, "berat"),
-            })
-
-        if spk_filter:
-            rows = [r for r in rows if spk_filter      in r["spk"].lower()]
-        if customer_filter:
-            rows = [r for r in rows if customer_filter in r["customer"].lower()]
-        if produk_filter:
-            rows = [r for r in rows if produk_filter   in r["produk"].lower()]
-        if uk_filter:
-            rows = [r for r in rows if uk_filter       in r["uk"].lower()]
-
-        return jsonify({"rows": rows})
-
-    except Exception as e:
-        import traceback
-        tb = traceback.format_exc()
-        print("ERROR stok_produksi:\n", tb)
-        return jsonify({"rows": [], "error": str(e), "detail": tb}), 500
-    
-@app.route("/api/stok_hd")
-@hasil_required
-def api_stok_hd():
-    try:
-        spk_filter      = request.args.get("spk", "").strip().lower()
-        customer_filter = request.args.get("customer", "").strip().lower()
-        produk_filter   = request.args.get("produk", "").strip().lower()
-        uk_filter       = request.args.get("uk", "").strip().lower()
-
-        if not os.path.exists(CSV_HD):
-            return jsonify({"rows": []})
-
-        df = pd.read_csv(CSV_HD, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python' )
-
-        df.columns = df.columns.str.strip()
-
-        c_spk      = df.columns[3]
-        c_customer = df.columns[4]
-        c_produk   = df.columns[5]
-        c_uk       = df.columns[6]
-        c_berat_bersih    = df.columns[12]
-        c_code     = df.columns[14]
-
-        df[c_spk]   = df[c_spk].astype(str).str.strip()
-        df[c_code]  = df[c_code].astype(str).str.strip()
-        df[c_berat_bersih] = pd.to_numeric(
-            df[c_berat_bersih],
-            errors="coerce"
-        ).fillna(0)
-
-        bad_codes = set()
-
-        scan_salah_path = SCAN_DIR / "scansalahhd.csv"
-
-        if scan_salah_path.exists():
-            ds = pd.read_csv(scan_salah_path,dtype=str,encoding="utf-8-sig",on_bad_lines='skip',engine='python')
-            ds.columns = ds.columns.str.strip()
-            code_col = next((c for c in ds.columns if c.lower() == "code"),ds.columns[-1])
-            bad_codes = set(ds[code_col].astype(str).str.strip().dropna())
-        used_codes = set()
-
-        scan_pemakaian_path = SCAN_PDIR / "scanhd.csv"
-
-        if scan_pemakaian_path.exists():
-            dp = pd.read_csv(scan_pemakaian_path, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-            dp.columns = dp.columns.str.strip()
-            code_col = next((c for c in dp.columns if c.lower() == "code"),dp.columns[-1])
-
-            used_codes = set(dp[code_col].astype(str).str.strip().dropna())
-
-        exclude = bad_codes | used_codes
-
-        df_valid = df[
-            ~df[c_code]
-            .isin(exclude)
-        ]
-
-        rows = []
-
-        for spk, group in df_valid.groupby(c_spk, sort=False):
-            first = group.iloc[0]
-            berat_total = group[c_berat_bersih].sum()
-            rows.append({
-                "spk": spk,
-                "customer": str(first.get(c_customer, "") or ""),
-                "produk": str(first.get(c_produk, "") or ""),
-                "uk": str(first.get(c_uk, "") or ""),
-                "hd": int(len(group)),
-                "berat_bersih": round(float(berat_total), 2)
-            })
-
-        if spk_filter:
-            rows = [
-                r for r in rows
-                if spk_filter in str(r["spk"]).lower()
-            ]
-
-        if customer_filter:
-            rows = [
-                r for r in rows
-                if customer_filter in str(r["customer"]).lower()
-            ]
-
-        if produk_filter:
-            rows = [
-                r for r in rows
-                if produk_filter in str(r["produk"]).lower()
-            ]
-
-        if uk_filter:
-            rows = [
-                r for r in rows
-                if uk_filter in str(r["uk"]).lower()
-            ]
-
-        rows.sort(key=lambda r: str(r["spk"]))
-
-        return jsonify({"rows": rows})
-
-    except Exception as e:
-        import traceback
-        print(traceback.format_exc())
-
-        return jsonify({
-            "rows": [],
-            "error": str(e),
-            "detail": traceback.format_exc()
-        }), 500
-    
-@app.route("/api/stok_potong")
-@hasil_required
-def api_stok_potong():
-    try:
-        spk_filter      = request.args.get("spk", "").strip().lower()
-        customer_filter = request.args.get("customer", "").strip().lower()
-        produk_filter   = request.args.get("produk", "").strip().lower()
-        uk_filter       = request.args.get("uk", "").strip().lower()
-
-        if not os.path.exists(CSV_POTONG):
-            return jsonify({"rows": []})
-
-        df = pd.read_csv(CSV_POTONG, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-
-        df.columns = df.columns.str.strip()
-
-        c_spk      = df.columns[3]
-        c_customer = df.columns[4]
-        c_produk   = df.columns[5]
-        c_uk       = df.columns[6]
-        c_berat    = df.columns[12]
-        c_code     = df.columns[14]
-
-        df[c_spk]   = df[c_spk].astype(str).str.strip()
-        df[c_code]  = df[c_code].astype(str).str.strip()
-        df[c_berat] = pd.to_numeric(
-            df[c_berat],
-            errors="coerce"
-        ).fillna(0)
-
-        bad_codes = set()
-
-        scan_salah_path = SCAN_DIR / "scansalahpotong.csv"
-
-        if scan_salah_path.exists():
-            ds = pd.read_csv(
-                scan_salah_path,
-                dtype=str,
-                encoding="utf-8-sig",
-                on_bad_lines='skip',
-                engine='python'
-            )
-
-            ds.columns = ds.columns.str.strip()
-            code_col = next((c for c in ds.columns if c.lower() == "code"),ds.columns[-1])
-            bad_codes = set(ds[code_col].astype(str).str.strip().dropna())
-
-        used_codes = set()
-
-        scan_pemakaian_path = SCAN_PDIR / "scanpotong.csv"
-
-        if scan_pemakaian_path.exists():
-            dp = pd.read_csv(scan_pemakaian_path, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python' )
-            dp.columns = dp.columns.str.strip()
-
-            code_col = next((c for c in dp.columns if c.lower() == "code"), dp.columns[-1])
-
-            used_codes = set(dp[code_col].astype(str).str.strip().dropna())
-
-        exclude = bad_codes | used_codes
-        
-        # Tambah stok sisa potong
-        stok_sisa_potong = {}
-        if os.path.exists(CSV_SISA_POTONG):
-            df_sisa = pd.read_csv(CSV_SISA_POTONG, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-            df_sisa.columns = df_sisa.columns.str.strip()
-
-            cs_spk   = df_sisa.columns[3]
-            cs_berat = df_sisa.columns[12]
-            cs_code  = df_sisa.columns[14]
-
-            df_sisa[cs_spk]   = df_sisa[cs_spk].astype(str).str.strip()
-            df_sisa[cs_code]  = df_sisa[cs_code].astype(str).str.strip()
-            df_sisa[cs_berat] = pd.to_numeric(df_sisa[cs_berat], errors="coerce").fillna(0)
-
-            bad_sisa = set()
-            scan_salah_sisa = SCAN_DIR / "scansalahpotong.csv"
-            if scan_salah_sisa.exists():
-                ds2 = pd.read_csv(scan_salah_sisa, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-                ds2.columns = ds2.columns.str.strip()
-                code_col2 = next((c for c in ds2.columns if c.lower() == "code"), ds2.columns[-1])
-                bad_sisa = set(ds2[code_col2].astype(str).str.strip().dropna())
-
-            used_sisa = set()
-            scan_used_sisa = SCAN_PDIR / "scanpotong.csv"
-            if scan_used_sisa.exists():
-                dp2 = pd.read_csv(scan_used_sisa, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-                dp2.columns = dp2.columns.str.strip()
-                code_col2 = next((c for c in dp2.columns if c.lower() == "code"), dp2.columns[-1])
-                used_sisa = set(dp2[code_col2].astype(str).str.strip().dropna())
-
-            exclude_sisa = bad_sisa | used_sisa
-            df_sisa_valid = df_sisa[~df_sisa[cs_code].isin(exclude_sisa)]
-
-            for spk, group in df_sisa_valid.groupby(cs_spk, sort=False):
-                stok_sisa_potong[spk] = {
-                    "count": int(len(group)),
-                    "berat": round(float(group[cs_berat].sum()), 2),
-                }
-
-        df_valid = df[
-            ~df[c_code]
-            .isin(exclude)
-        ]
-
-        rows = []
-
-        for spk, group in df_valid.groupby(c_spk, sort=False):
-            first = group.iloc[0]
-            berat_total = group[c_berat].sum()
-            rows.append({
-                "spk": spk,
-                "customer": str(first.get(c_customer, "") or ""),
-                "produk": str(first.get(c_produk, "") or ""),
-                "uk": str(first.get(c_uk, "") or ""),
-                "potong": int(len(group)),
-                "berat_bersih": round(float(berat_total), 2),
-                "sisa_potong": stok_sisa_potong.get(spk, {}).get("count", 0),
-                "sisa_berat":  stok_sisa_potong.get(spk, {}).get("berat", 0.0),
-            })
-
-        if spk_filter:
-            rows = [
-                r for r in rows
-                if spk_filter in str(r["spk"]).lower()
-            ]
-        if customer_filter:
-            rows = [
-                r for r in rows
-                if customer_filter in str(r["customer"]).lower()
-            ]
-        if produk_filter:
-            rows = [
-                r for r in rows
-                if produk_filter in str(r["produk"]).lower()
-            ]
-        if uk_filter:
-            rows = [
-                r for r in rows
-                if uk_filter in str(r["uk"]).lower()
-            ]
-        rows.sort(key=lambda r: str(r["spk"]))
-
-        return jsonify({"rows": rows})
-
-    except Exception as e:
-        import traceback
-        print(traceback.format_exc())
-
-        return jsonify({
-            "rows": [],
-            "error": str(e),
-            "detail": traceback.format_exc()
-        }), 500
-    
-@app.route("/api/stok_packing")
-@hasil_required
-def api_stok_packing():
-    try:
-        spk_filter      = request.args.get("spk", "").strip().lower()
-        customer_filter = request.args.get("customer", "").strip().lower()
-        produk_filter   = request.args.get("produk", "").strip().lower()
-        uk_filter       = request.args.get("uk", "").strip().lower()
-
-        if not os.path.exists(CSV_PACKING):
-            return jsonify({"rows": []})
-
-        df = pd.read_csv(CSV_PACKING, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-        df.columns = df.columns.str.strip()
-
-        c_spk      = df.columns[3]
-        c_customer = df.columns[4]
-        c_produk   = df.columns[5]
-        c_uk       = df.columns[6]
-        c_berat    = df.columns[10]
-        c_code     = df.columns[12]
-
-        df[c_spk]   = df[c_spk].astype(str).str.strip()
-        df[c_code]  = df[c_code].astype(str).str.strip()
-        df[c_berat] = pd.to_numeric(df[c_berat], errors="coerce").fillna(0)
-
-        bad_codes = set()
-        scan_salah_path = SCAN_DIR / "scansalahpacking.csv"
-
-        if scan_salah_path.exists():
-            ds = pd.read_csv(scan_salah_path, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-            ds.columns = ds.columns.str.strip()
-
-            code_col = next(
-                (c for c in ds.columns if c.lower() == "code"),
-                ds.columns[-1]
-            )
-
-            bad_codes = set(ds[code_col].astype(str).str.strip().dropna())
-
-        used_codes = set()
-        scan_pemakaian_path = SCAN_PDIR / "scanpacking.csv"
-
-        if scan_pemakaian_path.exists():
-            dp = pd.read_csv(scan_pemakaian_path, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python' )
-            dp.columns = dp.columns.str.strip()
-
-            code_col = next((c for c in dp.columns if c.lower() == "code"),dp.columns[-1])
-
-            used_codes = set(dp[code_col].astype(str).str.strip().dropna())
-
-        exclude = bad_codes | used_codes
-        df_valid = df[~df[c_code].isin(exclude)]
-
-        rows = []
-
-        for spk, group in df_valid.groupby(c_spk, sort=False):
-            first = group.iloc[0]
-
-            berat_total = group[c_berat].sum()
-
-            rows.append({
-                "spk":      spk,
-                "customer": str(first.get(c_customer, "") or ""),
-                "produk":   str(first.get(c_produk, "") or ""),
-                "uk":       str(first.get(c_uk, "") or ""),
-                "packing":  int(len(group)),
-                "berat_bersih": round(float(berat_total), 2),
-            })
-
-        if spk_filter:
-            rows = [r for r in rows if spk_filter in r["spk"].lower()]
-        if customer_filter:
-            rows = [r for r in rows if customer_filter in r["customer"].lower()]
-        if produk_filter:
-            rows = [r for r in rows if produk_filter in r["produk"].lower()]
-        if uk_filter:
-            rows = [r for r in rows if uk_filter in r["uk"].lower()]
-        rows.sort(key=lambda r: r["spk"])
-
-        return jsonify({"rows": rows})
-
-    except Exception as e:
-        import traceback
-        return jsonify({
-            "rows": [],
-            "error": str(e),
-            "detail": traceback.format_exc()
-        }), 500
-
-
-@app.route("/api/stok_mixing")
-@hasil_required
-def api_stok_mixing():
-    try:
-        spk_filter      = request.args.get("spk", "").strip().lower()
-        customer_filter = request.args.get("customer", "").strip().lower()
-        produk_filter   = request.args.get("produk", "").strip().lower()
-        uk_filter       = request.args.get("uk", "").strip().lower()
-
-        if not os.path.exists(CSV_MIXING):
-            return jsonify({"rows": []})
-
-        df = pd.read_csv(CSV_MIXING, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-        df.columns = df.columns.str.strip()
-
-        c_spk      = df.columns[3]
-        c_customer = df.columns[4]
-        c_produk   = df.columns[5]
-        c_uk       = df.columns[6]
-        c_berat    = df.columns[10]
-        c_code     = df.columns[13]
-
-        df[c_spk]   = df[c_spk].astype(str).str.strip()
-        df[c_code]  = df[c_code].astype(str).str.strip()
-        df[c_berat] = pd.to_numeric(df[c_berat], errors="coerce").fillna(0)
-
-        bad_codes = set()
-
-        scan_salah_path = SCAN_DIR / "scansalahmixing.csv"
-        if scan_salah_path.exists():
-            ds = pd.read_csv(scan_salah_path, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-            ds.columns = ds.columns.str.strip()
-
-            code_col = next((c for c in ds.columns if c.lower() == "code"),ds.columns[-1])
-
-            bad_codes = set(ds[code_col].astype(str).str.strip().dropna())
-
-        used_codes = set()
-
-        scan_pemakaian_path = SCAN_PDIR / "scanmixing.csv"
-
-        if scan_pemakaian_path.exists():
-            dp = pd.read_csv(scan_pemakaian_path, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-
-            dp.columns = dp.columns.str.strip()
-            code_col = next((c for c in dp.columns if c.lower() == "code"),dp.columns[-1])
-            used_codes = set(dp[code_col].astype(str).str.strip().dropna())
-
-        exclude = bad_codes | used_codes
-
-        df_valid = df[
-            ~df[c_code]
-            .isin(exclude)
-        ]
-
-        rows = []
-
-        for spk, group in df_valid.groupby(c_spk, sort=False):
-            first = group.iloc[0]
-            berat_total = group[c_berat].sum()
-            rows.append({
-                "spk": spk,
-                "customer": str(first.get(c_customer, "") or ""),
-                "produk": str(first.get(c_produk, "") or ""),
-                "uk": str(first.get(c_uk, "") or ""),
-                "mixing": int(len(group)),
-                "berat_bersih": round(float(berat_total), 2)
-            })
-
-
-        if spk_filter:
-            rows = [
-                r for r in rows
-                if spk_filter in str(r["spk"]).lower()
-            ]
-        if customer_filter:
-            rows = [
-                r for r in rows
-                if customer_filter in str(r["customer"]).lower()
-            ]
-        if produk_filter:
-            rows = [
-                r for r in rows
-                if produk_filter in str(r["produk"]).lower()
-            ]
-        if uk_filter:
-            rows = [
-                r for r in rows
-                if uk_filter in str(r["uk"]).lower()
-            ]
-        rows.sort(key=lambda r: str(r["spk"]))
-
-        return jsonify({"rows": rows})
-
-    except Exception as e:
-        import traceback
-        print(traceback.format_exc())
-
-        return jsonify({
-            "rows": [],
-            "error": str(e),
-            "detail": traceback.format_exc()
-        }), 500
-    
-
-@app.route("/api/stok_sisapack")
-@hasil_required
-def api_stok_sisapack():
-    try:
-        spk_filter      = request.args.get("spk", "").strip().lower()
-        customer_filter = request.args.get("customer", "").strip().lower()
-        produk_filter   = request.args.get("produk", "").strip().lower()
-        uk_filter       = request.args.get("uk", "").strip().lower()
-
-        if not os.path.exists(CSV_SISA_PACK):
-            return jsonify({"rows": []})
-
-        df = pd.read_csv(CSV_SISA_PACK, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-        df.columns = df.columns.str.strip()
-
-        c_spk      = df.columns[3]
-        c_customer = df.columns[4]
-        c_produk   = df.columns[5]
-        c_uk       = df.columns[6]
-        c_berat    = df.columns[11]
-        c_code     = df.columns[13]
-
-        df[c_spk]   = df[c_spk].astype(str).str.strip()
-        df[c_code]  = df[c_code].astype(str).str.strip()
-        df[c_berat] = pd.to_numeric(df[c_berat], errors="coerce").fillna(0)
-
-        bad_codes = set()
-        scan_salah_path = SCAN_DIR / "scansalahpacking.csv"
-
-        if scan_salah_path.exists():
-            ds = pd.read_csv(scan_salah_path, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-            ds.columns = ds.columns.str.strip()
-
-            code_col = next((c for c in ds.columns if c.lower() == "code"),ds.columns[-1])
-
-            bad_codes = set(ds[code_col].astype(str).str.strip().dropna())
-
-        used_codes = set()
-        scan_pemakaian_path = SCAN_PDIR / "scanpacking.csv"
-
-        if scan_pemakaian_path.exists():
-            dp = pd.read_csv(scan_pemakaian_path, dtype=str, encoding="utf-8-sig", on_bad_lines='skip', engine='python')
-
-            dp.columns = dp.columns.str.strip()
-
-            code_col = next((c for c in dp.columns if c.lower() == "code"),dp.columns[-1])
-
-            used_codes = set(dp[code_col].astype(str).str.strip().dropna())
-
-        exclude = bad_codes | used_codes
-        df_valid = df[~df[c_code].isin(exclude)]
-
-        rows = []
-
-        for spk, group in df_valid.groupby(c_spk, sort=False):
-            first = group.iloc[0]
-
-            berat_total = group[c_berat].sum()
-
-            rows.append({
-                "spk":        spk,
-                "customer":   str(first.get(c_customer, "") or ""),
-                "produk":     str(first.get(c_produk, "") or ""),
-                "uk":         str(first.get(c_uk, "") or ""),
-                "sisa_pack":  int(len(group)),
-                "berat_bersih": round(float(berat_total), 2),
-            })
-
-        if spk_filter:
-            rows = [r for r in rows if spk_filter in r["spk"].lower()]
-        if customer_filter:
-            rows = [r for r in rows if customer_filter in r["customer"].lower()]
-        if produk_filter:
-            rows = [r for r in rows if produk_filter in r["produk"].lower()]
-        if uk_filter:
-            rows = [r for r in rows if uk_filter in r["uk"].lower()]
-        rows.sort(key=lambda r: r["spk"])
-
-        return jsonify({"rows": rows})
-
-    except Exception as e:
-        import traceback
-        return jsonify({
-            "rows": [],
-            "error": str(e),
-            "detail": traceback.format_exc()
-        }), 500
 
 CSV_MUTASI_MIXING = r"Z:\Checker\Production\Database\mutasi\katalogmutasimixing.csv"
 CSV_MUTASI_MIXING_COLUMNS = ["create_at", "tanggal", "shift", "code_scan", "code_baru", "spk", "customer", "produk", "uk", "berat_awal", "berat_bersih", "operator", "checker", "keterangan"]
@@ -5012,11 +3363,9 @@ def format_tanggal(raw):
 @app.route("/save_transfer", methods=["POST"])
 @login_required
 def save_transfer():
-    print("=== SAVE TRANSFER ===")
         
     try:
         data    = request.get_json()
-        print(data)
         records = data.get("records", [])
         tanggal = data.get("tanggal", "")
         shift   = data.get("shift", "")
@@ -5077,6 +3426,200 @@ def save_transfer():
 
     except Exception as e:
         return jsonify(success=False, error=str(e))
+
+#SCAN TRANSFER  
+@app.route("/api/lookup_transfer", methods=["POST"])
+@login_required
+def lookup_transfer():
+    try:
+        data = request.get_json()
+        code = (data.get("code") or "").strip().upper()
+
+        if not code:
+            return jsonify(found=False, error="Kode kosong")
+
+        prefix, csv_file, _, divisi_label = get_prefix_from_code(code)
+
+        if not prefix:
+            return jsonify(found=False, error="Prefix tidak dikenal", prefix="")
+
+        # Tentukan file transfer yang relevan berdasarkan prefix
+        transfer_file = TRANSFER_MAP.get(prefix)
+        if not transfer_file or transfer_file not in CSV_SCAN_TFILES:
+            return jsonify(found=False, error=f"Prefix '{prefix}' tidak punya file transfer", prefix=prefix,)
+
+        path = CSV_SCAN_TFILES[transfer_file]
+        if not path.exists():
+            return jsonify(found=False, prefix=prefix, divisi_label=divisi_label, transfer_file=transfer_file, error="File scan_transfer tidak ditemukan", )
+
+        df = pd.read_csv(path, encoding="utf-8", dtype=str, on_bad_lines="skip", engine="python")
+        df.columns = df.columns.str.strip()
+
+        if "code" not in df.columns:
+            return jsonify(found=False, error="Kolom 'code' tidak ada di file transfer")
+
+        df["code"] = df["code"].astype(str).str.strip().str.upper()
+        match = df[df["code"] == code]
+
+        if match.empty:
+            return jsonify(found=False, prefix=prefix, divisi_label=divisi_label, transfer_file=transfer_file,)
+
+        r = match.iloc[0]
+        return jsonify(
+            found        = True,
+            prefix       = prefix,
+            divisi_label = divisi_label,
+            transfer_file= transfer_file,
+            spk          = str(r.get("spk", "")),
+            customer     = str(r.get("customer", "")),
+            produk       = str(r.get("produk", "")),
+            uk           = str(r.get("uk", "")),
+            berat_bersih = str(r.get("berat_bersih", "")),
+            checker      = str(r.get("checker", "")),
+        )
+
+    except Exception as e:
+        return jsonify(found=False, error=str(e))
+
+
+# ─── API: /save_retur ────────────────────────────────────────────────────────
+@app.route("/save_retur", methods=["POST"])
+@login_required
+def save_retur():
+    try:
+        data       = request.get_json()
+        records    = data.get("records", [])
+        tanggal    = data.get("tanggal", "")
+        shift      = data.get("shift", "")
+        foreman    = data.get("foreman", "")
+        keterangan = data.get("keterangan", "")
+
+        if not records:
+            return jsonify(success=False, error="Tidak ada data")
+        if not tanggal:
+            return jsonify(success=False, error="Tanggal wajib diisi")
+        if not shift:
+            return jsonify(success=False, error="Shift wajib dipilih")
+        if not foreman:
+            return jsonify(success=False, error="Foreman wajib diisi")
+
+        tanggal_clean = format_tanggal(tanggal)
+        now_str       = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        scanned_by    = session.get("name", "")
+
+        # ── 1. Group per file transfer ──────────────────────────────────────
+        from collections import defaultdict
+        groups = defaultdict(list)
+
+        for rec in records:
+            code   = (rec.get("code") or "").strip().upper()
+            tf     = rec.get("transfer_file")
+
+            if not tf or tf not in CSV_SCAN_TFILES:
+                prefix, _, _, _ = get_prefix_from_code(code)
+                tf = TRANSFER_MAP.get(prefix)
+
+            if not tf or tf not in CSV_SCAN_TFILES:
+                continue
+
+            groups[tf].append(rec)
+
+        deleted  = 0
+        skipped  = 0
+        log_rows = []
+
+        # ── 2. Proses tiap file ─────────────────────────────────────────────
+        for tf, recs in groups.items():
+            path = CSV_SCAN_TFILES[tf]
+            if not path.exists():
+                skipped += len(recs)
+                continue
+
+            codes_to_delete = {
+                (rec.get("code") or "").strip().upper()
+                for rec in recs
+            }
+
+            # Baca file
+            try:
+                df = pd.read_csv(path, encoding="utf-8", dtype=str, on_bad_lines="skip", engine="python")
+            except Exception:
+                skipped += len(recs)
+                continue
+
+            df.columns = df.columns.str.strip()
+
+            if "code" not in df.columns:
+                skipped += len(recs)
+                continue
+
+            df["code"] = df["code"].astype(str).str.strip().str.upper()
+
+            # Hitung baris yang benar-benar akan dihapus
+            mask_delete  = df["code"].isin(codes_to_delete)
+            deleted_rows = df[mask_delete]
+            deleted     += len(deleted_rows)
+            skipped     += len(codes_to_delete) - len(deleted_rows)
+
+            # Hapus baris & drop baris kosong sepenuhnya
+            df_clean = (
+                df[~mask_delete]
+                .dropna(how="all")
+            )
+            # Hapus baris yang seluruh kolomnya string kosong
+            df_clean = df_clean[~(df_clean.apply(
+                lambda row: all(str(v).strip() == "" for v in row), axis=1
+            ))]
+
+            # Tulis ulang file (reset index, tanpa baris kosong antar baris)
+            df_clean.to_csv(path, index=False, encoding="utf-8")
+
+            # Kumpulkan log
+            for _, row in deleted_rows.iterrows():
+                code_val = row.get("code", "")
+                rec_match = next(
+                    (r for r in recs if (r.get("code") or "").upper() == code_val),
+                    {}
+                )
+                log_rows.append({
+                    "create_at":   now_str,
+                    "tanggal":     tanggal_clean,
+                    "shift":       shift,
+                    "divisi":      rec_match.get("prefix", str(row.get("prefix", ""))),
+                    "prefix":      rec_match.get("prefix", str(row.get("prefix", ""))),
+                    "divisi_label":rec_match.get("divisi_label", str(row.get("divisi_label", ""))),
+                    "spk":         str(row.get("spk",         "")),
+                    "customer":    str(row.get("customer",    "")),
+                    "produk":      str(row.get("produk",      "")),
+                    "uk":          str(row.get("uk",          "")),
+                    "checker":     str(row.get("checker",     "")),
+                    "scanned_by":  scanned_by,
+                    "code":        code_val,
+                    "foreman":     foreman,
+                    "berat_bersih":str(row.get("berat_bersih", "")),
+                    "keterangan":  keterangan,
+                })
+
+        # ── 3. Tulis log retur ──────────────────────────────────────────────
+        if log_rows:
+            CSV_RETUR_DIR.mkdir(parents=True, exist_ok=True)
+            file_exists = CSV_RETUR_LOG.exists()
+            with open(CSV_RETUR_LOG, "a", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=CSV_RETUR_COLUMNS)
+                if not file_exists:
+                    writer.writeheader()
+                for row in log_rows:
+                    writer.writerow(row)
+
+        return jsonify(
+            success = True,
+            deleted = deleted,
+            skipped = skipped,
+        )
+
+    except Exception as e:
+        import traceback
+        return jsonify(success=False, error=str(e), detail=traceback.format_exc())
     
 # ─── API: SUBMIT PRODUKSI ───────────────────────────────────
 @app.route("/api/submit", methods=["POST"])

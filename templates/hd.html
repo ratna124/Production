@@ -843,15 +843,18 @@ input[readonly]:focus {
       {% endif %}
       {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
       <div class="sidebar-section">Production Output</div>
-      <a href="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+      <a data-port="5001" data-path="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
         <span class="sidebar-dot"></span>Hasil Produksi
       </a>
       {% endif %}
 
-      <div class="sidebar-section">Hasil</div>
       <div class="sidebar-section">Scan Transfer</div>
       <a href="/scan_transfer" class="sidebar-item {% if active_page == 'scan_transfer' %}active{% endif %}">
         <span class="sidebar-dot"></span>Scan Transfer
+      </a>
+      <div class="sidebar-section">Scan Retur</div>
+      <a href="/scan_retur" class="sidebar-item {% if active_page == 'scan_retur' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Scan Retur
       </a>
       <div class="sidebar-section">Hasil</div>
       <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
@@ -1098,6 +1101,12 @@ input[readonly]:focus {
             // SPK AUTOFILL
             const spkInput = document.getElementById("spk");
             spkInput.addEventListener("input", debounce(handleSpkInput, 300));
+
+            // Set href multi-port
+            const host = window.location.hostname;
+            document.querySelectorAll('a[data-port]').forEach(link => {
+                link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
+            });
           });
 
           // DEBOUNCE
