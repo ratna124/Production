@@ -453,46 +453,46 @@
     }
 
     input,
-select,
-textarea {
-  width: 100%;
-  height: var(--input-h);
-  background: var(--gray2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--white);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  padding: 0 12px;
-  outline: none;
-  transition: all .15s ease;
-  appearance: none;
-  -webkit-appearance: none;
-}
+    select,
+    textarea {
+      width: 100%;
+      height: var(--input-h);
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      padding: 0 12px;
+      outline: none;
+      transition: all .15s ease;
+      appearance: none;
+      -webkit-appearance: none;
+    }
 
-/* FIELD AKTIF */
-input:focus,
-select:focus,
-textarea:focus {
-  border: 1px solid #e8420a !important;
-  background: #9c310d;
-  color: #fff;
-  outline: none !important;
-  box-shadow: 0 0 0 2px rgba(232, 66, 10, .22);
-}
+    /* FIELD AKTIF */
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border: 1px solid #e8420a !important;
+      background: #9c310d;
+      color: #fff;
+      outline: none !important;
+      box-shadow: 0 0 0 2px rgba(232, 66, 10, .22);
+    }
 
-/* PLACEHOLDER PAS AKTIF */
-input:focus::placeholder,
-textarea:focus::placeholder {
-  color: rgba(255,255,255,.6);
-}
+    /* PLACEHOLDER PAS AKTIF */
+    input:focus::placeholder,
+    textarea:focus::placeholder {
+      color: rgba(255, 255, 255, .6);
+    }
 
-/* READONLY JANGAN ORANGE */
-input[readonly]:focus {
-  border-color: var(--border) !important;
-  background: var(--gray2);
-  box-shadow: none;
-}
+    /* READONLY JANGAN ORANGE */
+    input[readonly]:focus {
+      border-color: var(--border) !important;
+      background: var(--gray2);
+      box-shadow: none;
+    }
 
     textarea {
       height: 72px;
@@ -843,7 +843,8 @@ input[readonly]:focus {
       {% endif %}
       {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
       <div class="sidebar-section">Production Output</div>
-      <a data-port="5001" data-path="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+      <a data-port="5001" data-path="/hasil_produksi"
+        class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
         <span class="sidebar-dot"></span>Hasil Produksi
       </a>
       {% endif %}
@@ -1020,6 +1021,9 @@ input[readonly]:focus {
               <label class="field-label">Berat Bersih (kg)<span class="req">*</span></label>
               <input type="text" id="berat_bersih" readonly>
             </div>
+            <div class="field col-span-2" id="spk-status-wrap" style="display:none">
+              <div id="spk-status"></div>
+            </div>
           </div>
         </div>
 
@@ -1067,6 +1071,7 @@ input[readonly]:focus {
                     <th>Shift</th>
                     <th>Operator</th>
                     <th>Checker</th>
+                    <th>Timestamps</th>
                     <th>Code</th>
                   </tr>
                 </thead>
@@ -1079,260 +1084,303 @@ input[readonly]:focus {
                 </tbody>
               </table>
             </div>
-
           </div>
         </div>
 
         <script>
+          // ─── STATE ───────────────────────────────────────────────────────────────
           let allData = [];
-          let searchTimeout;
+          let searchTimeout = null;
+          let timeout = null;
+          let beratCheckTimer = null;
+          let spkBeratData = null;
 
-          // INIT
+          // ─── INIT ────────────────────────────────────────────────────────────────
           document.addEventListener("DOMContentLoaded", function () {
             updateTime();
             setInterval(updateTime, 1000);
-
             loadRecent();
+            loadOperators();
 
-            // SEARCH
             document.getElementById("search-date").addEventListener("input", autoFilter);
             document.getElementById("search-spk").addEventListener("input", autoFilter);
 
-            // SPK AUTOFILL
-            const spkInput = document.getElementById("spk");
-            spkInput.addEventListener("input", debounce(handleSpkInput, 300));
+            // SPK input → autofill + check limit
+            document.getElementById("spk").addEventListener("input", function () {
+              const spk = this.value.trim();
 
-            // Set href multi-port
+              clearTimeout(timeout);
+              timeout = setTimeout(async () => {
+                if (!spk) { clearAutoFill(); return; }
+                try {
+                  const res = await fetch(`/get-spk/${spk}`);
+                  const data = await res.json();
+                  if (data && Object.keys(data).length > 0) {
+                    document.getElementById("customer").value = data.customer || "";
+                    document.getElementById("product").value = data.product || "";
+                    document.getElementById("uk").value = data.uk || "";
+                  } else {
+                    clearAutoFill();
+                  }
+                } catch (err) { console.error("Error SPK:", err); }
+              }, 70);
+
+              clearTimeout(beratCheckTimer);
+              beratCheckTimer = setTimeout(checkSpkBerat, 400);
+            });
+
+            document.getElementById("berat_kg").addEventListener("input", onBeratChange);
+            document.getElementById("bobin").addEventListener("input", onBeratChange);
+
             const host = window.location.hostname;
             document.querySelectorAll('a[data-port]').forEach(link => {
-                link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
+              link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
             });
           });
 
-          // DEBOUNCE
-          function debounce(func, delay) {
-            let timer;
-            return function (...args) {
-              clearTimeout(timer);
-              timer = setTimeout(() => func.apply(this, args), delay);
-            };
-          }
-
-          // SPK AUTOFILL
-          async function handleSpkInput(e) {
-            const spk = e.target.value.trim();
-
-            if (!spk || spk.length < 2) {
-              clearAutoFill();
-              return;
-            }
-
-            try {
-              const res = await fetch(`/api/spk/${spk}`);
-              const data = await res.json();
-
-              if (!data || Object.keys(data).length === 0) {
-                clearAutoFill();
-                return;
-              }
-
-              document.getElementById("customer").value = data.customer || "";
-              document.getElementById("product").value = data.product || "";
-              document.getElementById("uk").value = data.uk || "";
-
-            } catch (err) {
-              console.log("SPK error:", err);
-            }
-          }
-
-          // CLEAR FIELD
+          // ─── HELPERS ─────────────────────────────────────────────────────────────
           function clearAutoFill() {
             document.getElementById("customer").value = "";
             document.getElementById("product").value = "";
             document.getElementById("uk").value = "";
           }
 
-          // TIME + SHIFT
           function updateTime() {
-            let now = new Date();
-            let hour = now.getHours();
-            // SHIFT
-            let shift = (hour >= 7 && hour < 19) ? "P" : "M";
-            document.getElementById("shift").value = shift;
-            // TANGGAL PRODUKSI
-            let prodDate = new Date(now);
-            // 🔥 kalau jam 00:00 - 06:59 → mundur 1 hari
-            if (hour < 7) {
-              prodDate.setDate(prodDate.getDate() - 1);
-            }
+            const now = new Date();
+            const hour = now.getHours();
+            document.getElementById("shift").value = (hour >= 7 && hour < 19) ? "P" : "M";
 
-            // FORMAT datetime-local
-            let formatted =
+            const prodDate = new Date(now);
+            if (hour < 7) prodDate.setDate(prodDate.getDate() - 1);
+
+            document.getElementById("tanggal").value =
               prodDate.getFullYear() + "-" +
-              String(prodDate.getMonth() + 1).padStart(2, '0') + "-" +
-              String(prodDate.getDate()).padStart(2, '0') + "T" +
-              String(now.getHours()).padStart(2, '0') + ":" +
-              String(now.getMinutes()).padStart(2, '0');
-
-            document.getElementById("tanggal").value = formatted;
+              String(prodDate.getMonth() + 1).padStart(2, "0") + "-" +
+              String(prodDate.getDate()).padStart(2, "0") + "T" +
+              String(now.getHours()).padStart(2, "0") + ":" +
+              String(now.getMinutes()).padStart(2, "0");
           }
 
-          // LOAD DATA
-          async function loadRecent() {
-            try {
-              const res = await fetch('/api/recent/hd');
-              const rows = await res.json();
-
-              console.log(rows);
-
-              allData = rows || [];
-              renderTable(allData);
-
-            } catch (e) {
-              console.error("Load error:", e);
-            }
-          }
-
-          // RENDER TABLE
-          function renderTable(data) {
-            console.log(data);
-            const tbody = document.getElementById("recent-body");
-
-            if (!data.length) {
-              tbody.innerHTML = `
-            <tr>
-                <td colspan="12" style="text-align:center;color:#777;padding:20px">
-                    Tidak ada data
-                </td>
-            </tr>`;
-              return;
-            }
-
-            tbody.innerHTML = data.map(r => `
-        <tr>
-            <td>${(r.tanggal || "").replace("T", " ")}</td>
-            <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
-            <td>${r.produk || ""}</td>
-            <td>${r.customer || ""}</td>
-            <td>${r.mesin || ""}</td>
-            <td>${r.berat_kg || ""}</td>
-            <td>${r.berat_bersih || ""}</td>
-            <td>${r.divisi || ""}</td>
-            <td>${r.shift || ""}</td>
-            <td>${r.operator_hd || ""}</td>
-            <td>${r.checker || ""}</td>
-            <td>${r.code || ""}</td>
-        </tr>
-    `).join('');
-          }
-
-          // FILTER TABLE
-          function filterTable() {
-            const date = document.getElementById("search-date").value;
-            const spk = document.getElementById("search-spk").value.toLowerCase();
-
-            let filtered = allData;
-
-            // SPK FILTER
-            if (spk) {
-              filtered = filtered.filter(r => {
-                let val = (r.spk || r.SPK || r.no_spk || "").toString().toLowerCase();
-                return val.includes(spk);
-              });
-            }
-
-            // DATE FILTER (DD-MM-YYYY)
-            if (date) {
-              const [y, m, d] = date.split("-");
-              const target = `${d}-${m}-${y}`;  // ← ubah ke DD-MM-YYYY
-
-              filtered = filtered.filter(r =>
-                (r.tanggal || "").trim().startsWith(target)
-              );
-            }
-
-            renderTable(filtered);
-          }
-
-          // AUTO FILTER
-          function autoFilter() {
-            clearTimeout(searchTimeout);
-
-            searchTimeout = setTimeout(() => {
-              filterTable();
-            }, 150);
-          }
-
-          // DIVISI
-          function filterDivision(div, el) {
-            document.querySelectorAll('.sidebar-item')
-              .forEach(i => i.classList.remove('active'));
-
-            el.classList.add('active');
-            document.getElementById('divisi').value = div;
-          }
-        </script>
-        <script>
-          let timeout = null;
-
-          document.getElementById("spk").addEventListener("input", function () {
-            clearTimeout(timeout);
-
-            const spk = this.value.trim();
-
-            timeout = setTimeout(async () => {
-              if (!spk) return;
-
-              try {
-                const res = await fetch(`/get-spk/${spk}`);
-                const data = await res.json();
-
-                if (data && Object.keys(data).length > 0) {
-                  document.getElementById("customer").value = data.customer || "";
-                  document.getElementById("product").value = data.product || "";
-                  document.getElementById("uk").value = data.uk || "";
-                } else {
-                  document.getElementById("customer").value = "";
-                  document.getElementById("product").value = "";
-                  document.getElementById("uk").value = "";
-                }
-              } catch (err) {
-                console.error("Error SPK:", err);
-              }
-            }, 70); // delay biar tidak spam request
-          });
-        </script>
-        <script>
           async function loadOperators() {
             const divisi = document.getElementById("divisi").value;
-
             try {
               const res = await fetch(`/api/operators/${divisi}`);
               const operators = await res.json();
-
               const select = document.getElementById("operator_hd");
               select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
-
               operators.forEach(op => {
                 select.innerHTML += `<option value="${op}">${op}</option>`;
               });
+            } catch (e) { console.error("Gagal load operator:", e); }
+          }
 
-            } catch (e) {
-              console.error("Gagal load operator:", e);
+          async function loadRecent() {
+            try {
+              const res = await fetch("/api/recent/hd");
+              const rows = await res.json();
+              allData = rows || [];
+              renderTable(allData);
+            } catch (e) { console.error("Load error:", e); }
+          }
+
+          function renderTable(data) {
+            const tbody = document.getElementById("recent-body");
+            if (!data.length) {
+              tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;color:#777;padding:20px">Tidak ada data</td></tr>`;
+              return;
+            }
+            tbody.innerHTML = data.map(r => `
+        <tr>
+          <td>${(r.tanggal || "").replace("T", " ")}</td>
+          <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
+          <td>${r.produk || ""}</td>
+          <td>${r.customer || ""}</td>
+          <td>${r.mesin || ""}</td>
+          <td>${r.berat_kg || ""}</td>
+          <td>${r.berat_bersih || ""}</td>
+          <td>${r.divisi || ""}</td>
+          <td>${r.shift || ""}</td>
+          <td>${r.operator_hd || ""}</td>
+          <td>${r.checker || ""}</td>
+          <td>${r.created_at || ""}</td>
+          <td>${r.code || ""}</td>
+        </tr>
+      `).join("");
+          }
+
+          function filterTable() {
+            const date = document.getElementById("search-date").value;
+            const spk = document.getElementById("search-spk").value.toLowerCase();
+            let filtered = allData;
+            if (spk) filtered = filtered.filter(r =>
+              (r.spk || r.SPK || r.no_spk || "").toString().toLowerCase().includes(spk)
+            );
+            if (date) {
+              const [y, m, d] = date.split("-");
+              const target = `${d}-${m}-${y}`;
+              filtered = filtered.filter(r => (r.tanggal || "").trim().startsWith(target));
+            }
+            renderTable(filtered);
+          }
+
+          function autoFilter() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(filterTable, 150);
+          }
+
+          // ─── BERAT ───────────────────────────────────────────────────────────────
+          function hitungBersih() {
+            const berat = parseFloat(document.getElementById("berat_kg").value) || 0;
+            const bobin = parseFloat(document.getElementById("bobin").value) || 0;
+            document.getElementById("berat_bersih").value = Math.max(berat - bobin, 0).toFixed(2);
+          }
+
+          function onBeratChange() {
+            hitungBersih();
+            const berat = parseFloat(document.getElementById("berat_bersih").value) || 0;
+            if (spkBeratData) renderSpkStatus(spkBeratData, berat);
+
+            if (spkBeratData && spkBeratData.limit !== null && spkBeratData.limit !== undefined) {
+              const limit = parseFloat(spkBeratData.limit) || 0;
+              const used = parseFloat(spkBeratData.used) || 0;
+              const over = (used + berat) > limit;
+              document.getElementById("berat_kg").style.borderColor = over ? "var(--danger)" : "";
+              document.getElementById("berat_bersih").style.borderColor = over ? "var(--danger)" : "";
             }
           }
 
-          // Panggil saat halaman siap
-          document.addEventListener("DOMContentLoaded", function () {
-            loadOperators();
-          });
+          function validateBerat(el) {
+            const val = parseFloat(el.value);
+            const errorMsg = document.getElementById("error-msg");
+            if (el.value !== "" && (isNaN(val) || val <= 0)) {
+              errorMsg.innerText = "Berat tidak boleh minus atau nol";
+              errorMsg.classList.add("show");
+              el.style.borderColor = "var(--accent)";
+            } else if (val > 60) {
+              showAlert("Berat maksimal 60 kg");
+              el.style.borderColor = "var(--accent)";
+            } else {
+              errorMsg.classList.remove("show");
+              el.style.borderColor = "";
+            }
+          }
 
+          function validateMesin(el) {
+            const val = parseFloat(el.value);
+            const errorMsg = document.getElementById("error-msg");
+            if (el.value !== "" && (isNaN(val) || val <= 0)) {
+              errorMsg.innerText = "Mesin tidak boleh minus atau nol";
+              errorMsg.classList.add("show");
+              el.style.borderColor = "var(--accent)";
+            } else {
+              errorMsg.classList.remove("show");
+              el.style.borderColor = "";
+            }
+          }
+
+          function validateBobin(el) {
+            const val = parseFloat(el.value);
+            const errorMsg = document.getElementById("error-msg");
+            if (el.value !== "" && (isNaN(val) || val <= 0)) {
+              errorMsg.innerText = "Bobin tidak boleh minus atau nol";
+              errorMsg.classList.add("show");
+              el.style.borderColor = "var(--accent)";
+            } else {
+              errorMsg.classList.remove("show");
+              el.style.borderColor = "";
+            }
+          }
+
+          // ─── CEK LIMIT SPK ───────────────────────────────────────────────────────
+          async function checkSpkBerat() {
+            const spk = (document.getElementById("spk")?.value || "").trim();
+            const berat = parseFloat(document.getElementById("berat_bersih")?.value) || 0;
+
+            if (!spk || spk.length < 2) {
+              spkBeratData = null;
+              hideSpkStatus();
+              return;
+            }
+
+            try {
+              const res = await fetch(`/api/check_spk_berat_hd/${encodeURIComponent(spk)}`);
+              const data = await res.json();
+              spkBeratData = data;
+              renderSpkStatus(data, berat);
+            } catch (e) {
+              spkBeratData = null;
+              hideSpkStatus();
+            }
+          }
+
+          function hideSpkStatus() {
+            const wrap = document.getElementById("spk-status-wrap");
+            if (wrap) wrap.style.display = "none";
+          }
+
+          function renderSpkStatus(data, inputBerat) {
+            const wrap = document.getElementById("spk-status-wrap");
+            const el = document.getElementById("spk-status");
+            if (!wrap || !el) return;
+
+            if (!data || data.limit === null || data.limit === undefined) {
+              wrap.style.display = "none";
+              return;
+            }
+
+            wrap.style.display = "";
+
+            const limit = parseFloat(data.limit) || 0;
+            const used = parseFloat(data.used) || 0;
+            const berat = parseFloat(inputBerat) || 0;
+            const projected = used + berat;
+            const pct = Math.min((projected / limit) * 100, 100);
+
+            let barColor = "#22c55e";
+            let textColor = "#22c55e";
+            let statusText = "";
+
+            if (projected > limit) {
+              barColor = "#ef4444";
+              textColor = "#ef4444";
+              statusText = `⛔ Melebihi limit! Projected: ${projected.toFixed(2)} kg / Limit: ${limit.toFixed(2)} kg`;
+            } else if (pct >= 90) {
+              barColor = "#f5a623";
+              textColor = "#f5a623";
+              statusText = `⚠ Hampir penuh · Sudah: ${used.toFixed(2)} kg · Sisa: ${(limit - projected).toFixed(2)} kg`;
+            } else {
+              statusText = `✔ Sudah: ${used.toFixed(2)} kg · Sisa setelah input: ${(limit - projected).toFixed(2)} kg / ${limit.toFixed(2)} kg`;
+            }
+
+            el.innerHTML = `
+        <div style="background:#2c2c2c;border:1px solid #2e2e2e;border-radius:4px;
+          padding:10px 14px;display:flex;flex-direction:column;gap:7px;">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-family:var(--font-mono);font-size:10px;color:#777;
+              letter-spacing:.08em;text-transform:uppercase">
+              Total Berat SPK ${data.spk}
+            </span>
+            <span style="font-family:var(--font-mono);font-size:11px;color:${textColor};font-weight:500">
+              ${projected.toFixed(2)} / ${limit.toFixed(2)} kg
+            </span>
+          </div>
+          <div style="background:#3e3e3e;border-radius:2px;height:6px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${barColor};
+              border-radius:2px;transition:width .3s ease;"></div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:${textColor}">
+            ${statusText}
+          </div>
+        </div>
+      `;
+          }
+
+          // ─── SUBMIT ──────────────────────────────────────────────────────────────
           async function submitForm() {
             const btn = document.getElementById("btn-submit");
             const spinner = document.getElementById("spinner");
             const errorMsg = document.getElementById("error-msg");
 
-            // VALIDASI WAJIB
             const requiredFields = [
               { id: "operator_hd", name: "Operator HD" },
               { id: "checker", name: "Checker" },
@@ -1341,18 +1389,12 @@ input[readonly]:focus {
               { id: "berat_kg", name: "Berat (kg)" },
               { id: "bobin", name: "Berat Bobin (kg)" }
             ];
-
             for (let f of requiredFields) {
               const el = document.getElementById(f.id);
-              const val = (el.value || "").toString().trim();
-              if (!val) {
-                showAlert(`${f.name} wajib diisi`);
-                el.focus();
-                return;
-              }
+              const val = (el?.value || "").trim();
+              if (!val) { showAlert(`${f.name} wajib diisi`); el?.focus(); return; }
             }
 
-            // TIDAK BOLEH MINUS ATAU ANGKA YANG TIDAK SESUAI
             const beratVal = parseFloat(document.getElementById("berat_kg").value);
             if (isNaN(beratVal) || beratVal <= 0) {
               errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
@@ -1360,9 +1402,9 @@ input[readonly]:focus {
               document.getElementById("berat_kg").focus();
               document.getElementById("berat_kg").style.borderColor = "var(--accent)";
               return;
-            } else if (beratVal > 60) {
+            }
+            if (beratVal > 60) {
               showAlert("Berat maksimal 60 kg");
-              document.getElementById("berat_kg").focus();
               document.getElementById("berat_kg").style.borderColor = "var(--accent)";
               return;
             }
@@ -1370,7 +1412,7 @@ input[readonly]:focus {
 
             const mesinVal = parseFloat(document.getElementById("mesin").value);
             if (isNaN(mesinVal) || mesinVal <= 0) {
-              errorMsg.innerText = "Mesin tidak boleh minus, nol, atau mesin yang tidak ada";
+              errorMsg.innerText = "Mesin tidak boleh minus atau nol";
               errorMsg.classList.add("show");
               document.getElementById("mesin").focus();
               document.getElementById("mesin").style.borderColor = "var(--accent)";
@@ -1380,7 +1422,7 @@ input[readonly]:focus {
 
             const bobinVal = parseFloat(document.getElementById("bobin").value);
             if (isNaN(bobinVal) || bobinVal <= 0) {
-              errorMsg.innerText = "Bobin tidak boleh minus, nol, atau bukan angka";
+              errorMsg.innerText = "Bobin tidak boleh minus atau nol";
               errorMsg.classList.add("show");
               document.getElementById("bobin").focus();
               document.getElementById("bobin").style.borderColor = "var(--accent)";
@@ -1388,14 +1430,49 @@ input[readonly]:focus {
             }
             document.getElementById("bobin").style.borderColor = "";
 
-            if (parseFloat(document.getElementById("berat_kg").value) <
-              parseFloat(document.getElementById("bobin").value)) {
-
+            if (beratVal < bobinVal) {
               errorMsg.innerText = "Berat tidak boleh lebih kecil dari bobin";
               errorMsg.classList.add("show");
               return;
             }
 
+            // ── VALIDASI LIMIT SPK ──────────────────────────────────────────────
+            const beratBersih = parseFloat(document.getElementById("berat_bersih").value) || 0;
+
+            if (!spkBeratData) {
+              const spk = (document.getElementById("spk")?.value || "").trim();
+              if (spk) {
+                try {
+                  const res = await fetch(`/api/check_spk_berat_hd/${encodeURIComponent(spk)}`);
+                  spkBeratData = await res.json();
+                  renderSpkStatus(spkBeratData, beratBersih);
+                } catch (e) { /* lanjut tanpa validasi */ }
+              }
+            }
+
+            if (spkBeratData && spkBeratData.limit !== null && spkBeratData.limit !== undefined) {
+              const limit = parseFloat(spkBeratData.limit) || 0;
+              const used = parseFloat(spkBeratData.used) || 0;
+              const projected = used + beratBersih;
+
+              if (projected > limit) {
+                const remaining = Math.max(limit - used, 0);
+                showAlert(
+                  `Melebihi batas order!\n\n` +
+                  `SPK ${spkBeratData.spk}\n` +
+                  `Limit: ${limit.toFixed(2)} kg\n` +
+                  `Sudah diinput: ${used.toFixed(2)} kg\n` +
+                  `Input sekarang: ${beratBersih.toFixed(2)} kg\n` +
+                  `Projected: ${projected.toFixed(2)} kg\n\n` +
+                  `Sisa yang boleh diinput: ${remaining.toFixed(2)} kg`
+                );
+                document.getElementById("berat_kg").style.borderColor = "var(--danger)";
+                document.getElementById("berat_bersih").style.borderColor = "var(--danger)";
+                return;
+              }
+            }
+
+            // ── SIMPAN ────────────────────────────────────────────────────────────
             errorMsg.classList.remove("show");
             btn.disabled = true;
             spinner.style.display = "block";
@@ -1422,26 +1499,16 @@ input[readonly]:focus {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data)
               });
-
               const result = await res.json();
-
               if (!result.success) throw new Error(result.message);
 
               document.getElementById("result-panel").classList.add("show");
               document.getElementById("result-order-id").innerText = result.order_id;
               document.getElementById("label-img").src = result.label_url;
-
-              // PRINT TANPA PINDAH HALAMAN
-              const frame = document.getElementById("print-frame");
-
-              frame.src = `/label/print/${result.order_id}`;
+              document.getElementById("print-frame").src = `/label/print/${result.order_id}`;
 
               loadRecent();
-
-              //auto reset
-              setTimeout(() => {
-                resetForm();
-              }, 2000);
+              setTimeout(() => { resetForm(); }, 2000);
 
             } catch (err) {
               console.error(err);
@@ -1452,186 +1519,86 @@ input[readonly]:focus {
             }
           }
 
-          // ── RESET ────────────────────────────────────────────────
+          // ─── RESET ───────────────────────────────────────────────────────────────
           function resetForm() {
-            document.getElementById('result-panel').classList.remove('show');
-
-            ['spk', 'customer', 'product', 'uk', 'mesin', 'berat_kg', 'bobin', 'berat_bersih']
-              .forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-              });
-
-            // Reset dropdown operator ke default
+            document.getElementById("result-panel").classList.remove("show");
+            ["spk", "customer", "product", "uk", "mesin", "berat_kg", "bobin", "berat_bersih"].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.value = "";
+            });
             const opSelect = document.getElementById("operator_hd");
             if (opSelect) opSelect.selectedIndex = 0;
-
-            // Scroll ke atas
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-
-            // Fokus ke SPK biar langsung bisa input
+            window.scrollTo({ top: 0, behavior: "smooth" });
             document.getElementById("operator_hd").focus();
-          }
-        </script>
-        <script>
-          function hitungBersih() {
-            const berat = parseFloat(document.getElementById("berat_kg").value) || 0;
-            const bobin = parseFloat(document.getElementById("bobin").value) || 0;
-
-            let hasil = berat - bobin;
-
-            // biar tidak minus
-            if (hasil < 0) hasil = 0;
-
-            document.getElementById("berat_bersih").value = hasil.toFixed(2);
+            spkBeratData = null;
+            hideSpkStatus();
           }
 
-          // trigger saat input berubah
-          document.getElementById("berat_kg").addEventListener("input", hitungBersih);
-          document.getElementById("bobin").addEventListener("input", hitungBersih);
-
-          //TIDAK BOLEH MINUS
-          function validateBerat(el) {
-            const val = parseFloat(el.value);
-            const errorMsg = document.getElementById("error-msg");
-
-            if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Berat tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
-              el.style.borderColor = "var(--accent)";
-            } else if (val > 60) {
-              showAlert("Berat maksimal 60 kg");
-              el.style.borderColor = "var(--accent)";
-            } else {
-              errorMsg.classList.remove("show");
-              el.style.borderColor = "";
-            }
-          }
-
-          function validateMesin(el) {
-            const val = parseFloat(el.value);
-            const errorMsg = document.getElementById("error-msg");
-
-            if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Mesin tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
-              el.style.borderColor = "var(--accent)";
-            } else {
-              errorMsg.classList.remove("show");
-              el.style.borderColor = "";
-            }
-          }
-
-          function validateBobin(el) {
-            const val = parseFloat(el.value);
-            const errorMsg = document.getElementById("error-msg");
-
-            if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Bobin tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
-              el.style.borderColor = "var(--accent)";
-            } else {
-              errorMsg.classList.remove("show");
-              el.style.borderColor = "";
-            }
-          }
-
-        </script>
-        <script>
-
+          // ─── MODAL ───────────────────────────────────────────────────────────────
           function showAlert(msg) {
             document.getElementById("modal-msg").textContent = msg;
             document.getElementById("modal-overlay").classList.add("show");
           }
 
           function closeModal(e) {
-            // Kalau klik overlay (bukan box) atau klik tombol OK
             if (!e || e.target === document.getElementById("modal-overlay")) {
               document.getElementById("modal-overlay").classList.remove("show");
             }
           }
 
-          // Button save
+          // ─── KEYBOARD NAVIGATION ─────────────────────────────────────────────────
           document.addEventListener("keydown", function (e) {
-
-            // hanya Enter / Tab
             if (e.key !== "Enter" && e.key !== "Tab") return;
-
             const active = document.activeElement;
-
-            // ambil field input yang aktif
             const fields = [
               ...document.querySelectorAll(
-                'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
+                "input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])"
               )
             ].filter(el => el.offsetParent !== null);
 
             const index = fields.indexOf(active);
             if (index === -1) return;
-
-            // 🔥 stop submit default browser
             e.preventDefault();
             e.stopPropagation();
 
-            // validasi field aktif kalau required
-            const value = (active.value || "").trim();
-
-            if (active.hasAttribute("required") && !value) {
+            if (active.hasAttribute("required") && !(active.value || "").trim()) {
               showAlert("Field ini wajib diisi");
               active.focus();
               return;
             }
 
-            // SHIFT + ENTER → mundur
             if (e.shiftKey) {
               const prev = fields[index - 1];
-              if (prev) {
-                prev.focus();
-                prev.select?.();
-              }
+              if (prev) { prev.focus(); prev.select?.(); }
               return;
             }
 
-            // ENTER / TAB → next field
             const next = fields[index + 1];
+            if (next) { next.focus(); next.select?.(); return; }
 
-            if (next) {
-              next.focus();
-              next.select?.();
-              return;
-            }
-
-            // kalau field terakhir → submit
-            const requiredFields = document.querySelectorAll("[required]");
-
-            for (const field of requiredFields) {
-              const val = (field.value || "").trim();
-
-              if (!val) {
+            for (const field of document.querySelectorAll("[required]")) {
+              if (!(field.value || "").trim()) {
                 showAlert("Masih ada field yang belum diisi");
                 field.focus();
                 return;
               }
             }
-
-            submitForm();
+          //  submitForm();
           });
-        </script>
-        <script>
+
+          // ─── SESSION CHECK ────────────────────────────────────────────────────────
           setInterval(async () => {
             try {
               const res = await fetch("/check_session");
               const data = await res.json();
-
               if (!data.active) {
                 alert("Session habis, silakan login kembali");
                 window.location.href = "/login";
               }
-            } catch (err) {
-              console.error(err);
-            }
+            } catch (err) { console.error(err); }
           }, 60000);
         </script>
+
         <iframe id="print-frame" style="display:none"></iframe>
         <!-- MODAL ALERT -->
         <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
@@ -1643,6 +1610,5 @@ input[readonly]:focus {
           </div>
         </div>
 </body>
-
 
 </html>

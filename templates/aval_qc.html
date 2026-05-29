@@ -1037,6 +1037,7 @@ input[readonly]:focus {
                     <th>Shift</th>
                     <th>Operator</th>
                     <th>Checker</th>
+                    <th>Timestamps</th>
                     <th>Code</th>
                   </tr>
                 </thead>
@@ -1183,6 +1184,7 @@ input[readonly]:focus {
             <td>${r.shift || ""}</td>
             <td>${r.operator_qc || ""}</td>
             <td>${r.checker || ""}</td>
+            <td>${r.created_at || ""}</td>
             <td>${r.code || ""}</td>
         </tr>
     `).join('');
@@ -1464,7 +1466,7 @@ input[readonly]:focus {
                 return;
               }
             }
-            submitForm();
+           // submitForm();
           });
         </script>
         <script>
@@ -1480,7 +1482,7 @@ input[readonly]:focus {
             } catch (err) {
               console.error(err);
             }
-          }, 60000);
+          }, 300000);
         </script>
         <iframe id="print-frame" style="display:none"></iframe>
         <!-- MODAL ALERT -->

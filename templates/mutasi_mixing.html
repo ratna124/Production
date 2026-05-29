@@ -1398,7 +1398,7 @@
         const data = await res.json();
         if (!data.active) { alert("Session habis, silakan login kembali"); window.location.href = "/login"; }
       } catch (e) { }
-    }, 60000);
+    }, 300000);
     
   </script>
   <script>
@@ -1473,7 +1473,7 @@
     }
 
     // field terakhir = submit
-    submitMutasi();
+  //  submitMutasi();
   });
 </script>
   <iframe id="mutasi-frame" style="display:none;"></iframe>
