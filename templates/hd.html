@@ -1376,11 +1376,32 @@
           }
 
           // ─── SUBMIT ──────────────────────────────────────────────────────────────
+          let isSubmitting = false;
+
           async function submitForm() {
+            if (isSubmitting) return;
+            isSubmitting = true;
+
             const btn = document.getElementById("btn-submit");
             const spinner = document.getElementById("spinner");
             const errorMsg = document.getElementById("error-msg");
 
+            btn.disabled = true;
+            spinner.style.display = "block";
+
+            function validationFail(msg, focusId = null, borderIds = []) {
+              isSubmitting = false;
+              btn.disabled = false;
+              spinner.style.display = "none";
+              borderIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.borderColor = "var(--accent)";
+              });
+              showAlert(msg);
+              if (focusId) document.getElementById(focusId)?.focus();
+            }
+
+            // ── Validasi required fields ──
             const requiredFields = [
               { id: "operator_hd", name: "Operator HD" },
               { id: "checker", name: "Checker" },
@@ -1391,54 +1412,38 @@
             ];
             for (let f of requiredFields) {
               const el = document.getElementById(f.id);
-              const val = (el?.value || "").trim();
-              if (!val) { showAlert(`${f.name} wajib diisi`); el?.focus(); return; }
+              if (!(el?.value || "").trim()) {
+                return validationFail(`${f.name} wajib diisi`, f.id);
+              }
             }
 
             const beratVal = parseFloat(document.getElementById("berat_kg").value);
             if (isNaN(beratVal) || beratVal <= 0) {
-              errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
-              errorMsg.classList.add("show");
-              document.getElementById("berat_kg").focus();
-              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
-              return;
+              return validationFail("Berat tidak boleh minus, nol, atau bukan angka", "berat_kg", ["berat_kg"]);
             }
             if (beratVal > 60) {
-              showAlert("Berat maksimal 60 kg");
-              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
-              return;
+              return validationFail("Berat maksimal 60 kg", "berat_kg", ["berat_kg"]);
             }
             document.getElementById("berat_kg").style.borderColor = "";
 
             const mesinVal = parseFloat(document.getElementById("mesin").value);
             if (isNaN(mesinVal) || mesinVal <= 0) {
-              errorMsg.innerText = "Mesin tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
-              document.getElementById("mesin").focus();
-              document.getElementById("mesin").style.borderColor = "var(--accent)";
-              return;
+              return validationFail("Mesin tidak valid", "mesin", ["mesin"]);
             }
             document.getElementById("mesin").style.borderColor = "";
 
             const bobinVal = parseFloat(document.getElementById("bobin").value);
             if (isNaN(bobinVal) || bobinVal <= 0) {
-              errorMsg.innerText = "Bobin tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
-              document.getElementById("bobin").focus();
-              document.getElementById("bobin").style.borderColor = "var(--accent)";
-              return;
+              return validationFail("Bobin tidak boleh minus atau nol", "bobin", ["bobin"]);
             }
             document.getElementById("bobin").style.borderColor = "";
 
             if (beratVal < bobinVal) {
-              errorMsg.innerText = "Berat tidak boleh lebih kecil dari bobin";
-              errorMsg.classList.add("show");
-              return;
+              return validationFail("Berat tidak boleh lebih kecil dari bobin", "berat_kg", ["berat_kg"]);
             }
 
-            // ── VALIDASI LIMIT SPK ──────────────────────────────────────────────
+            // ── Validasi limit SPK ──
             const beratBersih = parseFloat(document.getElementById("berat_bersih").value) || 0;
-
             if (!spkBeratData) {
               const spk = (document.getElementById("spk")?.value || "").trim();
               if (spk) {
@@ -1446,37 +1451,29 @@
                   const res = await fetch(`/api/check_spk_berat_hd/${encodeURIComponent(spk)}`);
                   spkBeratData = await res.json();
                   renderSpkStatus(spkBeratData, beratBersih);
-                } catch (e) { /* lanjut tanpa validasi */ }
+                } catch (e) { /* lanjut tanpa validasi limit */ }
               }
             }
-
-            if (spkBeratData && spkBeratData.limit !== null && spkBeratData.limit !== undefined) {
+            if (spkBeratData?.limit != null) {
               const limit = parseFloat(spkBeratData.limit) || 0;
               const used = parseFloat(spkBeratData.used) || 0;
               const projected = used + beratBersih;
-
               if (projected > limit) {
                 const remaining = Math.max(limit - used, 0);
-                showAlert(
-                  `Melebihi batas order!\n\n` +
-                  `SPK ${spkBeratData.spk}\n` +
-                  `Limit: ${limit.toFixed(2)} kg\n` +
-                  `Sudah diinput: ${used.toFixed(2)} kg\n` +
-                  `Input sekarang: ${beratBersih.toFixed(2)} kg\n` +
-                  `Projected: ${projected.toFixed(2)} kg\n\n` +
-                  `Sisa yang boleh diinput: ${remaining.toFixed(2)} kg`
+                return validationFail(
+                  `Melebihi batas order!\n\nSPK ${spkBeratData.spk}\n` +
+                  `Limit: ${limit.toFixed(2)} kg\nSudah diinput: ${used.toFixed(2)} kg\n` +
+                  `Input sekarang: ${beratBersih.toFixed(2)} kg\nProjected: ${projected.toFixed(2)} kg\n\n` +
+                  `Sisa yang boleh diinput: ${remaining.toFixed(2)} kg`,
+                  null,
+                  ["berat_kg", "berat_bersih"]
                 );
-                document.getElementById("berat_kg").style.borderColor = "var(--danger)";
-                document.getElementById("berat_bersih").style.borderColor = "var(--danger)";
-                return;
               }
             }
 
-            // ── SIMPAN ────────────────────────────────────────────────────────────
             errorMsg.classList.remove("show");
-            btn.disabled = true;
-            spinner.style.display = "block";
 
+            // ── Simpan ──
             const data = {
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
@@ -1514,6 +1511,7 @@
               console.error(err);
               showAlert(err.message || "Terjadi kesalahan, coba lagi");
             } finally {
+              isSubmitting = false;
               btn.disabled = false;
               spinner.style.display = "none";
             }
@@ -1583,7 +1581,6 @@
                 return;
               }
             }
-          //  submitForm();
           });
 
           // ─── SESSION CHECK ────────────────────────────────────────────────────────

@@ -18,7 +18,6 @@
       padding: 0;
     }
 
-    /* ── SIDEBAR ────────────────────────────────────────── */
     input[required],
     select[required],
     textarea[required] {
@@ -478,13 +477,11 @@ textarea:focus {
   box-shadow: 0 0 0 2px rgba(232, 66, 10, .22);
 }
 
-/* PLACEHOLDER PAS AKTIF */
 input:focus::placeholder,
 textarea:focus::placeholder {
   color: rgba(255,255,255,.6);
 }
 
-/* READONLY JANGAN ORANGE */
 input[readonly]:focus {
   border-color: var(--border) !important;
   background: var(--gray2);
@@ -753,7 +750,6 @@ input[readonly]:focus {
       }
     }
 
-    /* ── ERROR MSG ────────────────────────────────────────── */
     .error-msg {
       display: none;
       color: #f87171;
@@ -1406,7 +1402,6 @@ input[readonly]:focus {
             const spinner = document.getElementById("spinner");
             const errorMsg = document.getElementById("error-msg");
 
-            // VALIDASI WAJIB
             const requiredFields = [
               { id: "operator_hd", name: "Operator HD" },
               { id: "checker", name: "Checker" },
@@ -1603,7 +1598,6 @@ input[readonly]:focus {
             if (e.key !== "Enter" && e.key !== "Tab") return;
 
             const active = document.activeElement;
-
             const fields = [
               ...document.querySelectorAll(
                 'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
@@ -1652,8 +1646,6 @@ input[readonly]:focus {
                 return;
               }
             }
-
-          //  submitForm();
           });
         </script>
         <script>

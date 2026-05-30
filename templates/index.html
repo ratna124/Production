@@ -1342,13 +1342,29 @@
       </div>
     `;
           }
+          let isSubmitting = false;
 
           async function submitForm() {
+            if (isSubmitting) return;
+            isSubmitting = true;
+
             const btn = document.getElementById("btn-submit");
             const spinner = document.getElementById("spinner");
             const errorMsg = document.getElementById("error-msg");
 
-            // validasi required fields
+            btn.disabled = true;
+            spinner.style.display = "block";
+
+            // Helper: reset state lalu tampilkan alert
+            function validationFail(msg, focusId = null) {
+              isSubmitting = false;
+              btn.disabled = false;
+              spinner.style.display = "none";
+              showAlert(msg);
+              if (focusId) document.getElementById(focusId)?.focus();
+            }
+
+            // ── Validasi required fields ──
             const requiredFields = [
               { id: "operator_mix", name: "Operator Mix" },
               { id: "checker", name: "Checker" },
@@ -1357,28 +1373,24 @@
             ];
             for (let f of requiredFields) {
               const el = document.getElementById(f.id);
-              const val = (el?.value || "").trim();
-              if (!val) { showAlert(`${f.name} wajib diisi`); el?.focus(); return; }
+              if (!(el?.value || "").trim()) {
+                return validationFail(`${f.name} wajib diisi`, f.id);
+              }
             }
 
             const beratKgVal = parseFloat(document.getElementById("berat_kg").value);
             if (isNaN(beratKgVal) || beratKgVal <= 0) {
-              showAlert("Berat tidak boleh minus, nol, atau bukan angka");
-              document.getElementById("berat_kg").focus();
               document.getElementById("berat_kg").style.borderColor = "var(--accent)";
-              return;
+              return validationFail("Berat tidak boleh minus, nol, atau bukan angka", "berat_kg");
             }
             if (beratKgVal > 26) {
-              showAlert("Berat maksimal 26 kg");
-              document.getElementById("berat_kg").focus();
               document.getElementById("berat_kg").style.borderColor = "var(--accent)";
-              return;
+              return validationFail("Berat maksimal 26 kg", "berat_kg");
             }
             document.getElementById("berat_kg").style.borderColor = "";
 
-            // ── VALIDASI LIMIT SPK ────────────────────────────────────────────────
+            // ── Validasi limit SPK ──
             const beratBersih = parseFloat(document.getElementById("berat_bersih").value) || 0;
-
             if (!spkBeratData) {
               const spk = (document.getElementById("spk")?.value || "").trim();
               if (spk) {
@@ -1386,36 +1398,29 @@
                   const res = await fetch(`/api/check_spk_berat/${encodeURIComponent(spk)}`);
                   spkBeratData = await res.json();
                   renderSpkStatus(spkBeratData, beratBersih);
-                } catch (e) { /* lanjut tanpa validasi limit */ }
+                } catch (e) { /* lanjut */ }
               }
             }
-
-            if (spkBeratData && spkBeratData.limit !== null && spkBeratData.limit !== undefined) {
+            if (spkBeratData?.limit != null) {
               const limit = parseFloat(spkBeratData.limit) || 0;
               const used = parseFloat(spkBeratData.used) || 0;
               const projected = used + beratBersih;
-
               if (projected > limit) {
                 const remaining = Math.max(limit - used, 0);
-                showAlert(
-                  `Melebihi batas order!\n\n` +
-                  `SPK ${spkBeratData.spk}\n` +
-                  `Limit: ${limit.toFixed(2)} kg\n` +
-                  `Sudah diinput: ${used.toFixed(2)} kg\n` +
-                  `Input sekarang: ${beratBersih.toFixed(2)} kg\n` +
-                  `Projected: ${projected.toFixed(2)} kg\n\n` +
-                  `Sisa yang boleh diinput: ${remaining.toFixed(2)} kg`
-                );
                 document.getElementById("berat_kg").style.borderColor = "var(--danger)";
                 document.getElementById("berat_bersih").style.borderColor = "var(--danger)";
-                return;
+                return validationFail(
+                  `Melebihi batas order!\n\nSPK ${spkBeratData.spk}\n` +
+                  `Limit: ${limit.toFixed(2)} kg\nSudah diinput: ${used.toFixed(2)} kg\n` +
+                  `Input sekarang: ${beratBersih.toFixed(2)} kg\nProjected: ${projected.toFixed(2)} kg\n\n` +
+                  `Sisa yang boleh diinput: ${remaining.toFixed(2)} kg`
+                );
               }
             }
 
             errorMsg.classList.remove("show");
-            btn.disabled = true;
-            spinner.style.display = "block";
 
+            // ── Submit ──
             const data = {
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
@@ -1465,6 +1470,8 @@
               console.error(err);
               showAlert(err.message || "Terjadi kesalahan, coba lagi");
             } finally {
+              // Selalu reset, apapun yang terjadi
+              isSubmitting = false;
               btn.disabled = false;
               spinner.style.display = "none";
             }
@@ -1498,6 +1505,7 @@
           document.addEventListener("keydown", function (e) {
             if (e.key !== "Enter") return;
             const active = document.activeElement;
+            if (active.id === "btn-submit") return
             const fields = [
               ...document.querySelectorAll(
                 "input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])"
@@ -1524,7 +1532,6 @@
                 return;
               }
             }
-          //  submitForm();
           });
 
           // ─── SESSION CHECK ───────────────────────────────────────────────────────

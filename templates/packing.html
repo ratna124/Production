@@ -832,7 +832,7 @@
     <!-- ── SIDEBAR ── -->
     <aside class="sidebar">
       {% if session.get('role') in 'administrator' %}
-      
+
       <div class="sidebar-section">Production Input</div>
       <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
         <span class="sidebar-dot"></span>Admin Input
@@ -843,7 +843,8 @@
       {% endif %}
       {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
       <div class="sidebar-section">Production Output</div>
-      <a data-port="5001" data-path="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+      <a data-port="5001" data-path="/hasil_produksi"
+        class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
         <span class="sidebar-dot"></span>Hasil Produksi
       </a>
       {% endif %}
@@ -1116,7 +1117,7 @@
             // Set href multi-port
             const host = window.location.hostname;
             document.querySelectorAll('a[data-port]').forEach(link => {
-                link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
+              link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
             });
           });
 
@@ -1346,78 +1347,72 @@
             });
           });
 
-          // Panggil saat halaman siap
           document.addEventListener("DOMContentLoaded", function () {
             loadOperators();
-            // ... kode DOMContentLoaded lainnya yang sudah ada
           });
 
+          let isSubmitting = false;
+
           async function submitForm() {
+            if (isSubmitting) return;
+            isSubmitting = true;
+
             const btn = document.getElementById("btn-submit");
             const spinner = document.getElementById("spinner");
             const errorMsg = document.getElementById("error-msg");
 
-            // VALIDASI WAJIB
+            btn.disabled = true;
+            spinner.style.display = "block";
+
+            function validationFail(msg, focusId = null, borderIds = []) {
+              isSubmitting = false;
+              btn.disabled = false;
+              spinner.style.display = "none";
+              borderIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.borderColor = "var(--accent)";
+              });
+              showAlert(msg);
+              if (focusId) document.getElementById(focusId)?.focus();
+            }
+
+            // ── Validasi required fields ──
             const requiredFields = [
-              { id: "operator_pa", name: "Operator Packing" },
               { id: "shift", name: "Shift" },
+              { id: "operator_pa", name: "Operator Packing" },
               { id: "checker", name: "Checker" },
               { id: "spk", name: "No. SPK" },
-              { id: "mesin", name: "Mesin" },
+              { id: "mesin", name: "Meja" },
               { id: "berat_bersih", name: "Berat Bersih (kg)" }
-
             ];
-
             for (let f of requiredFields) {
               const el = document.getElementById(f.id);
-              const val = (el.value || "").toString().trim();
-              if (!val) {
-                showAlert(`${f.name} wajib diisi`);
-                el.focus();
-                return;
+              if (!(el?.value || "").toString().trim()) {
+                return validationFail(`${f.name} wajib diisi`, f.id);
               }
             }
-            const beratVal = parseFloat(
-              document.getElementById("berat_bersih").value
-            );
 
-            // TIDAK BOLEH MINUS ATAU ANGKA YANG TIDAK SESUAI
+            const beratVal = parseFloat(document.getElementById("berat_bersih").value);
             if (isNaN(beratVal)) {
-              showAlert("Berat harus berupa angka");
-              document.getElementById("berat_bersih").focus();
-              document.getElementById("berat_bersih").style.borderColor = "var(--accent)";
-              return;
-
-            } else if (beratVal < 19) {
-              showAlert("Berat minimal 19 kg");
-              document.getElementById("berat_bersih").focus();
-              document.getElementById("berat_bersih").style.borderColor = "var(--accent)";
-              return;
-
-            } else if (beratVal > 40) {
-              showAlert("Berat maksimal 40 kg");
-              document.getElementById("berat_bersih").focus();
-              document.getElementById("berat_bersih").style.borderColor = "var(--accent)";
-              return;
+              return validationFail("Berat harus berupa angka", "berat_bersih", ["berat_bersih"]);
             }
-
-            document.getElementById("berat_bersih").style.borderColor = "";
+            if (beratVal < 19) {
+              return validationFail("Berat minimal 19 kg", "berat_bersih", ["berat_bersih"]);
+            }
+            if (beratVal > 40) {
+              return validationFail("Berat maksimal 40 kg", "berat_bersih", ["berat_bersih"]);
+            }
             document.getElementById("berat_bersih").style.borderColor = "";
 
             const mejaVal = parseFloat(document.getElementById("mesin").value);
             if (isNaN(mejaVal) || mejaVal <= 0) {
-              errorMsg.innerText = "Meja tidak boleh minus, nol, atau mesin yang tidak ada";
-              errorMsg.classList.add("show");
-              document.getElementById("mesin").focus();
-              document.getElementById("mesin").style.borderColor = "var(--accent)";
-              return;
+              return validationFail("Meja tidak valid", "mesin", ["mesin"]);
             }
             document.getElementById("mesin").style.borderColor = "";
 
             errorMsg.classList.remove("show");
-            btn.disabled = true;
-            spinner.style.display = "block";
 
+            // ── Simpan ──
             const data = {
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
@@ -1439,38 +1434,23 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data)
               });
-
               const result = await res.json();
-
               if (!result.success) throw new Error(result.message);
 
               document.getElementById("result-panel").classList.add("show");
               document.getElementById("result-order-id").innerText = result.order_id;
-
               document.getElementById("label-img").src = result.label_url;
               document.getElementById("btn-print").href = result.print_url;
-
-              // PRINT TANPA PINDAH HALAMAN
-              let frame = document.getElementById("print-frame");
-              if (!frame) {
-                frame = document.createElement("iframe");
-                frame.id = "print-frame";
-                frame.style.display = "none";
-                document.body.appendChild(frame);
-              }
-              frame.src = `/label/print/${result.order_id}`;
+              document.getElementById("print-frame").src = `/label/print/${result.order_id}`;
 
               loadRecent();
-
-              //auto reset
-              setTimeout(() => {
-                resetForm();
-              }, 2000);
+              setTimeout(() => { resetForm(); }, 2000);
 
             } catch (err) {
               console.error(err);
               showAlert(err.message || "Terjadi kesalahan, coba lagi");
             } finally {
+              isSubmitting = false;
               btn.disabled = false;
               spinner.style.display = "none";
             }
@@ -1625,8 +1605,6 @@
                 return;
               }
             }
-
-          //  submitForm();
           });
         </script>
         <script>

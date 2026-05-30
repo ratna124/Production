@@ -452,47 +452,47 @@
       margin-left: 2px;
     }
 
-input,
-select,
-textarea {
-  width: 100%;
-  height: var(--input-h);
-  background: var(--gray2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--white);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  padding: 0 12px;
-  outline: none;
-  transition: all .15s ease;
-  appearance: none;
-  -webkit-appearance: none;
-}
+    input,
+    select,
+    textarea {
+      width: 100%;
+      height: var(--input-h);
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      padding: 0 12px;
+      outline: none;
+      transition: all .15s ease;
+      appearance: none;
+      -webkit-appearance: none;
+    }
 
-/* FIELD AKTIF */
-input:focus,
-select:focus,
-textarea:focus {
-  border: 1px solid #e8420a !important;
-  background: #9c310d;
-  color: #fff;
-  outline: none !important;
-  box-shadow: 0 0 0 2px rgba(232, 66, 10, .22);
-}
+    /* FIELD AKTIF */
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border: 1px solid #e8420a !important;
+      background: #9c310d;
+      color: #fff;
+      outline: none !important;
+      box-shadow: 0 0 0 2px rgba(232, 66, 10, .22);
+    }
 
-/* PLACEHOLDER PAS AKTIF */
-input:focus::placeholder,
-textarea:focus::placeholder {
-  color: rgba(255,255,255,.6);
-}
+    /* PLACEHOLDER PAS AKTIF */
+    input:focus::placeholder,
+    textarea:focus::placeholder {
+      color: rgba(255, 255, 255, .6);
+    }
 
-/* READONLY JANGAN ORANGE */
-input[readonly]:focus {
-  border-color: var(--border) !important;
-  background: var(--gray2);
-  box-shadow: none;
-}
+    /* READONLY JANGAN ORANGE */
+    input[readonly]:focus {
+      border-color: var(--border) !important;
+      background: var(--gray2);
+      box-shadow: none;
+    }
 
     textarea {
       height: 72px;
@@ -842,7 +842,8 @@ input[readonly]:focus {
       {% endif %}
       {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
       <div class="sidebar-section">Production Output</div>
-      <a data-port="5001" data-path="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+      <a data-port="5001" data-path="/hasil_produksi"
+        class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
         <span class="sidebar-dot"></span>Hasil Produksi
       </a>
       {% endif %}
@@ -1118,7 +1119,7 @@ input[readonly]:focus {
             // Set href multi-port
             const host = window.location.hostname;
             document.querySelectorAll('a[data-port]').forEach(link => {
-                link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
+              link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
             });
           });
 
@@ -1169,9 +1170,9 @@ input[readonly]:focus {
           function updateTime() {
             let now = new Date();
             let hour = now.getHours();
-        //    // SHIFT
-       //     let shift = (hour >= 7 && hour < 19) ? "P" : "M";
-        //    document.getElementById("shift").value = shift;
+            //    // SHIFT
+            //     let shift = (hour >= 7 && hour < 19) ? "P" : "M";
+            //    document.getElementById("shift").value = shift;
             // TANGGAL PRODUKSI
             let prodDate = new Date(now);
             // 🔥 kalau jam 00:00 - 06:59 → mundur 1 hari
@@ -1341,12 +1342,32 @@ input[readonly]:focus {
             loadOperators();
           });
 
+          let isSubmitting = false;
+
           async function submitForm() {
+            if (isSubmitting) return;
+            isSubmitting = true;
+
             const btn = document.getElementById("btn-submit");
             const spinner = document.getElementById("spinner");
             const errorMsg = document.getElementById("error-msg");
 
-            // VALIDASI WAJIB
+            btn.disabled = true;
+            spinner.style.display = "block";
+
+            function validationFail(msg, focusId = null, borderIds = []) {
+              isSubmitting = false;
+              btn.disabled = false;
+              spinner.style.display = "none";
+              borderIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.borderColor = "var(--accent)";
+              });
+              showAlert(msg);
+              if (focusId) document.getElementById(focusId)?.focus();
+            }
+
+            // ── Validasi required fields ──
             const requiredFields = [
               { id: "shift", name: "Shift" },
               { id: "operator_cu", name: "Operator Potong" },
@@ -1354,68 +1375,43 @@ input[readonly]:focus {
               { id: "spk", name: "No. SPK" },
               { id: "mesin", name: "Mesin" },
               { id: "berat_kg", name: "Berat (kg)" },
-              { id: "keranjang", name: "Berat Keranjang (kg)" },
-              
+              { id: "keranjang", name: "Berat Keranjang (kg)" }
             ];
-
             for (let f of requiredFields) {
               const el = document.getElementById(f.id);
-              const val = (el.value || "").toString().trim();
-              if (!val) {
-                showAlert(`${f.name} wajib diisi`);
-                el.focus();
-                return;
+              if (!(el?.value || "").toString().trim()) {
+                return validationFail(`${f.name} wajib diisi`, f.id);
               }
             }
 
-            // TIDAK BOLEH MINUS ATAU ANGKA YANG TIDAK SESUAI
             const beratVal = parseFloat(document.getElementById("berat_kg").value);
             if (isNaN(beratVal) || beratVal <= 0) {
-              errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
-              errorMsg.classList.add("show");
-              document.getElementById("berat_kg").focus();
-              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
-              return;
-            } else if (beratVal > 40) {
-              showAlert("Berat maksimal 40 kg");
-              document.getElementById("berat_kg").focus();
-              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
-              return;
+              return validationFail("Berat tidak boleh minus, nol, atau bukan angka", "berat_kg", ["berat_kg"]);
+            }
+            if (beratVal > 40) {
+              return validationFail("Berat maksimal 40 kg", "berat_kg", ["berat_kg"]);
             }
             document.getElementById("berat_kg").style.borderColor = "";
 
             const mesinVal = parseFloat(document.getElementById("mesin").value);
             if (isNaN(mesinVal) || mesinVal <= 0) {
-              errorMsg.innerText = "Mesin tidak boleh minus, nol, atau mesin yang tidak ada";
-              errorMsg.classList.add("show");
-              document.getElementById("mesin").focus();
-              document.getElementById("mesin").style.borderColor = "var(--accent)";
-              return;
+              return validationFail("Mesin tidak valid", "mesin", ["mesin"]);
             }
             document.getElementById("mesin").style.borderColor = "";
 
             const keranjangVal = parseFloat(document.getElementById("keranjang").value);
             if (isNaN(keranjangVal) || keranjangVal <= 0) {
-              errorMsg.innerText = "Berat keranjang tidak boleh minus, nol, atau bukan angka";
-              errorMsg.classList.add("show");
-              document.getElementById("keranjang").focus();
-              document.getElementById("keranjang").style.borderColor = "var(--accent)";
-              return;
+              return validationFail("Berat keranjang tidak boleh minus atau nol", "keranjang", ["keranjang"]);
             }
             document.getElementById("keranjang").style.borderColor = "";
 
-            if (parseFloat(document.getElementById("berat_kg").value) <
-              parseFloat(document.getElementById("keranjang").value)) {
-
-              errorMsg.innerText = "Berat keranjang tidak boleh lebih kecil dari keranjang";
-              errorMsg.classList.add("show");
-              return;
+            if (beratVal < keranjangVal) {
+              return validationFail("Berat total tidak boleh lebih kecil dari berat keranjang", "berat_kg", ["berat_kg"]);
             }
 
             errorMsg.classList.remove("show");
-            btn.disabled = true;
-            spinner.style.display = "block";
 
+            // ── Simpan ──
             const data = {
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
@@ -1438,40 +1434,23 @@ input[readonly]:focus {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data)
               });
-
               const result = await res.json();
+              if (!result.success) throw new Error(result.message || "Gagal menyimpan data");
 
-              if (!result.success) {
-                throw new Error(result.message || "Gagal menyimpan data");
-              }
-
-              // TAMPILKAN RESULT
               document.getElementById("result-panel").classList.add("show");
               document.getElementById("result-order-id").innerText = result.order_id;
               document.getElementById("label-img").src = result.label_url;
               document.getElementById("btn-print").href = `/label/print/${result.order_id}`;
-
-              // PRINT TANPA PINDAH HALAMAN
-              let frame = document.getElementById("print-frame");
-              if (!frame) {
-                frame = document.createElement("iframe");
-                frame.id = "print-frame";
-                frame.style.display = "none";
-                document.body.appendChild(frame);
-              }
-              frame.src = `/label/print/${result.order_id}`;
+              document.getElementById("print-frame").src = `/label/print/${result.order_id}`;
 
               loadRecent();
-
-              //auto reset
-              setTimeout(() => {
-                resetForm();
-              }, 2000);
+              setTimeout(() => { resetForm(); }, 2000);
 
             } catch (err) {
               console.error(err);
               showAlert(err.message || "Terjadi kesalahan, coba lagi");
             } finally {
+              isSubmitting = false;
               btn.disabled = false;
               spinner.style.display = "none";
             }
@@ -1638,8 +1617,6 @@ input[readonly]:focus {
                 return;
               }
             }
-
-          //  submitForm();
           });
         </script>
         <script>
