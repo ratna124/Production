@@ -797,6 +797,10 @@
         {% endif %}
 
         {% if session.get('role') in ('administrator', 'adminwip') %}
+        <div class="sidebar-section">Summary SPK</div>
+        <a href="/summary_spk" class="sidebar-item {% if active_page == 'summary_spk' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Summary SPK
+        </a>
         <div class="sidebar-section">Scan</div>
         <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
           <span class="sidebar-dot"></span>Scan Pemakaian
@@ -1000,9 +1004,9 @@
 
     // Mirror PREFIX_CONFIG dari backend (untuk deteksi lokal)
     const PREFIX_LABEL = {
-      "HD": "HD", "AHP": "HD — Prong", "AHD": "HD — Daun", "AHS": "HD — Sapuan",
+      "HD": "HD", "AHP": "HD — Prong", "AHD": "HD — Daun", "AHS": "HD — Sapuan", "AHT": "HD — PENARIK HASIL HD",
       "MI": "Mixing", "AMS": "Aval Mixing",
-      "CU": "Potong", "ACP": "Aval Potong — Plong", "ACM": "Aval Potong — Mesin",
+      "CU": "Potong", "ACP": "Aval Potong — Plong", "ACM": "Aval Potong — Mesin", "CS": "Sisa_Potong",
       "ACS": "Aval Potong — Silet", "ACH": "Aval Potong — Mutasi", "ACR": "Aval Potong — Reject",
       "PA": "Packing", "PS": "Sisa Pack",
       "APP": "Aval Packing — Plastik", "APR": "Aval Packing — Rafia",

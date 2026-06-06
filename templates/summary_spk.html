@@ -38,12 +38,6 @@
       top: 56px;
     }
 
-    .clock {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--gray4);
-    }
-
     /* TITLE */
     .sidebar-section {
       font-family: monospace;
@@ -57,12 +51,16 @@
     /* ITEM */
     .sidebar-item {
       display: flex;
+      /* 🔥 biar rapi horizontal icon + text */
       align-items: center;
       gap: 10px;
       padding: 10px 20px;
       cursor: pointer;
+
       text-decoration: none;
+      /* 🔥 HILANGIN GARIS BAWAH */
       color: #aaa;
+
       border-left: 3px solid transparent;
       transition: all 0.2s ease;
     }
@@ -297,6 +295,12 @@
       transition: background .12s, border-color .12s;
       font-size: 13px;
       color: var(--gray5);
+    }
+
+    .clock {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--gray4);
     }
 
     .sidebar-item:hover {
@@ -684,8 +688,11 @@
     /* ── RECENT TABLE ─────────────────────────────────────── */
     .table-wrap {
       max-height: 320px;
+      /* tinggi scroll */
       overflow-y: auto;
+      /* scroll vertikal */
       overflow-x: auto;
+      /* scroll horizontal tetap ada */
     }
 
     table {
@@ -822,6 +829,7 @@
 
     <!-- ── SIDEBAR ── -->
     <aside class="sidebar">
+      <!-- Menu navigasi — bisa scroll -->
       <div style="flex:1; overflow-y:auto; min-height:0;">
         {% if session.get('role') in 'administrator' %}
         <div class="sidebar-section">Production Input</div>
@@ -834,13 +842,15 @@
         {% endif %}
         {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
         <div class="sidebar-section">Production Stock</div>
-        <a data-port="5001" data-path="/stok_produksi" class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
+        <a data-port="5001" data-path="/stok_produksi"
+          class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
           <span class="sidebar-dot"></span>Stok Produksi
         </a>
         <div class="sidebar-section">Production Output</div>
-      <a data-port="5001" data-path="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Hasil Produksi
-      </a>
+        <a data-port="5001" data-path="/hasil_produksi"
+          class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Hasil Produksi
+        </a>
         {% endif %}
 
         {% if session.get('role') in ('administrator', 'adminwip') %}
@@ -867,9 +877,10 @@
         <a href="/barcode_potong" class="sidebar-item {% if active_page == 'barcode_potong' %}active{% endif %}">
           <span class="sidebar-dot"></span>Potong WIP
         </a>
-        <a href="/barcode_sisa_potong" class="sidebar-item {% if active_page == 'barcode_sisa_potong' %}active{% endif %}">
-        <span class="sidebar-dot"></span>Sisa Roll (Potong) WIP
-      </a>
+        <a href="/barcode_sisa_potong"
+          class="sidebar-item {% if active_page == 'barcode_sisa_potong' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Sisa Roll (Potong) WIP
+        </a>
         <a href="/barcode_packing" class="sidebar-item {% if active_page == 'barcode_packing' %}active{% endif %}">
           <span class="sidebar-dot"></span>Packing WIP
         </a>
@@ -900,20 +911,16 @@
         <a href="/mutasi_mixing" class="sidebar-item {% if active_page == 'mutasi_mixing' %}active{% endif %}">
           <span class="sidebar-dot"></span>Mutasi Mixing
         </a>
-        <a href="/mutasi_hd"
-          class="sidebar-item {% if active_page == 'mutasi_hd' %}active{% endif %}">
+        <a href="/mutasi_hd" class="sidebar-item {% if active_page == 'mutasi_hd' %}active{% endif %}">
           <span class="sidebar-dot"></span>Mutasi HD WIP
         </a>
-        <a href="/mutasi_potong"
-          class="sidebar-item {% if active_page == 'mutasi_potong' %}active{% endif %}">
+        <a href="/mutasi_potong" class="sidebar-item {% if active_page == 'mutasi_potong' %}active{% endif %}">
           <span class="sidebar-dot"></span>Mutasi Potong WIP
         </a>
-        <a href="/mutasi_packing"
-          class="sidebar-item {% if active_page == 'mutasi_packing' %}active{% endif %}">
+        <a href="/mutasi_packing" class="sidebar-item {% if active_page == 'mutasi_packing' %}active{% endif %}">
           <span class="sidebar-dot"></span>Mutasi Packing WIP
         </a>
-        <a href="/mutasi_sisapack"
-          class="sidebar-item {% if active_page == 'mutasi_sisapack' %}active{% endif %}">
+        <a href="/mutasi_sisapack" class="sidebar-item {% if active_page == 'mutasi_sisapack' %}active{% endif %}">
           <span class="sidebar-dot"></span>Mutasi Sisa Packing WIP
         </a>
       </div>
@@ -923,7 +930,7 @@
     <!-- ── MAIN ── -->
     <main class="main">
       <div class="page-header">
-        <h1 class="page-title">Aval Packing WIP</h1>
+        <h1 class="page-title">SISA ROLL WIP</h1>
         <span class="page-sub" id="current-date"></span>
       </div>
 
@@ -962,28 +969,16 @@
         <div class="card-body">
           <div class="form-grid cols-4">
             <div class="field">
-              <label class="field-label" for="tanggal">Tanggal &amp; Waktu<span class="req">*</span></label>
+              <label class="field-label" for="tanggal">Tanggal &amp; Order<span class="req">*</span></label>
               <input type="datetime-local" id="tanggal" required>
             </div>
             <div class="field">
-              <label class="field-label">Shift</label>
-              <select id="shift" required>
-                <option value="" disabled selected>-- Pilih Shift --</option>
-                <option value="P">P</option>
-                <option value="M">M</option>
-              </select>
-            </div>
-            <div class="field">
-              <label class="field-label">Operator Packing <span class="req">*</span></label>
-              <input type="text" id="operator_pa" placeholder="Masukkan Nama Operator" required>
-            </div>
-            <div class="field">
-              <label class="field-label">Checker<span class="req"></span></label>
+              <label class="field-label">Admin WIP<span class="req"></span></label>
               <input type="text" id="checker" value="{{ current_user }}" readonly>
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
-              <input type="text" id="divisi" value="Aval_Packing" readonly>
+              <input type="text" id="divisi" value="Summary_spk" readonly>
             </div>
           </div>
         </div>
@@ -997,80 +992,85 @@
         </div>
         <div class="card-body">
           <div class="form-grid cols-2">
-            <!-- SPK -->
             <div class="field">
               <label class="field-label">No. SPK <span class="req">*</span></label>
-              <input type="text" id="spk" placeholder="Masukkan No SPK">
+              <input type="text" id="spk" placeholder="Masukkan No SPK" required>
             </div>
-            <!-- CUSTOMER -->
             <div class="field">
-              <label class="field-label">Customer</label>
-              <input type="text" id="customer" readonly>
+              <label class="field-label">No. SO <span class="req">*</span></label>
+              <input type="text" id="so" placeholder="Masukkan No SO" required>
             </div>
-            <!-- PRODUCT -->
             <div class="field">
-              <label class="field-label">Produk</label>
-              <input type="text" id="product" readonly>
+              <label class="field-label">Customer<span class="req">*</span></label>
+              <input type="text" id="customer" placeholder="Masukkan Customer" required>
             </div>
-            <!-- UK -->
             <div class="field">
-              <label class="field-label">UKURAN</label>
-              <input type="text" id="uk" readonly>
+              <label class="field-label">Produk<span class="req">*</span></label>
+              <input type="text" id="product" placeholder="Masukkan Produk" required>
             </div>
-            <!-- Mesin -->
             <div class="field">
-              <label class="field-label">Meja<span class="req">*</span></label>
-              <select id="mesin" required oninput="validateMeja(this)">
-                <option value="">-- Pilih Nomor Meja --</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-                <option value="11">11</option>
-                <option value="17">17</option>
-                <option value="18">18</option>
+              <label class="field-label">Warna<span class="req">*</span></label>
+              <input type="text" id="warna" placeholder="Masukkan Warna" required>
+            </div>
+            <div class="field">
+              <label class="field-label">Jenis Aval<span class="req">*</span></label>
+              <input type="text" id="aval" placeholder="Masukkan Jenis Aval" required>
+            </div>
+            <div class="field">
+              <label class="field-label">Ukuran<span class="req">*</span></label>
+              <input type="text" id="uk" placeholder="Masukkan Ukuran" required>
+            </div>
+            <div class="field">
+              <label class="field-label">LBR<span class="req">*</span></label>
+              <input type="text" id="lembar" placeholder="Masukkan LBR" required>
+            </div>
+            <div class="field">
+              <label class="field-label">PACK<span class="req">*</span></label>
+              <input type="text" id="pack" placeholder="Masukkan Pack" required>
+            </div>
+            <div class="field">
+              <label class="field-label">KG<span class="req">*</span></label>
+              <input type="text" id="kg" placeholder="Masukkan Kg" required>
+            </div>
+            <div class="field">
+              <label class="field-label">BRT / LBR<span class="req">*</span></label>
+              <input type="text" id="berat_lembar" placeholder="Masukkan BRT / LBR" required>
+            </div>
+            <div class="field">
+              <label class="field-label">BRT / PACK<span class="req">*</span></label>
+              <input type="text" id="berat_pack" placeholder="Masukkan BRT / PACK" required>
+            </div>
+            <div class="field">
+              <label class="field-label">Tebal<span class="req">*</span></label>
+              <input type="text" id="tebal" placeholder="Masukkan Tebal" required>
+            </div>
+            <div class="field">
+              <label class="field-label">Order (Ball)<span class="req">*</span></label>
+              <input type="text" id="order_ball" placeholder="Masukkan Order (Ball)" required>
+            </div>
+            <div class="field">
+              <label class="field-label">Order (Qty)</label>
+              <input type="text" id="qty" readonly>
+            </div>
+            <div class="field">
+              <label class="field-label">Satuan<span class="req">*</span></label>
+              <select id="satuan" required>
+                <option value="">-- Pilih Satuan --</option>
+                <option value="Kg">Kg</option>
+                <option value="Pack">Pack</option>
               </select>
             </div>
-            <!-- Jenis Aval -->
             <div class="field">
-              <label class="field-label">Jenis Aval<span class="req">*</span>
-                <span id="jenis-kode-badge" style="
-                font-family: var(--font-mono);
-                font-size: 11px;
-                background: rgba(232,66,10,0.15);
-                color: var(--accent);
-                border: 1px solid rgba(232,66,10,0.4);
-                border-radius: 4px;
-                padding: 1px 8px;
-                margin-left: 8px;
-                display: none;"></span>
-              </label>
-              <select id="jenis_pa" required onchange="updateJenisBadge(this.value)">
-                <option value="">-- Pilih Jenis Aval --</option>
-                <option value="Plastik">(P)lastik</option>
-                <option value="Rafia">(R)afia</option>
-                <option value="Blongsong">(B)longsong</option>
-                <option value="Mutasi">(CUT) MUTASI</option>
-              </select>
+              <label class="field-label">Blongsong</label>
+              <input type="text" id="blongsong" placeholder="Masukkan Blongsong">
             </div>
             <div class="field">
-              <label class="field-label">Afal Qty (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_bersih" placeholder="Masukkan Aval Qty" required
-                oninput="validateBerat(this)">
+              <label class="field-label">Etiket</label>
+              <input type="text" id="etiket" placeholder="Masukkan Etiket">
             </div>
             <div class="field">
-              <label class="field-label">Kategori Aval</label>
-              <input type="text" id="kategori_pa" value="" readonly>
-            </div>
-            <div class="field">
-              <label class="field-label">Tali Aval</label>
-              <input type="text" id="tali" value="" readonly required>
+              <label class="field-label">Order Mixing<span class="req">*</span></label>
+              <input type="text" id="mixing" placeholder="Masukkan Order Mixing" required>
             </div>
           </div>
         </div>
@@ -1095,8 +1095,10 @@
 
             <!-- SEARCH 2 KOLOM -->
             <div style="display:flex; gap:10px; padding:10px; background:#111; border-bottom:1px solid #222;">
+              <!-- TANGGAL -->
               <input id="search-date" type="date"
                 style="flex:1; padding:8px; font-size:12px; background:#1a1a1a; color:#fff; border:1px solid #333; border-radius:6px;">
+              <!-- SPK -->
               <input id="search-spk" type="text" placeholder="Cari SPK..."
                 style="flex:1; padding:8px; font-size:12px; background:#1a1a1a; color:#fff; border:1px solid #333; border-radius:6px;">
             </div>
@@ -1106,21 +1108,27 @@
               <table id="recent-table">
                 <thead>
                   <tr>
-                    <th>Tanggal</th>
                     <th>No SPK</th>
+                    <th>No SO</th>
+                    <th>Tanggal</th>
                     <th>Customer</th>
                     <th>Produk</th>
-                    <th>Ukuran</th>
-                    <th>Mesin</th>
-                    <th>Kategori Aval</th>
+                    <th>Warna</th>
                     <th>Jenis Aval</th>
-                    <th>Aval Qty (kg)</th>
-                    <th>Divisi</th>
-                    <th>Shift</th>
-                    <th>Operator</th>
-                    <th>Checker</th>
-                    <th>Timestamps</th>
-                    <th>Code</th>
+                    <th>Ukuran</th>
+                    <th>LBR</th>
+                    <th>Pack</th>
+                    <th>Kg</th>
+                    <th>BRT / LBR</th>
+                    <th>BRT / PACK</th>
+                    <th>Tebal</th>
+                    <th>Order</th>
+                    <th>Order (Qty)</th>
+                    <th>Admin</th>
+                    <th>Satuan</th>
+                    <th>Blongsong</th>
+                    <th>Etiket</th>
+                    <th>Mixing</th>
                   </tr>
                 </thead>
                 <tbody id="recent-body">
@@ -1134,13 +1142,12 @@
             </div>
           </div>
         </div>
-
         <script>
           let allData = [];
           let searchTimeout;
 
           // INIT
-          document.addEventListener("DOMContentLoaded", function () {
+          document.addEventListener("DOMContentLoaded", () => {
             updateClock();
             setInterval(updateClock, 1000);
 
@@ -1154,10 +1161,9 @@
             // Set href multi-port
             const host = window.location.hostname;
             document.querySelectorAll('a[data-port]').forEach(link => {
-                link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
+              link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
             });
           });
-
           function updateClock() {
             const now = new Date();
             const pad = n => String(n).padStart(2, "0");
@@ -1175,6 +1181,7 @@
           document.getElementById("search-date").addEventListener("input", autoFilter);
           document.getElementById("search-spk").addEventListener("input", autoFilter);
 
+          // SPK AUTOFILL
           const spkInput = document.getElementById("spk");
           spkInput.addEventListener("input", debounce(handleSpkInput, 300));
 
@@ -1186,6 +1193,7 @@
             };
           }
 
+          // SPK AUTOFILL
           async function handleSpkInput(e) {
             const spk = e.target.value.trim();
 
@@ -1202,16 +1210,15 @@
                 clearAutoFill();
                 return;
               }
-
               document.getElementById("customer").value = data.customer || "";
               document.getElementById("product").value = data.product || "";
               document.getElementById("uk").value = data.uk || "";
-
             } catch (err) {
               console.log("SPK error:", err);
             }
           }
 
+          // CLEAR FIELD
           function clearAutoFill() {
             document.getElementById("customer").value = "";
             document.getElementById("product").value = "";
@@ -1220,19 +1227,19 @@
 
           async function loadRecent() {
             try {
-              const res = await fetch('/api/recent/aval_packing');
+              const res = await fetch('/api/recent/summary_spk');
               const rows = await res.json();
 
               console.log(rows);
 
               allData = rows || [];
               renderTable(allData);
-
             } catch (e) {
               console.error("Load error:", e);
             }
           }
 
+          // RENDER TABLE
           function renderTable(data) {
             console.log(data);
             const tbody = document.getElementById("recent-body");
@@ -1248,22 +1255,28 @@
             }
 
             tbody.innerHTML = data.map(r => `
-        <tr>
-            <td>${(r.tanggal || "").replace("T", " ")}</td>
+        <tr>       
             <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
+            <td>${r.so || ""}</td>
+            <td>${(r.tanggal || "").replace("T", " ")}</td>
             <td>${r.customer || ""}</td>
-            <td>${r.produk || ""}</td>
+            <td>${r.product || ""}</td>
+            <td>${r.warna || ""}</td>
+            <td>${r.aval || ""}</td>
             <td>${r.uk || ""}</td>
-            <td>${r.mesin || ""}</td>
-            <td>${r.kategori_pa || ""}</td>
-            <td>${r.jenis_pa || ""}</td>
-            <td>${r.berat_bersih || ""}</td>
-            <td>${r.divisi || ""}</td>
-            <td>${r.shift || ""}</td>
-            <td>${r.operator_pa || ""}</td>
+            <td>${r.lembar || ""}</td>
+            <td>${r.pack || ""}</td>
+            <td>${r.kg || ""}</td>
+            <td>${r.berat_lembar || ""}</td>
+            <td>${r.berat_pack || ""}</td>
+            <td>${r.tebal || ""}</td>
+            <td>${r.order_ball || ""}</td>
+            <td>${r.qty || ""}</td>
             <td>${r.checker || ""}</td>
-            <td>${r.created_at || ""}</td>
-            <td>${r.code || ""}</td>
+            <td>${r.satuan || ""}</td>
+            <td>${r.blongsong || ""}</td>
+            <td>${r.etiket || ""}</td>
+            <td>${r.mixing || ""}</td>
         </tr>
     `).join('');
           }
@@ -1272,9 +1285,9 @@
           function filterTable() {
             const date = document.getElementById("search-date").value;
             const spk = document.getElementById("search-spk").value.toLowerCase();
-
             let filtered = allData;
 
+            // SPK FILTER
             if (spk) {
               filtered = filtered.filter(r => {
                 let val = (r.spk || r.SPK || r.no_spk || "").toString().toLowerCase();
@@ -1282,17 +1295,20 @@
               });
             }
 
+            // DATE FILTER (DD-MM-YYYY)
             if (date) {
               const [y, m, d] = date.split("-");
-              const target = `${d}-${m}-${y}`;
+              const target = `${d}-${m}-${y}`;  // ← ubah ke DD-MM-YYYY
 
               filtered = filtered.filter(r =>
                 (r.tanggal || "").trim().startsWith(target)
               );
             }
+
             renderTable(filtered);
           }
 
+          // AUTO FILTER
           function autoFilter() {
             clearTimeout(searchTimeout);
 
@@ -1301,66 +1317,40 @@
             }, 150);
           }
 
+          // DIVISI
           function filterDivision(div, el) {
-            document.querySelectorAll('.sidebar-item')
-              .forEach(i => i.classList.remove('active'));
-
+            document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
             el.classList.add('active');
             document.getElementById('divisi').value = div;
           }
         </script>
         <script>
-          const JENIS_KODE = {
-            "Plastik": "APP",
-            "Rafia": "APR",
-            "Blongsong": "APB",
-            "Mutasi": "APC",
-          };
-
-          function updateJenisBadge(val) {
-            const badge = document.getElementById("jenis-kode-badge");
-            if (JENIS_KODE[val]) {
-              badge.textContent = JENIS_KODE[val];
-              badge.style.display = "inline";
-            } else {
-              badge.style.display = "none";
-            }
-          }
-
           let timeout = null;
 
           document.getElementById("spk").addEventListener("input", function () {
             clearTimeout(timeout);
             const spk = this.value.trim();
+
             timeout = setTimeout(async () => {
               if (!spk) return;
+
               try {
                 const res = await fetch(`/get-spk/${spk}`);
                 const data = await res.json();
+
                 if (data && Object.keys(data).length > 0) {
                   document.getElementById("customer").value = data.customer || "";
                   document.getElementById("product").value = data.product || "";
                   document.getElementById("uk").value = data.uk || "";
-                  document.getElementById("kategori_pa").value = data.jenis_aval || "";
-
-                  if (data.jenis_aval) {
-                    const resTali = await fetch(`/api/tali/${encodeURIComponent(data.jenis_aval)}`);
-                    const dataTali = await resTali.json();
-                    document.getElementById("tali").value = dataTali.warna || "";
-                  } else {
-                    document.getElementById("tali").value = "";
-                  }
                 } else {
                   document.getElementById("customer").value = "";
                   document.getElementById("product").value = "";
                   document.getElementById("uk").value = "";
-                  document.getElementById("kategori_pa").value = "";
-                  document.getElementById("tali").value = "";
                 }
               } catch (err) {
                 console.error("Error SPK:", err);
               }
-            }, 70);
+            }, 70); // delay biar tidak spam request
           });
         </script>
         <script>
@@ -1368,154 +1358,119 @@
             const btn = document.getElementById("btn-submit");
             const spinner = document.getElementById("spinner");
             const errorMsg = document.getElementById("error-msg");
-
             const requiredFields = [
-              { id: "operator_pa", name: "Operator Packing" },
-              { id: "checker", name: "Checker" },
-              { id: "shift", name: "Shift" },
+              { id: "tanggal", name: "Tanggal" },
               { id: "spk", name: "No. SPK" },
-              { id: "jenis_pa", name: "Jenis Aval" },
-              { id: "kategori_pa", name: "Kategori Aval" },
-              { id: "berat_bersih", name: "Aval Qty (kg)" },
-              { id: "mesin", name: "Mesin" }
+              { id: "so", name: "No. SO" },
+              { id: "customer", name: "Customer" },
+              { id: "product", name: "Produk" },
+              { id: "warna", name: "Warna" },
+              { id: "aval", name: "Jenis Aval" },
+              { id: "uk", name: "Ukuran" },
+              { id: "lembar", name: "LBR" },
+              { id: "pack", name: "PACK" },
+              { id: "kg", name: "KG" },
+              { id: "berat_lembar", name: "BRT / LBR" },
+              { id: "berat_pack", name: "BRT / PACK" },
+              { id: "tebal", name: "Tebal" },
+              { id: "order_ball", name: "Order Ball" },
+              { id: "qty", name: "Order Qty" },
+              { id: "satuan", name: "Satuan" },
+              { id: "mixing", name: "Order Mixing" }
             ];
 
-            for (let f of requiredFields) {
+            for (const f of requiredFields) {
               const el = document.getElementById(f.id);
-              const val = (el.value || "").toString().trim();
-              if (!val) {
+
+              if (!el || !el.value.trim()) {
                 showAlert(`${f.name} wajib diisi`);
-                el.focus();
+                el?.focus();
                 return;
               }
             }
-
-            const beratVal = parseFloat(document.getElementById("berat_bersih").value);
-            if (isNaN(beratVal) || beratVal <= 0) {
-              errorMsg.innerText = "Berat tidak boleh minus, nol, atau bukan angka";
-              errorMsg.classList.add("show");
-              document.getElementById("berat_bersih").focus();
-              document.getElementById("berat_bersih").style.borderColor = "var(--accent)";
-              return;
-            }
-            document.getElementById("berat_bersih").style.borderColor = "";
-
-            const mejaVal = parseFloat(document.getElementById("mesin").value);
-            if (isNaN(mejaVal) || mejaVal <= 0) {
-              errorMsg.innerText = "Meja tidak boleh minus, nol, atau mesin yang tidak ada";
-              errorMsg.classList.add("show");
-              document.getElementById("mesin").focus();
-              document.getElementById("mesin").style.borderColor = "var(--accent)";
-              return;
-            }
-            document.getElementById("mesin").style.borderColor = "";
-
-            errorMsg.classList.remove("show");
             btn.disabled = true;
             spinner.style.display = "block";
 
             const data = {
-              input_page: "barcode",
               tanggal: document.getElementById("tanggal").value,
-              shift: document.getElementById("shift").value,
-              operator_pa: document.getElementById("operator_pa").value,
               checker: document.getElementById("checker").value,
               divisi: document.getElementById("divisi").value,
               spk: document.getElementById("spk").value,
+              so: document.getElementById("so").value,
               customer: document.getElementById("customer").value,
-              produk: document.getElementById("product").value,
+              product: document.getElementById("product").value,
+              warna: document.getElementById("warna").value,
+              aval: document.getElementById("aval").value,
               uk: document.getElementById("uk").value,
-              mesin: document.getElementById("mesin").value,
-              jenis_pa: document.getElementById("jenis_pa").value,
-              kategori_pa: document.getElementById("kategori_pa").value,
-              berat_bersih: document.getElementById("berat_bersih").value,
+              lembar: document.getElementById("lembar").value,
+              pack: document.getElementById("pack").value,
+              kg: document.getElementById("kg").value,
+              berat_lembar: document.getElementById("berat_lembar").value,
+              berat_pack: document.getElementById("berat_pack").value,
+              tebal: document.getElementById("tebal").value,
+              order_ball: document.getElementById("order_ball").value,
+              qty: document.getElementById("qty").value,
+              satuan: document.getElementById("satuan").value,
+              blongsong: document.getElementById("blongsong").value,
+              etiket: document.getElementById("etiket").value,
+              mixing: document.getElementById("mixing").value
             };
 
             try {
-              const res = await fetch("/api/submit", {
+              const res = await fetch("/api/submit_summary_spk", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                  "Content-Type": "application/json"
+                },
                 body: JSON.stringify(data)
               });
 
               const result = await res.json();
+              console.log(result);
 
-              if (!result.success) throw new Error(result.message);
-
-              document.getElementById("result-panel").classList.add("show");
-              document.getElementById("result-order-id").innerText = result.order_id;
-
-              document.getElementById("label-img").src = result.label_url;
-              document.getElementById("btn-print").href = result.print_url;
-
-              let frame = document.getElementById("print-frame");
-              if (!frame) {
-                frame = document.createElement("iframe");
-                frame.id = "print-frame";
-                frame.style.display = "none";
-                document.body.appendChild(frame);
+              if (!result.success) {
+                throw new Error(result.message || "Gagal menyimpan");
               }
-              frame.src = `/label/print/${result.order_id}`;
-
+              showAlert("Data berhasil disimpan");
               loadRecent();
-
-              setTimeout(() => {
-                resetForm();
-              }, 2000);
-
             } catch (err) {
-              console.error(err);
-              showAlert(err.message || "Terjadi kesalahan, coba lagi");
+              showAlert(err.message);
             } finally {
               btn.disabled = false;
               spinner.style.display = "none";
             }
           }
 
+          function hitungQty() {
+            const kg = parseFloat(document.getElementById("kg").value) || 0;
+            const order_ball = parseFloat(document.getElementById("order_ball").value) || 0;
+            const qty = kg * order_ball;
+
+            document.getElementById("qty").value = qty > 0 ? qty.toFixed(2) : "";
+          }
+          document.getElementById("kg").addEventListener("input", hitungQty);
+          document.getElementById("order_ball").addEventListener("input", hitungQty);
+
           // ── RESET ────────────────────────────────────────────────
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
 
-            ['tanggal', 'shift', 'operator_pa', 'spk', 'customer', 'product', 'uk', 'mesin', 'tali', 'jenis_pa', 'kategori_pa', 'berat_bersih']
+            ['spk', 'so', 'tanggal', 'customer', 'product', 'warna', 'aval', 'uk', 'lembar', 'pack', 'kg', 'berat_lembar',
+              'berat_pack', 'tebal', 'order', 'qty', 'checker', 'satuan', 'blongsong', 'etiket', 'mixing']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
               });
 
-            const opSelect = document.getElementById("operator_pa");
+            // Reset dropdown operator ke default
+            const opSelect = document.getElementById("spk");
             if (opSelect) opSelect.selectedIndex = 0;
 
+            // Scroll ke atas
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            document.getElementById("operator_pa").focus();
-          }
-
-          function validateBerat(el) {
-            const val = parseFloat(el.value);
-            const errorMsg = document.getElementById("error-msg");
-
-            if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Berat tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
-              el.style.borderColor = "var(--accent)";
-            } else {
-              errorMsg.classList.remove("show");
-              el.style.borderColor = "";
-            }
-          }
-
-          function validateMeja(el) {
-            const val = parseFloat(el.value);
-            const errorMsg = document.getElementById("error-msg");
-
-            if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Meja tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
-              el.style.borderColor = "var(--accent)";
-            } else {
-              errorMsg.classList.remove("show");
-              el.style.borderColor = "";
-            }
+            // Fokus ke SPK biar langsung bisa input
+            document.getElementById("spk").focus();
           }
         </script>
         <script>
@@ -1530,16 +1485,15 @@
             }
           }
 
+          // Button save
           document.addEventListener("keydown", function (e) {
-
+            // hanya Enter / Tab
             if (e.key !== "Enter" && e.key !== "Tab") return;
-
             const active = document.activeElement;
 
+            // ambil field input yang aktif
             const fields = [
-              ...document.querySelectorAll(
-                'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
-              )
+              ...document.querySelectorAll('input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])')
             ].filter(el => el.offsetParent !== null);
 
             const index = fields.indexOf(active);
@@ -1547,7 +1501,7 @@
 
             e.preventDefault();
             e.stopPropagation();
-
+            // validasi field aktif kalau required
             const value = (active.value || "").trim();
 
             if (active.hasAttribute("required") && !value) {
@@ -1555,7 +1509,7 @@
               active.focus();
               return;
             }
-
+            // SHIFT + ENTER → mundur
             if (e.shiftKey) {
               const prev = fields[index - 1];
               if (prev) {
@@ -1564,7 +1518,7 @@
               }
               return;
             }
-
+            // ENTER / TAB → next field
             const next = fields[index + 1];
 
             if (next) {
@@ -1573,6 +1527,7 @@
               return;
             }
 
+            // kalau field terakhir → submit
             const requiredFields = document.querySelectorAll("[required]");
 
             for (const field of requiredFields) {
@@ -1584,8 +1539,6 @@
                 return;
               }
             }
-
-           // submitForm();
           });
         </script>
         <script>
@@ -1614,4 +1567,5 @@
           </div>
         </div>
 </body>
+
 </html>

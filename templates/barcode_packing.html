@@ -834,12 +834,16 @@
       <!-- Menu navigasi — bisa scroll -->
       <div style="flex:1; overflow-y:auto; min-height:0;">
         {% if session.get('role') in 'administrator' %}
-        <div class="sidebar-section">Production Input</div>
-        <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Admin Input
+        <div class="sidebar-section">Summary SPK</div>
+        <a href="/summary_spk" class="sidebar-item {% if active_page == 'summary_spk' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Summary SPK
         </a>
-        <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Checker Input
+        <div class="sidebar-section">Scan</div>
+        <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Scan Pemakaian
+        </a>
+        <a href="/scan_salah" class="sidebar-item {% if active_page == 'scan_salah' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Scan Salah
         </a>
         {% endif %}
         {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}

@@ -846,6 +846,10 @@
         {% endif %}
 
         {% if session.get('role') in ('administrator', 'adminwip') %}
+        <div class="sidebar-section">Summary SPK</div>
+        <a href="/summary_spk" class="sidebar-item {% if active_page == 'summary_spk' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Summary SPK
+        </a>
         <div class="sidebar-section">Scan</div>
         <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
           <span class="sidebar-dot"></span>Scan Pemakaian
