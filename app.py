@@ -824,6 +824,28 @@ def init_db():
         divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, foreman TEXT,
         berat_bersih TEXT, keterangan TEXT
     )""")
+    
+    #tabel gabungan
+    # Tabel gabungan scan salah
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS scan_salah (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, divisi TEXT, prefix TEXT, divisi_label TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, keterangan TEXT
+    )""")
+
+    # Tabel gabungan scan pemakaian
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS scan_pemakaian (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, tanggal TEXT, shift TEXT, divisi TEXT, prefix TEXT,
+        divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, mesin TEXT, berat_bersih TEXT
+    )""")
+
+    # Tabel gabungan scan transfer
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS scan_transfer (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, tanggal TEXT, shift TEXT, divisi TEXT, prefix TEXT,
+        divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, foreman TEXT, berat_bersih TEXT
+    )""")
 
     conn.commit()
     conn.close()
@@ -2914,7 +2936,21 @@ def get_spk(spk):
         })
     return jsonify({})
 
-# ─── API: CODE LOOKUP (scan salah) ──────────────────────────
+# ─── API: CODE LOOKUP
+CATALOG_TABLE_MAP = {
+    "MIXING":       "katalogmixing",
+    "HD":           "kataloghd",
+    "POTONG":       "katalogpotong",
+    "SISA_POTONG":  "katalogsisapotong",
+    "PACKING":      "katalogpacking",
+    "SISA_PACK":    "katalogsisapack",
+    "AVAL_MIXING":  "katalogavalmixing",
+    "AVAL_HD":      "katalogavalHD",
+    "AVAL_POTONG":  "katalogavalpotong",
+    "AVAL_PACKING": "katalogavalpacking",
+    "AVAL_QC":      "katalogavalqc",
+}
+
 @app.route("/api/lookup_code", methods=["POST"])
 @login_required
 def lookup_code():
@@ -2927,23 +2963,24 @@ def lookup_code():
 
         prefix, csv_file, catalog_key, divisi_label = get_prefix_from_code(code)
 
-        if not prefix or catalog_key not in CATALOG_MAP:
-            return jsonify(found=False, error=f"Prefix kode tidak dikenal", prefix=prefix or "", divisi_label="Unknown", csv_file=None)
+        if not prefix or catalog_key not in CATALOG_TABLE_MAP:
+            return jsonify(found=False, error="Prefix kode tidak dikenal",
+                           prefix=prefix or "", divisi_label="Unknown", csv_file=None)
 
-        catalog_path = CATALOG_MAP[catalog_key]
-        if not os.path.exists(catalog_path):
-            return jsonify(found=False, prefix=prefix, divisi_label=divisi_label, csv_file=csv_file, error="File katalog tidak ditemukan")
+        table = CATALOG_TABLE_MAP[catalog_key]
 
-        df = pd.read_csv(catalog_path, encoding="utf-8-sig")
-        df.columns = df.columns.str.strip()
-        df["code"] = df["code"].astype(str).str.strip()
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute(f"SELECT * FROM {table} WHERE TRIM(UPPER(code)) = ? LIMIT 1",
+                  (code.strip().upper(),))
+        row = c.fetchone()
+        conn.close()
 
-        match = df[df["code"] == code]
+        if row is None:
+            return jsonify(found=False, prefix=prefix, divisi_label=divisi_label, csv_file=csv_file)
 
-        if match.empty:
-            return jsonify(found=False, prefix=prefix, divisi_label=divisi_label, csv_file=csv_file,)
-
-        r = match.iloc[0]
+        r = dict(row)
         return jsonify(
             found        = True,
             prefix       = prefix,
@@ -2951,12 +2988,13 @@ def lookup_code():
             csv_file     = csv_file,
             spk          = str(r.get("spk", "")),
             customer     = str(r.get("customer", "")),
-            produk       = str(r.get("produk", "")),
+            produk       = str(r.get("produk", "") or r.get("product", "")),
             uk           = str(r.get("uk", "")),
             berat_bersih = str(r.get("berat_bersih", "")),
             checker      = str(r.get("checker", "")),
             sisa         = str(r.get("sisa", "")),
         )
+
     except Exception as e:
         return jsonify(found=False, error=str(e))
 
@@ -3392,7 +3430,7 @@ def save_retur():
         now_str       = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         scanned_by    = session.get("name", "")
 
-        # ── 1. Group per file transfer ──────────────────────────────────────
+        # ── 1. Group per tabel transfer ─────────────────────────────────────
         from collections import defaultdict
         groups = defaultdict(list)
 
@@ -3400,11 +3438,11 @@ def save_retur():
             code = (rec.get("code") or "").strip().upper()
             tf   = rec.get("transfer_file")
 
-            if not tf or tf not in CSV_SCAN_TFILES:
+            if not tf or tf not in TRANSFER_TABLE_MAP:
                 prefix, _, _, _ = get_prefix_from_code(code)
                 tf = TRANSFER_MAP.get(prefix)
 
-            if not tf or tf not in CSV_SCAN_TFILES:
+            if not tf or tf not in TRANSFER_TABLE_MAP:
                 continue
 
             groups[tf].append(rec)
@@ -3413,77 +3451,118 @@ def save_retur():
         skipped  = 0
         log_rows = []
 
-        # ── 2. Proses tiap file ─────────────────────────────────────────────
-        with _csv_lock:
-            for tf, recs in groups.items():
-                path = CSV_SCAN_TFILES[tf]
-                if not path.exists():
-                    skipped += len(recs)
+        # ── 2. Proses tiap tabel SQLite ─────────────────────────────────────
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+
+        for tf, recs in groups.items():
+            table = TRANSFER_TABLE_MAP.get(tf)
+            if not table:
+                skipped += len(recs)
+                continue
+
+            codes_to_delete = {
+                (rec.get("code") or "").strip().upper()
+                for rec in recs
+            }
+
+            for code_val in codes_to_delete:
+                # Ambil data dulu untuk log
+                c.execute(
+                    f"SELECT * FROM {table} WHERE TRIM(UPPER(code)) = ? LIMIT 1",
+                    (code_val,)
+                )
+                row = c.fetchone()
+
+                if row is None:
+                    skipped += 1
                     continue
 
-                codes_to_delete = {
+                r = dict(row)
+                rec_match = next(
+                    (rec for rec in recs if (rec.get("code") or "").upper() == code_val),
+                    {}
+                )
+
+                log_rows.append({
+                    "create_at":    now_str,
+                    "tanggal":      tanggal_clean,
+                    "shift":        shift,
+                    "divisi":       rec_match.get("prefix", str(r.get("prefix", ""))),
+                    "prefix":       rec_match.get("prefix", str(r.get("prefix", ""))),
+                    "divisi_label": rec_match.get("divisi_label", str(r.get("divisi_label", ""))),
+                    "spk":          str(r.get("spk", "")),
+                    "customer":     str(r.get("customer", "")),
+                    "produk":       str(r.get("produk", "")),
+                    "uk":           str(r.get("uk", "")),
+                    "checker":      str(r.get("checker", "")),
+                    "scanned_by":   scanned_by,
+                    "code":         code_val,
+                    "foreman":      foreman,
+                    "berat_bersih": str(r.get("berat_bersih", "")),
+                    "keterangan":   keterangan,
+                })
+
+                # Hapus dari SQLite
+                c.execute(
+                    f"DELETE FROM {table} WHERE TRIM(UPPER(code)) = ?",
+                    (code_val,)
+                )
+                deleted += c.rowcount
+
+        # ── 3. Insert log ke scan_retur SQLite ──────────────────────────────
+        for row in log_rows:
+            c.execute("""
+                INSERT INTO scan_retur
+                (create_at, tanggal, shift, divisi, prefix, divisi_label,
+                 spk, customer, produk, uk, checker, scanned_by,
+                 code, foreman, berat_bersih, keterangan)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (
+                row["create_at"], row["tanggal"], row["shift"],
+                row["divisi"], row["prefix"], row["divisi_label"],
+                row["spk"], row["customer"], row["produk"], row["uk"],
+                row["checker"], row["scanned_by"], row["code"],
+                row["foreman"], row["berat_bersih"], row["keterangan"],
+            ))
+
+        conn.commit()
+        conn.close()
+
+        # ── 4. Hapus dari CSV transfer ───────────────────────────────────────
+        all_codes_deleted = {row["code"] for row in log_rows}
+
+        with _csv_lock:
+            for tf, recs in groups.items():
+                path = CSV_SCAN_TFILES.get(tf)
+                if not path or not path.exists():
+                    continue
+
+                try:
+                    df = pd.read_csv(path, encoding="utf-8-sig", dtype=str,
+                                     on_bad_lines="skip", engine="python")
+                except Exception:
+                    continue
+
+                df.columns = df.columns.str.strip()
+                if "code" not in df.columns:
+                    continue
+
+                df["code"] = df["code"].astype(str).str.strip().str.upper()
+                codes_this_file = {
                     (rec.get("code") or "").strip().upper()
                     for rec in recs
                 }
 
-                try:
-                    df = pd.read_csv(path, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
-                except Exception:
-                    skipped += len(recs)
-                    continue
-
-                df.columns = df.columns.str.strip()
-
-                if "code" not in df.columns:
-                    skipped += len(recs)
-                    continue
-
-                df["code"] = df["code"].astype(str).str.strip().str.upper()
-
-                # Hitung baris yang benar-benar akan dihapus
-                mask_delete  = df["code"].isin(codes_to_delete)
-                deleted_rows = df[mask_delete]
-                deleted     += len(deleted_rows)
-                skipped     += len(codes_to_delete) - len(deleted_rows)
-
-                # Hapus baris & drop baris kosong sepenuhnya
-                df_clean = (
-                    df[~mask_delete]
-                    .dropna(how="all")
-                )
+                mask_delete = df["code"].isin(codes_this_file)
+                df_clean = df[~mask_delete].dropna(how="all")
                 df_clean = df_clean[~(df_clean.apply(
                     lambda row: all(str(v).strip() == "" for v in row), axis=1
                 ))]
-
                 df_clean.to_csv(path, index=False, encoding="utf-8-sig")
 
-                # Kumpulkan log
-                for _, row in deleted_rows.iterrows():
-                    code_val  = row.get("code", "")
-                    rec_match = next(
-                        (r for r in recs if (r.get("code") or "").upper() == code_val),
-                        {}
-                    )
-                    log_rows.append({
-                        "create_at":    now_str,
-                        "tanggal":      tanggal_clean,
-                        "shift":        shift,
-                        "divisi":       rec_match.get("prefix", str(row.get("prefix", ""))),
-                        "prefix":       rec_match.get("prefix", str(row.get("prefix", ""))),
-                        "divisi_label": rec_match.get("divisi_label", str(row.get("divisi_label", ""))),
-                        "spk":          str(row.get("spk",          "")),
-                        "customer":     str(row.get("customer",     "")),
-                        "produk":       str(row.get("produk",       "")),
-                        "uk":           str(row.get("uk",           "")),
-                        "checker":      str(row.get("checker",      "")),
-                        "scanned_by":   scanned_by,
-                        "code":         code_val,
-                        "foreman":      foreman,
-                        "berat_bersih": str(row.get("berat_bersih", "")),
-                        "keterangan":   keterangan,
-                    })
-
-        # ── 3. Tulis log retur ke CSV ───────────────────────────────────────
+        # ── 5. Tulis log retur ke CSV ────────────────────────────────────────
         if log_rows:
             CSV_RETUR_DIR.mkdir(parents=True, exist_ok=True)
             file_exists = CSV_RETUR_LOG.exists()
@@ -3493,38 +3572,6 @@ def save_retur():
                     writer.writeheader()
                 for row in log_rows:
                     writer.writerow(row)
-
-        # ── 4. Insert log retur ke SQLite ───────────────────────────────────
-        if log_rows:
-            conn = sqlite3.connect(DB_PATH)
-            c = conn.cursor()
-            for row in log_rows:
-                c.execute("""
-                    INSERT INTO scan_retur
-                    (create_at, tanggal, shift, divisi, prefix, divisi_label,
-                     spk, customer, produk, uk, checker, scanned_by,
-                     code, foreman, berat_bersih, keterangan)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                """, (
-                    row["create_at"],
-                    row["tanggal"],
-                    row["shift"],
-                    row["divisi"],
-                    row["prefix"],
-                    row["divisi_label"],
-                    row["spk"],
-                    row["customer"],
-                    row["produk"],
-                    row["uk"],
-                    row["checker"],
-                    row["scanned_by"],
-                    row["code"],
-                    row["foreman"],
-                    row["berat_bersih"],
-                    row["keterangan"],
-                ))
-            conn.commit()
-            conn.close()
 
         return jsonify(success=True, deleted=deleted, skipped=skipped)
 
@@ -3907,17 +3954,17 @@ def recent(divisi):
     try:
         divisi = (divisi or "").strip().lower()
         table_map = {
-            "mixing":      "katalogmixing",
-            "hd":          "kataloghd",
-            "potong":      "katalogpotong",
-            "sisa_potong": "katalogsisapotong",
-            "packing":     "katalogpacking",
-            "sisa_pack":   "katalogsisapack",
-            "aval_mixing": "katalogavalmixing",
-            "aval_hd":     "katalogavalhd",
-            "aval_potong": "katalogavalpotong",
-            "aval_packing":"katalogavalpacking",
-            "aval_qc":     "katalogavalqc",
+            "mixing":       "katalogmixing",
+            "hd":           "kataloghd",
+            "potong":       "katalogpotong",
+            "sisa_potong":  "katalogsisapotong",
+            "packing":      "katalogpacking",
+            "sisa_pack":    "katalogsisapack",
+            "aval_mixing":  "katalogavalmixing",
+            "aval_hd":      "katalogavalhd",
+            "aval_potong":  "katalogavalpotong",
+            "aval_packing": "katalogavalpacking",
+            "aval_qc":      "katalogavalqc",
         }
         table = table_map.get(divisi)
         if not table:
@@ -3926,10 +3973,16 @@ def recent(divisi):
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        c.execute(f"""SELECT * FROM {table} ORDER BY id DESC LIMIT 500""")
+        c.execute(f"SELECT * FROM {table} ORDER BY id DESC LIMIT 500")
         rows = c.fetchall()
         conn.close()
-        result = [dict(row) for row in rows]
+
+        result = []
+        for row in rows:
+            d = dict(row)
+            # konversi None ke ""
+            result.append({k: ("" if v is None else v) for k, v in d.items()})
+
         return jsonify(result)
 
     except Exception as e:

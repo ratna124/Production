@@ -866,82 +866,67 @@
 
     <!-- SIDEBAR -->
     <aside class="sidebar">
-      <div style="flex:1; overflow-y:auto; min-height:0;">
-        {% if session.get('role') in 'administrator' %}
-        <div class="sidebar-section">Production Input</div>
-        <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Admin Input
-        </a>
-        <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Checker Input
-        </a>
-        {% endif %}
-        {% if session.get('role') in ('administrator', 'staff', 'adminwip') %}
-        <div class="sidebar-section">Production Stock</div>
-        <a data-port="5001" data-path="/stok_produksi"
-          class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Stok Produksi
-        </a>
-        <div class="sidebar-section">Production Output</div>
-        <a data-port="5001" data-path="/hasil_produksi"
-          class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Hasil Produksi
-        </a>
-        {% endif %}
+      {% if session.get('role') in 'administrator' %}
+      <div class="sidebar-section">Production Input</div>
+      <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Admin Input
+      </a>
+      <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Checker Input
+      </a>
+      {% endif %}
+      {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
+      <div class="sidebar-section">Production Output</div>
+      <a data-port="5001" data-path="/hasil_produksi"
+        class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Hasil Produksi
+      </a>
+      {% endif %}
 
-        {% if session.get('role') in ('administrator', 'adminwip') %}
-        <div class="sidebar-section">Scan</div>
-        <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Scan Pemakaian
-        </a>
-        <a href="/scan_salah" class="sidebar-item {% if active_page == 'scan_salah' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Scan Salah
-        </a>
-        <a href="/scan_transfer" class="sidebar-item {% if active_page == 'scan_transfer' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Scan Transfer
-        </a>
-        <a href="/scan_retur" class="sidebar-item {% if active_page == 'scan_retur' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Scan Retur
-        </a>
+      <div class="sidebar-section">Scan Transfer</div>
+      <a href="/scan_transfer" class="sidebar-item {% if active_page == 'scan_transfer' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Scan Transfer
+      </a>
+      <div class="sidebar-section">Scan Retur</div>
+      <a href="/scan_retur" class="sidebar-item {% if active_page == 'scan_retur' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Scan Retur
+      </a>
+      <div class="sidebar-section">Hasil</div>
+      <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Mixing
+      </a>
+      <a href="/hd" class="sidebar-item {% if active_page == 'hd' %}active{% endif %}">
+        <span class="sidebar-dot"></span>HD
+      </a>
+      <a href="/potong" class="sidebar-item {% if active_page == 'potong' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Potong
+      </a>
+      <a href="/sisa_potong" class="sidebar-item {% if active_page == 'sisa_potong' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Sisa Roll (Potong)
+      </a>
+      <a href="/packing" class="sidebar-item {% if active_page == 'packing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Packing
+      </a>
+      <a href="/sisa_pack" class="sidebar-item {% if active_page == 'sisa_pack' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Sisa Pack
+      </a>
 
-        <div class="sidebar-section">Hasil</div>
-        <a href="/barcode_mixing" class="sidebar-item {% if active_page == 'barcode_mixing' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Mixing WIP
-        </a>
-        <a href="/barcode_hd" class="sidebar-item {% if active_page == 'barcode_hd' %}active{% endif %}">
-          <span class="sidebar-dot"></span>HD WIP
-        </a>
-        <a href="/barcode_potong" class="sidebar-item {% if active_page == 'barcode_potong' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Potong WIP
-        </a>
-        <a href="/barcode_packing" class="sidebar-item {% if active_page == 'barcode_packing' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Packing WIP
-        </a>
-        <a href="/barcode_sisa_pack" class="sidebar-item {% if active_page == 'barcode_sisa_pack' %}active{% endif %}">
-          <span class="sidebar-dot"></span>Sisa Pack WIP
-        </a>
-        {% endif %}
-      </div>
-
-      <!-- Stats sidebar -->
-      <div class="sidebar-stats">
-        <div class="stat-row">
-          <span class="stat-label">Kode discan</span>
-          <span class="stat-val" id="stat-count">0</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">Ditemukan</span>
-          <span class="stat-val" id="stat-found" style="font-size:16px;color:var(--success)">0</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">Tidak ditemukan</span>
-          <span class="stat-val" id="stat-notfound" style="font-size:16px;color:var(--danger)">0</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">Shift</span>
-          <span class="stat-val" id="stat-shift" style="font-size:16px;color:var(--accent2)">—</span>
-        </div>
-      </div>
+      <div class="sidebar-section">Aval</div>
+      <a href="/aval_mixing" class="sidebar-item {% if active_page == 'aval_mixing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval Mixing
+      </a>
+      <a href="/aval_hd" class="sidebar-item {% if active_page == 'aval_hd' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval HD
+      </a>
+      <a href="/aval_potong" class="sidebar-item {% if active_page == 'aval_potong' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval Potong
+      </a>
+      <a href="/aval_packing" class="sidebar-item {% if active_page == 'aval_packing' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval Packing
+      </a>
+      <a href="/aval_qc" class="sidebar-item {% if active_page == 'aval_qc' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Aval QC
+      </a>
     </aside>
 
     <!-- MAIN -->
@@ -1206,7 +1191,6 @@
         return;
       }
 
-      // tambah dulu ke list dengan status pending, lookup async
       const entry = {
         code: val,
         prefix: localPrefix,
@@ -1381,9 +1365,13 @@
 
     // ── STATS ──
     function updateStats() {
-      document.getElementById("stat-count").textContent = codes.length;
-      document.getElementById("stat-found").textContent = codes.filter(c => c.status === "found").length;
-      document.getElementById("stat-notfound").textContent = codes.filter(c => c.status === "notfound").length;
+      const countEl = document.getElementById("stat-count");
+      const foundEl = document.getElementById("stat-found");
+      const notfoundEl = document.getElementById("stat-notfound");
+
+      if (countEl) countEl.textContent = codes.length;
+      if (foundEl) foundEl.textContent = codes.filter(c => c.status === "found").length;
+      if (notfoundEl) notfoundEl.textContent = codes.filter(c => c.status === "notfound").length;
     }
 
     // ── DELETE / CLEAR ──
