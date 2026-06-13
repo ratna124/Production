@@ -585,21 +585,38 @@ def label_print(order_id):
 </html>"""
 
 # ─── CODE GENERATOR ─────────────────────────────────────────
+from datetime import datetime, timedelta
+
 def generate_code(data):
     now = datetime.now()
+
+    if now.hour < 7:
+        produksi_date = now - timedelta(days=1)
+    else:
+        produksi_date = now
+    tanggal = produksi_date.strftime("%d-%m-%Y")
     divisi = str(data.get("divisi", "")).strip().upper()
 
     # Default mapping
     div_map = {
-        "MIXING": "MI", "HD": "HD", "POTONG": "CU", "SISA_POTONG": "CS",
-        "PACKING": "PA", "SISA_PACK": "PS", "AVAL_MIXING": "AMS", "AVAL_QC": "AQC",
+        "MIXING": "MI",
+        "HD": "HD",
+        "POTONG": "CU",
+        "SISA_POTONG": "CS",
+        "PACKING": "PA",
+        "SISA_PACK": "PS",
+        "AVAL_MIXING": "AMS",
+        "AVAL_QC": "AQC",
     }
-    # Default
+
     div = div_map.get(divisi, "XX")
 
     if divisi == "AVAL_HD":
         jenis_map = {
-            "Prong": "AHP", "Daun": "AHD", "Sapuan": "AHS", "PENARIK HASIL HD": "AHT",
+            "Prong": "AHP",
+            "Daun": "AHD",
+            "Sapuan": "AHS",
+            "PENARIK HASIL HD": "AHT",
         }
         jenis = str(data.get("jenis_hd", "")).strip()
         div = jenis_map.get(jenis, "AHX")
@@ -626,9 +643,8 @@ def generate_code(data):
         jenis = str(data.get("jenis_pa", "")).strip()
         div = jenis_map.get(jenis, "APX")
 
-    tanggal = now.strftime("%d-%m-%Y")
-    spk     = str(data.get("spk", "")).strip()
-    shift   = str(data.get("shift", "")).strip()
+    spk = str(data.get("spk", "")).strip()
+    shift = str(data.get("shift", "")).strip()
 
     try:
         berat = "{:.2f}".format(float(data.get("berat_bersih") or 0))
@@ -636,7 +652,6 @@ def generate_code(data):
         berat = "0.00"
 
     waktu = now.strftime("%H%M%S")
-
     return f"{div}{tanggal}{spk}{shift}{berat}{waktu}"
 
 # ─── SPK LOOKUP ─────────────────────────────────────────────
@@ -845,6 +860,56 @@ def init_db():
     CREATE TABLE IF NOT EXISTS scan_transfer (
         id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, tanggal TEXT, shift TEXT, divisi TEXT, prefix TEXT,
         divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, foreman TEXT, berat_bersih TEXT
+    )""")
+    
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS mutasimixing (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        create_at TEXT, tanggal TEXT, shift TEXT,
+        code_scan TEXT, code_baru TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT,
+        berat_awal REAL, berat_bersih REAL,
+        operator TEXT, checker TEXT, keterangan TEXT
+    )""")
+    
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS mutasihd (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        create_at TEXT, tanggal TEXT, shift TEXT,
+        code_scan TEXT, code_baru TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT,
+        berat_awal REAL, berat_bersih REAL,
+        operator TEXT, checker TEXT, keterangan TEXT
+    )""")
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS mutasipotong (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        create_at TEXT, tanggal TEXT, shift TEXT,
+        code_scan TEXT, code_baru TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT,
+        berat_awal REAL, berat_bersih REAL,
+        operator TEXT, checker TEXT, keterangan TEXT
+    )""")
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS mutasipacking (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        create_at TEXT, tanggal TEXT, shift TEXT,
+        code_scan TEXT, code_baru TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT,
+        berat_awal REAL, berat_bersih REAL,
+        operator TEXT, checker TEXT, keterangan TEXT
+    )""")
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS mutasisisapack (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        create_at TEXT, tanggal TEXT, shift TEXT,
+        code_scan TEXT, code_baru TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT,
+        berat_awal REAL, berat_bersih REAL,
+        operator TEXT, checker TEXT, keterangan TEXT
     )""")
 
     conn.commit()
@@ -1343,47 +1408,36 @@ def api_mutasi_mixing():
         tanggal = format_tanggal(tanggal_raw)
 
         # LOOKUP DATA KATALOG MIXING
-        if not os.path.exists(CSV_MIXING):
-            return jsonify(success=False, error="Database mixing tidak ditemukan")
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
 
-        df_cat = pd.read_csv(CSV_MIXING, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
-        df_cat.columns = df_cat.columns.str.strip()
-        code_col = next((c for c in df_cat.columns
-            if c.lower() == "code"),
-            None
-        )
+        row = conn.execute("""
+            SELECT *
+            FROM katalogmixing
+            WHERE UPPER(TRIM(code)) = ?
+            ORDER BY id DESC
+            LIMIT 1
+        """, (code_awal,)).fetchone()
 
-        if not code_col:
-            return jsonify(success=False, error="Kolom code tidak ditemukan")
+        conn.close()
 
-        df_cat[code_col] = (df_cat[code_col].astype(str).str.strip().str.upper())
-        match = df_cat[df_cat[code_col] == code_awal]
-
-        if match.empty:
+        if not row:
             return jsonify(success=False, error="Kode awal tidak ditemukan")
 
-        r = match.iloc[0]
+        r = dict(row)
 
         # DATA TIKET AWAL
-        spk_col = next((c for c in df_cat.columns if c.lower() == "spk"), None)
-        customer_col = next((c for c in df_cat.columns if c.lower() == "customer"), None)
-        produk_col = next((c for c in df_cat.columns if c.lower() == "produk"), None)
-        uk_col = next((c for c in df_cat.columns if c.lower() == "uk"), None)
-        mesin_col = next((c for c in df_cat.columns if c.lower() == "mesin"), None)
-        berat_col = next((
-                c for c in df_cat.columns
-                if c.lower() in ["berat_bersih", "berat_kg"]
-            ),None
-        )
+        spk_awal = str(r.get("spk", "")).strip()
+        customer = str(r.get("customer", "")).strip()
+        produk = str(r.get("produk", "")).strip()
+        uk = str(r.get("uk", "")).strip()
 
-        # DATA TIKET AWAL
-        spk_awal = str(r.get(spk_col, "")).strip()
-        customer = str(r.get(customer_col, "")).strip()
-        produk = str(r.get(produk_col, "")).strip()
-        uk = str(r.get(uk_col, "")).strip()
-        mesin = str(r.get(mesin_col, "")).strip()
         try:
-            berat_awal = float(str(r.get(berat_col, "0")).replace(",", "."))
+            berat_awal = float(
+                r.get("berat_bersih")
+                or r.get("berat_kg")
+                or 0
+            )
         except:
             berat_awal = 0
 
@@ -1400,18 +1454,17 @@ def api_mutasi_mixing():
 
         try:
             if os.path.exists(SPK_CSV):
-
                 df_spk = pd.read_csv(SPK_CSV, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
                 df_spk.columns = (df_spk.columns.str.strip())
-                spk_col = next((
+                spk_col2 = next((
                         c for c
                         in df_spk.columns
                         if "spk"
                         in c.lower()
-                    ),df_spk.columns[1])
+                    ), df_spk.columns[1])
 
-                df_spk[spk_col] = (df_spk[spk_col].astype(str).str.strip())
-                match_spk = df_spk[df_spk[spk_col] == spk_baru]
+                df_spk[spk_col2] = (df_spk[spk_col2].astype(str).str.strip())
+                match_spk = df_spk[df_spk[spk_col2] == spk_baru]
 
                 if not match_spk.empty:
                     rr = match_spk.iloc[0]
@@ -1420,11 +1473,10 @@ def api_mutasi_mixing():
                     uk_baru = str(rr.iloc[7]).strip()
 
         except Exception as e:
-            print("Lookup SPK baru gagal:",e)
+            print("Lookup SPK baru gagal:", e)
 
         # DATETIME
         now = datetime.now()
-
         created_at = now.strftime("%d-%m-%Y %H:%M:%S")
         tanggal_code = now.strftime("%d-%m-%Y")
         timestamp = now.strftime("%H%M%S")
@@ -1439,8 +1491,43 @@ def api_mutasi_mixing():
                 f"{berat_str}"
                 f"{timestamp}"
             )
+
         code_sisa = generate_code(spk_awal, shift, hasil_timbang)
         code_mutasi = generate_code(spk_baru, shift, terpakai)
+
+        # ── SIAPKAN ROW LOG MUTASI (untuk CSV & SQLite) ──
+        row_sisa_log = {
+            "create_at": created_at,
+            "tanggal": tanggal,
+            "shift": shift,
+            "code_scan": code_awal,
+            "code_baru": code_sisa,
+            "spk": spk_awal,
+            "customer": customer,
+            "produk": produk,
+            "uk": uk,
+            "berat_awal": berat_awal,
+            "berat_bersih": f"{terpakai:.2f}",
+            "operator": operator,
+            "checker": admin,
+            "keterangan": keterangan
+        }
+        row_mutasi_log = {
+            "create_at": created_at,
+            "tanggal": tanggal,
+            "shift": shift,
+            "code_scan": code_awal,
+            "code_baru": code_mutasi,
+            "spk": spk_baru,
+            "customer": customer_baru,
+            "produk": produk_baru,
+            "uk": uk_baru,
+            "berat_awal": berat_awal,
+            "berat_bersih": f"{hasil_timbang:.2f}",
+            "operator": operator,
+            "checker": admin,
+            "keterangan": keterangan
+        }
 
         # SIMPAN CSV MUTASI
         path = Path(CSV_MUTASI_MIXING)
@@ -1448,43 +1535,12 @@ def api_mutasi_mixing():
         file_exists = path.exists()
 
         with open(path, "a", newline="", encoding="utf-8-sig") as f:
-            writer = csv.DictWriter(f, fieldnames= CSV_MUTASI_MIXING_COLUMNS)
+            writer = csv.DictWriter(f, fieldnames=CSV_MUTASI_MIXING_COLUMNS)
             if not file_exists:
                 writer.writeheader()
-            # SISA SPK LAMA
-            writer.writerow({
-                "create_at": created_at,
-                "tanggal": tanggal,
-                "shift": shift,
-                "code_scan": code_awal,
-                "code_baru": code_sisa,
-                "spk": spk_awal,
-                "customer": customer,
-                "produk": produk,
-                "uk": uk,
-                "berat_awal": berat_awal,
-                "berat_bersih": f"{hasil_timbang:.2f}",
-                "operator": operator,
-                "checker": admin,
-                "keterangan": keterangan
-            })
-            # HASIL MUTASI
-            writer.writerow({
-                "create_at": created_at,
-                "tanggal": tanggal,
-                "shift": shift,
-                "code_scan": code_awal,
-                "code_baru": code_mutasi,
-                "spk": spk_baru,
-                "customer": customer_baru,
-                "produk": produk_baru,
-                "uk": uk_baru,
-                "berat_awal": berat_awal,
-                "berat_bersih": f"{terpakai:.2f}",
-                "operator": operator,
-                "checker": admin,
-                "keterangan": keterangan
-            })
+            writer.writerow(row_sisa_log)
+            writer.writerow(row_mutasi_log)
+
         # DATA BARU UNTUK KATALOG MIXING
         data_sisa = {
             "tanggal": tanggal,
@@ -1496,9 +1552,8 @@ def api_mutasi_mixing():
             "uk": uk,
             "operator_mix": operator,
             "checker": admin,
-            "mesin": mesin,
-            "berat_kg": round(terpakai, 2),
-            "berat_bersih": round(terpakai, 2),
+            "berat_kg": round(hasil_timbang, 2),
+            "berat_bersih": round(hasil_timbang, 2),
             "karung": 0.09,
             "created_at": created_at,
             "code": code_sisa
@@ -1513,13 +1568,13 @@ def api_mutasi_mixing():
             "uk": uk_baru,
             "operator_mix": operator,
             "checker": admin,
-            "mesin": mesin,
-            "berat_kg": round(hasil_timbang, 2),
-            "berat_bersih": round(hasil_timbang, 2),
+            "berat_kg": round(terpakai, 2),
+            "berat_bersih": round(terpakai, 2),
             "karung": 0.09,
             "created_at": created_at,
             "code": code_mutasi
         }
+
         # SIMPAN KE CSV MIXING
         file_exists = os.path.exists(CSV_MIXING)
 
@@ -1527,64 +1582,59 @@ def api_mutasi_mixing():
             try:
                 df_header = pd.read_csv(CSV_MIXING, nrows=0, encoding="utf-8-sig")
                 headers = (df_header.columns.str.strip().tolist())
-
             except Exception as e:
                 print("Gagal baca header CSV_MIXING:", e)
-                headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_mix", "checker", "mesin", "berat_kg", "berat_bersih", "karung", "created_at", "code"]
+                headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_mix", "checker", "berat_kg", "berat_bersih", "karung", "created_at", "code"]
         else:
-            headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_mix", "checker", "mesin", "berat_kg", "berat_bersih", "karung", "created_at", "code"]
+            headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_mix", "checker", "berat_kg", "berat_bersih", "karung", "created_at", "code"]
 
         if "code" not in headers:
             headers.append("code")
 
-        print("HEADER CSV_MIXING:", headers)
-        print("MESIN:", mesin)
         with open(CSV_MIXING, "a", newline="", encoding="utf-8-sig") as mf:
             writer = csv.DictWriter(mf, fieldnames=headers, extrasaction="ignore")
 
             if not file_exists:
                 writer.writeheader()
-            row_sisa = {
-                key: data_sisa.get(key, "")
-                for key in headers
-            }
-            row_mutasi = {
-                key: data_mutasi.get(key, "")
-                for key in headers
-            }
+            row_sisa = {key: data_sisa.get(key, "") for key in headers}
+            row_mutasi = {key: data_mutasi.get(key, "") for key in headers}
             writer.writerow(row_sisa)
             writer.writerow(row_mutasi)
 
-        # SIMPAN SQLITE
+        # ── SIMPAN SQLITE ──
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
 
-        sql = """
+        sql_katalog = """
         INSERT INTO katalogmixing (
-            tanggal, shift, divisi, spk, customer, produk, uk, operator_mix, checker, mesin, berat_kg, berat_bersih, karung, created_at, code
+            tanggal, shift, divisi, spk, customer, produk, uk, operator_mix, checker, berat_kg, berat_bersih, karung, created_at, code
         ) VALUES (
-            :tanggal,
-            :shift,
-            :divisi,
-            :spk,
-            :customer,
-            :produk,
-            :uk,
-            :operator_mix,
-            :checker,
-            :mesin,
-            :berat_kg,
-            :berat_bersih,
-            :karung,
-            :created_at,
-            :code
+            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
+            :operator_mix, :checker, :berat_kg, :berat_bersih, :karung, :created_at, :code
         )
         """
-        c.execute(sql, data_sisa)
-        c.execute(sql, data_mutasi)
+        c.execute(sql_katalog, data_sisa)
+        c.execute(sql_katalog, data_mutasi)
+
+        # log mutasi ke tabel mutasimixing
+        sql_log = """
+        INSERT INTO mutasimixing (
+            create_at, tanggal, shift, code_scan, code_baru,
+            spk, customer, produk, uk, berat_awal, berat_bersih,
+            operator, checker, keterangan
+        ) VALUES (
+            :create_at, :tanggal, :shift, :code_scan, :code_baru,
+            :spk, :customer, :produk, :uk, :berat_awal, :berat_bersih,
+            :operator, :checker, :keterangan
+        )
+        """
+        c.execute(sql_log, row_sisa_log)
+        c.execute(sql_log, row_mutasi_log)
+
         conn.commit()
         conn.close()
 
+        # CACHE UNTUK LABEL
         for rec_data, rec_code in [(data_sisa, code_sisa), (data_mutasi, code_mutasi)]:
             cache_rec = {
                 "order_id":    rec_code,
@@ -1597,7 +1647,6 @@ def api_mutasi_mixing():
                 "uk":          rec_data["uk"],
                 "operator_mix": operator,
                 "checker":     admin,
-                "mesin": mesin,
                 "berat_kg":    rec_data["berat_kg"],
                 "berat_bersih": rec_data["berat_bersih"],
                 "karung":      0.09,
@@ -1608,12 +1657,13 @@ def api_mutasi_mixing():
             }
             cleanup_cache()
             record_cache[rec_code] = (cache_rec, time.time())
+
         return jsonify(success=True, saved=2, code_sisa=code_sisa, code_mutasi=code_mutasi,
-    print_urls=[
-        f"/label/print/{code_sisa}",
-        f"/label/print/{code_mutasi}"
-    ]
-)
+            print_urls=[
+                f"/label/print/{code_sisa}",
+                f"/label/print/{code_mutasi}"
+            ]
+        )
     except Exception as e:
         import traceback
         return jsonify(success=False, error=str(e), detail=traceback.format_exc())
@@ -1650,49 +1700,36 @@ def api_mutasi_hd():
         tanggal = format_tanggal(tanggal_raw)
 
         # LOOKUP DATA KATALOG
-        if not os.path.exists(CSV_HD):
-            return jsonify(success=False, error="Database HD tidak ditemukan")
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
 
-        df_cat = pd.read_csv(CSV_HD, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
-        df_cat.columns = df_cat.columns.str.strip()
+        row = conn.execute("""
+            SELECT *
+            FROM kataloghd
+            WHERE UPPER(TRIM(code)) = ?
+            ORDER BY id DESC
+            LIMIT 1
+        """, (code_awal,)).fetchone()
 
-        code_col = next((c for c in df_cat.columns
-            if c.lower() == "code"),
-            None
-        )
+        conn.close()
 
-        if not code_col:
-            return jsonify(success=False, error="Kolom code tidak ditemukan")
-
-        df_cat[code_col] = (df_cat[code_col].astype(str).str.strip().str.upper())
-        match = df_cat[df_cat[code_col] == code_awal]
-
-        if match.empty:
+        if not row:
             return jsonify(success=False, error="Kode awal tidak ditemukan")
 
-        r = match.iloc[0]
-        spk_awal = str(r.get(df_cat.columns[3], "")).strip()
-        customer = str(r.get(df_cat.columns[4], "")).strip()
-        produk = str(r.get(df_cat.columns[5], "")).strip()
-        uk = str(r.get(df_cat.columns[6], "")).strip()
-        mesin = ""
+        r = dict(row)
+
+        spk_awal = str(r.get("spk", "")).strip()
+        customer = str(r.get("customer", "")).strip()
+        produk = str(r.get("produk", "")).strip()
+        uk = str(r.get("uk", "")).strip()
+        mesin = str(r.get("mesin", "")).strip()
 
         try:
-            mesin_col = next(
-                (
-                    c for c in df_cat.columns
-                    if c.lower().strip() == "mesin"
-                ),
-                None
+            berat_awal = float(
+                r.get("berat_bersih")
+                or r.get("berat_kg")
+                or 0
             )
-            if mesin_col:
-                mesin = str(r.get(mesin_col, "")).strip()
-
-        except Exception as e:
-            print("Gagal ambil mesin:", e)
-
-        try:
-            berat_awal = float(str(r.get(df_cat.columns[12], "0")).replace(",", "."))
         except:
             berat_awal = 0
 
@@ -1700,7 +1737,7 @@ def api_mutasi_hd():
         if hasil_timbang > berat_awal:
             return jsonify(success=False, error="Hasil timbang melebihi berat awal")
 
-        terpakai = round(berat_awal - hasil_timbang,2)
+        terpakai = round(berat_awal - hasil_timbang, 2)
 
         # LOOKUP SPK BARU
         customer_baru = customer
@@ -1717,7 +1754,7 @@ def api_mutasi_hd():
                     (
                         c for c in df_spk.columns
                         if "spk" in c.lower()
-                    ),df_spk.columns[1])
+                    ), df_spk.columns[1])
                 df_spk[spk_col] = (df_spk[spk_col].astype(str).str.strip())
                 match_spk = df_spk[df_spk[spk_col]  == spk_baru]
 
@@ -1749,7 +1786,41 @@ def api_mutasi_hd():
 
         code_sisa = generate_code(spk_awal, shift, hasil_timbang)
         code_mutasi = generate_code(spk_baru, shift, terpakai)
-        
+
+        # ── SIAPKAN ROW LOG MUTASI ──
+        row_sisa_log = {
+            "create_at": created_at,
+            "tanggal": tanggal,
+            "shift": shift,
+            "code_scan": code_awal,
+            "code_baru": code_sisa,
+            "spk": spk_awal,
+            "customer": customer,
+            "produk": produk,
+            "uk": uk,
+            "berat_awal": berat_awal,
+            "berat_bersih": f"{terpakai:.2f}",
+            "operator": operator,
+            "checker": admin,
+            "keterangan": keterangan
+        }
+        row_mutasi_log = {
+            "create_at": created_at,
+            "tanggal": tanggal,
+            "shift": shift,
+            "code_scan": code_awal,
+            "code_baru": code_mutasi,
+            "spk": spk_baru,
+            "customer": customer_baru,
+            "produk": produk_baru,
+            "uk": uk_baru,
+            "berat_awal": berat_awal,
+            "berat_bersih": f"{hasil_timbang:.2f}",
+            "operator": operator,
+            "checker": admin,
+            "keterangan": keterangan
+        }
+
         # SIMPAN CSV MUTASI HD
         path = Path(CSV_MUTASI_HD)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1760,109 +1831,73 @@ def api_mutasi_hd():
             if not file_exists_mutasi:
                 writer.writeheader()
 
-            # SISA SPK LAMA
-            writer.writerow({
-                "create_at": created_at,
-                "tanggal": tanggal,
-                "shift": shift,
-                "code_scan": code_awal,
-                "code_baru": code_sisa,
-                "spk": spk_awal,
-                "customer": customer,
-                "produk": produk,
-                "uk": uk,
-                "berat_awal": berat_awal,
-                "berat_bersih": f"{hasil_timbang:.2f}",
-                "operator": operator,
-                "checker": admin,
-                "keterangan": keterangan
-            })
-            # HASIL MUTASI
-            writer.writerow({
-                "create_at": created_at,
-                "tanggal": tanggal,
-                "shift": shift,
-                "code_scan": code_awal,
-                "code_baru": code_mutasi,
-                "spk": spk_baru,
-                "customer": customer_baru,
-                "produk": produk_baru,
-                "uk": uk_baru,
-                "berat_awal": berat_awal,
-                "berat_bersih": f"{terpakai:.2f}",
-                "operator": operator,
-                "checker": admin,
-                "keterangan": keterangan
-            })
-            # DATA BARU UNTUK KATALOG
-            data_sisa = {
-                "tanggal": tanggal,
-                "shift": shift,
-                "divisi": "HD",
-                "spk": spk_awal,
-                "customer": customer,
-                "produk": produk,
-                "uk": uk,
-                "operator_hd": operator,
-                "checker": admin,
-                "mesin": mesin,
-                "berat_kg": round(terpakai,2),
-                "berat_bersih": round(terpakai,2),
-                "bobin": 0.09,
-                "created_at": created_at,
-                "code": code_sisa
-            }
-            data_mutasi = {
-                "tanggal": tanggal,
-                "shift": shift,
-                "divisi": "HD",
-                "spk": spk_baru,
-                "customer": customer_baru,
-                "produk": produk_baru,
-                "uk": uk_baru,
-                "operator_hd": operator,
-                "checker": admin,
-                "mesin": mesin,
-                "berat_kg": round(hasil_timbang,2),
-                "berat_bersih": round(hasil_timbang,2),
-                "bobin": 0.09,
-                "created_at": created_at,
-                "code": code_mutasi
-            }
-            # SIMPAN KE CSV_HD
-            file_exists = os.path.exists(CSV_HD)
+            writer.writerow(row_sisa_log)
+            writer.writerow(row_mutasi_log)
 
-            if file_exists:
-                try:
-                    df_header = pd.read_csv(CSV_HD, nrows=0, encoding="utf-8-sig")
-                    headers = (df_header.columns.str.strip().tolist())
+        # DATA BARU UNTUK KATALOG
+        data_sisa = {
+            "tanggal": tanggal,
+            "shift": shift,
+            "divisi": "HD",
+            "spk": spk_awal,
+            "customer": customer,
+            "produk": produk,
+            "uk": uk,
+            "operator_hd": operator,
+            "checker": admin,
+            "mesin": mesin,
+            "berat_kg": round(hasil_timbang,2),
+            "berat_bersih": round(hasil_timbang,2),
+            "bobin": 0.09,
+            "created_at": created_at,
+            "code": code_sisa
+        }
+        data_mutasi = {
+            "tanggal": tanggal,
+            "shift": shift,
+            "divisi": "HD",
+            "spk": spk_baru,
+            "customer": customer_baru,
+            "produk": produk_baru,
+            "uk": uk_baru,
+            "operator_hd": operator,
+            "checker": admin,
+            "mesin": mesin,
+            "berat_kg": round(terpakai,2),
+            "berat_bersih": round(terpakai,2),
+            "bobin": 0.09,
+            "created_at": created_at,
+            "code": code_mutasi
+        }
 
-                except Exception as e:
-                    print("Gagal baca header:", e)
+        # SIMPAN KE CSV_HD
+        file_exists = os.path.exists(CSV_HD)
 
-                    headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_hd", "checker", "mesin", "berat_kg", "berat_bersih", "bobin", "created_at", "code"]
-            else:
+        if file_exists:
+            try:
+                df_header = pd.read_csv(CSV_HD, nrows=0, encoding="utf-8-sig")
+                headers = (df_header.columns.str.strip().tolist())
+
+            except Exception as e:
+                print("Gagal baca header:", e)
+
                 headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_hd", "checker", "mesin", "berat_kg", "berat_bersih", "bobin", "created_at", "code"]
+        else:
+            headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_hd", "checker", "mesin", "berat_kg", "berat_bersih", "bobin", "created_at", "code"]
 
-            if "code" not in headers:
-                headers.append("code")
+        if "code" not in headers:
+            headers.append("code")
 
-            with open(CSV_HD, "a", newline="", encoding="utf-8-sig") as mf:
-                writer = csv.DictWriter(mf, fieldnames=headers, extrasaction="ignore")
+        with open(CSV_HD, "a", newline="", encoding="utf-8-sig") as mf:
+            writer = csv.DictWriter(mf, fieldnames=headers, extrasaction="ignore")
 
-                if not file_exists:
-                    writer.writeheader()
+            if not file_exists:
+                writer.writeheader()
 
-                row_sisa = {
-                    key: data_sisa.get(key,"")
-                    for key in headers
-                }
-                row_mutasi = {
-                    key: data_mutasi.get(key, "")
-                    for key in headers
-                }
-                writer.writerow(row_sisa)
-                writer.writerow(row_mutasi)
+            row_sisa = {key: data_sisa.get(key,"") for key in headers}
+            row_mutasi = {key: data_mutasi.get(key, "") for key in headers}
+            writer.writerow(row_sisa)
+            writer.writerow(row_mutasi)
 
         # SQLITE
         conn = sqlite3.connect(DB_PATH)
@@ -1890,6 +1925,22 @@ def api_mutasi_hd():
         """
         c.execute(sql,data_sisa)
         c.execute(sql,data_mutasi)
+
+        # log mutasi ke tabel mutasihd
+        sql_log = """
+        INSERT INTO mutasihd (
+            create_at, tanggal, shift, code_scan, code_baru,
+            spk, customer, produk, uk, berat_awal, berat_bersih,
+            operator, checker, keterangan
+        ) VALUES (
+            :create_at, :tanggal, :shift, :code_scan, :code_baru,
+            :spk, :customer, :produk, :uk, :berat_awal, :berat_bersih,
+            :operator, :checker, :keterangan
+        )
+        """
+        c.execute(sql_log, row_sisa_log)
+        c.execute(sql_log, row_mutasi_log)
+
         conn.commit()
         conn.close()
         
@@ -1904,10 +1955,8 @@ def api_mutasi_hd():
                 "customer": rec_data["customer"],
                 "produk": rec_data["produk"],
                 "uk": rec_data["uk"],
-                # field HD asli
                 "operator_hd": operator,
                 "bobin": 0.09,
-                # alias untuk template label mixing
                 "operator_mix": operator,
                 "karung": 0.09,
                 "checker": admin,
@@ -1930,7 +1979,7 @@ def api_mutasi_hd():
     except Exception as e:
         import traceback
         return jsonify(success=False, error=str(e), detail=traceback.format_exc())
-        
+    
 CSV_MUTASI_POTONG = r"Z:\Checker\Production\Database\mutasi\katalogmutasipotong.csv"
 CSV_MUTASI_POTONG_COLUMNS = ["create_at", "tanggal", "shift", "code_scan", "code_baru", "spk", "customer", "produk", "uk", "berat_awal", "berat_bersih", "operator", "checker", "keterangan"]
 
@@ -1963,50 +2012,36 @@ def api_mutasi_potong():
         tanggal = format_tanggal(tanggal_raw)
 
         # LOOKUP DATA KATALOG
-        if not os.path.exists(CSV_POTONG):
-            return jsonify(success=False, error="Database POTONG tidak ditemukan")
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
 
-        df_cat = pd.read_csv(CSV_POTONG, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
-        df_cat.columns = df_cat.columns.str.strip()
-        code_col = next((c for c in df_cat.columns
-            if c.lower() == "code"),
-            None
-        )
+        row = conn.execute("""
+            SELECT *
+            FROM katalogpotong
+            WHERE UPPER(TRIM(code)) = ?
+            ORDER BY id DESC
+            LIMIT 1
+        """, (code_awal,)).fetchone()
 
-        if not code_col:
-            return jsonify(success=False, error="Kolom code tidak ditemukan")
+        conn.close()
 
-        df_cat[code_col] = (df_cat[code_col].astype(str).str.strip().str.upper())
-        match = df_cat[df_cat[code_col] == code_awal]
-
-        if match.empty:
+        if not row:
             return jsonify(success=False, error="Kode awal tidak ditemukan")
 
-        r = match.iloc[0]
+        r = dict(row)
 
-        # DATA TIKET AWAL
-        spk_awal = str(r.get(df_cat.columns[3], "")).strip()
-        customer = str(r.get(df_cat.columns[4], "")).strip()
-        produk = str(r.get(df_cat.columns[5], "")).strip()
-        uk = str(r.get(df_cat.columns[6], "")).strip()
-        mesin = ""
+        spk_awal = str(r.get("spk", "")).strip()
+        customer = str(r.get("customer", "")).strip()
+        produk = str(r.get("produk", "")).strip()
+        uk = str(r.get("uk", "")).strip()
+        mesin = str(r.get("mesin", "")).strip()
 
         try:
-            mesin_col = next(
-                (
-                    c for c in df_cat.columns
-                    if c.lower().strip() == "mesin"
-                ),
-                None
+            berat_awal = float(
+                r.get("berat_bersih")
+                or r.get("berat_kg")
+                or 0
             )
-            if mesin_col:
-                mesin = str(r.get(mesin_col, "")).strip()
-
-        except Exception as e:
-            print("Gagal ambil mesin:", e)
-
-        try:
-            berat_awal = float(str(r.get(df_cat.columns[12], "0")).replace(",", "."))
         except:
             berat_awal = 0
 
@@ -2065,8 +2100,42 @@ def api_mutasi_potong():
 
         code_sisa = generate_code(spk_awal, shift, hasil_timbang)
         code_mutasi = generate_code(spk_baru, shift, terpakai)
-        
-        # SIMPAN CSV MUTASI HD
+
+        # ── SIAPKAN ROW LOG MUTASI ──
+        row_sisa_log = {
+            "create_at": created_at,
+            "tanggal": tanggal,
+            "shift": shift,
+            "code_scan": code_awal,
+            "code_baru": code_sisa,
+            "spk": spk_awal,
+            "customer": customer,
+            "produk": produk,
+            "uk": uk,
+            "berat_awal": berat_awal,
+            "berat_bersih": f"{terpakai:.2f}",
+            "operator": operator,
+            "checker": admin,
+            "keterangan": keterangan
+        }
+        row_mutasi_log = {
+            "create_at": created_at,
+            "tanggal": tanggal,
+            "shift": shift,
+            "code_scan": code_awal,
+            "code_baru": code_mutasi,
+            "spk": spk_baru,
+            "customer": customer_baru,
+            "produk": produk_baru,
+            "uk": uk_baru,
+            "berat_awal": berat_awal,
+            "berat_bersih": f"{hasil_timbang:.2f}",
+            "operator": operator,
+            "checker": admin,
+            "keterangan": keterangan
+        }
+
+        # SIMPAN CSV MUTASI POTONG
         path = Path(CSV_MUTASI_POTONG)
         path.parent.mkdir(parents=True, exist_ok=True)
         file_exists_mutasi = path.exists()
@@ -2076,109 +2145,72 @@ def api_mutasi_potong():
             if not file_exists_mutasi:
                 writer.writeheader()
 
-            # SISA SPK LAMA
-            writer.writerow({
-                "create_at": created_at,
-                "tanggal": tanggal,
-                "shift": shift,
-                "code_scan": code_awal,
-                "code_baru": code_sisa,
-                "spk": spk_awal,
-                "customer": customer,
-                "produk": produk,
-                "uk": uk,
-                "berat_awal": berat_awal,
-                "berat_bersih": f"{hasil_timbang:.2f}",
-                "operator": operator,
-                "checker": admin,
-                "keterangan": keterangan
-            })
-            # HASIL MUTASI
-            writer.writerow({
-                "create_at": created_at,
-                "tanggal": tanggal,
-                "shift": shift,
-                "code_scan": code_awal,
-                "code_baru": code_mutasi,
-                "spk": spk_baru,
-                "customer": customer_baru,
-                "produk": produk_baru,
-                "uk": uk_baru,
-                "berat_awal": berat_awal,
-                "berat_bersih": f"{terpakai:.2f}",
-                "operator": operator,
-                "checker": admin,
-                "keterangan": keterangan
-            })
-            # DATA BARU UNTUK KATALOG
-            data_sisa = {
-                "tanggal": tanggal,
-                "shift": shift,
-                "divisi": "POTONG",
-                "spk": spk_awal,
-                "customer": customer,
-                "produk": produk,
-                "uk": uk,
-                "operator_cu": operator,
-                "checker": admin,
-                "mesin": mesin,
-                "berat_kg": round(terpakai,2),
-                "berat_bersih": round(terpakai,2),
-                "keranjang": 1,
-                "created_at": created_at,
-                "code": code_sisa
-            }
-            data_mutasi = {
-                "tanggal": tanggal,
-                "shift": shift,
-                "divisi": "POTONG",
-                "spk": spk_baru,
-                "customer": customer_baru,
-                "produk": produk_baru,
-                "uk": uk_baru,
-                "operator_cu": operator,
-                "checker": admin,
-                "mesin": mesin,
-                "berat_kg": round(hasil_timbang,2),
-                "berat_bersih": round(hasil_timbang,2),
-                "keranjang": 1,
-                "created_at": created_at,
-                "code": code_mutasi
-            }
+            writer.writerow(row_sisa_log)
+            writer.writerow(row_mutasi_log)
 
-            # SIMPAN KE CSV_HD
-            file_exists = os.path.exists(CSV_POTONG)
+        # DATA BARU UNTUK KATALOG
+        data_sisa = {
+            "tanggal": tanggal,
+            "shift": shift,
+            "divisi": "POTONG",
+            "spk": spk_awal,
+            "customer": customer,
+            "produk": produk,
+            "uk": uk,
+            "operator_cu": operator,
+            "checker": admin,
+            "mesin": mesin,
+            "berat_kg": round(hasil_timbang,2),
+            "berat_bersih": round(hasil_timbang,2),
+            "keranjang": 1,
+            "created_at": created_at,
+            "code": code_sisa
+        }
+        data_mutasi = {
+            "tanggal": tanggal,
+            "shift": shift,
+            "divisi": "POTONG",
+            "spk": spk_baru,
+            "customer": customer_baru,
+            "produk": produk_baru,
+            "uk": uk_baru,
+            "operator_cu": operator,
+            "checker": admin,
+            "mesin": mesin,
+            "berat_kg": round(terpakai,2),
+            "berat_bersih": round(terpakai,2),
+            "keranjang": 1,
+            "created_at": created_at,
+            "code": code_mutasi
+        }
 
-            if file_exists:
-                try:
-                    df_header = pd.read_csv(CSV_POTONG, nrows=0, encoding="utf-8-sig")
-                    headers = (df_header.columns.str.strip().tolist())
+        # SIMPAN KE CSV_POTONG
+        file_exists = os.path.exists(CSV_POTONG)
 
-                except Exception as e:
-                    print("Gagal baca header:", e)
+        if file_exists:
+            try:
+                df_header = pd.read_csv(CSV_POTONG, nrows=0, encoding="utf-8-sig")
+                headers = (df_header.columns.str.strip().tolist())
 
-                    headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_cu", "checker", "mesin", "berat_kg", "berat_bersih", "keranjang", "created_at", "code"]
-            else:
+            except Exception as e:
+                print("Gagal baca header:", e)
+
                 headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_cu", "checker", "mesin", "berat_kg", "berat_bersih", "keranjang", "created_at", "code"]
+        else:
+            headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_cu", "checker", "mesin", "berat_kg", "berat_bersih", "keranjang", "created_at", "code"]
 
-            if "code" not in headers:
-                headers.append("code")
+        if "code" not in headers:
+            headers.append("code")
 
-            with open(CSV_POTONG, "a", newline="", encoding="utf-8-sig") as mf:
-                writer = csv.DictWriter(mf, fieldnames=headers, extrasaction="ignore")
+        with open(CSV_POTONG, "a", newline="", encoding="utf-8-sig") as mf:
+            writer = csv.DictWriter(mf, fieldnames=headers, extrasaction="ignore")
 
-                if not file_exists:
-                    writer.writeheader()
-                row_sisa = {
-                    key: data_sisa.get(key,"")
-                    for key in headers
-                }
-                row_mutasi = {
-                    key: data_mutasi.get(key,"")
-                    for key in headers
-                }
-                writer.writerow(row_sisa)
-                writer.writerow(row_mutasi)
+            if not file_exists:
+                writer.writeheader()
+            row_sisa = {key: data_sisa.get(key,"") for key in headers}
+            row_mutasi = {key: data_mutasi.get(key,"") for key in headers}
+            writer.writerow(row_sisa)
+            writer.writerow(row_mutasi)
 
         # SQLITE
         conn = sqlite3.connect(DB_PATH)
@@ -2207,6 +2239,22 @@ def api_mutasi_potong():
 
         c.execute(sql,data_sisa)
         c.execute(sql,data_mutasi)
+
+        # log mutasi ke tabel mutasipotong
+        sql_log = """
+        INSERT INTO mutasipotong (
+            create_at, tanggal, shift, code_scan, code_baru,
+            spk, customer, produk, uk, berat_awal, berat_bersih,
+            operator, checker, keterangan
+        ) VALUES (
+            :create_at, :tanggal, :shift, :code_scan, :code_baru,
+            :spk, :customer, :produk, :uk, :berat_awal, :berat_bersih,
+            :operator, :checker, :keterangan
+        )
+        """
+        c.execute(sql_log, row_sisa_log)
+        c.execute(sql_log, row_mutasi_log)
+
         conn.commit()
         conn.close()
         
@@ -2221,10 +2269,8 @@ def api_mutasi_potong():
                 "customer": rec_data["customer"],
                 "produk": rec_data["produk"],
                 "uk": rec_data["uk"],
-                # field HD asli
                 "operator_cu": operator,
                 "keranjang": 1,
-                # alias untuk template label mixing
                 "operator_mix": operator,
                 "karung": 1,
                 "checker": admin,
@@ -2253,7 +2299,7 @@ def api_mutasi_potong():
         import traceback
 
         return jsonify(success=False, error=str(e), detail=traceback.format_exc())
-
+    
 CSV_MUTASI_PACKING = r"Z:\Checker\Production\Database\mutasi\katalogmutasipacking.csv"
 CSV_MUTASI_PACKING_COLUMNS = ["create_at", "tanggal", "shift", "code_scan", "code_baru", "spk", "customer", "produk", "uk", "berat_awal", "berat_bersih", "operator", "checker", "keterangan"]
 
@@ -2285,45 +2331,40 @@ def api_mutasi_packing():
         tanggal = format_tanggal(tanggal_raw)
 
         # LOOKUP DATA KATALOG
-        if not os.path.exists(CSV_PACKING):
-            return jsonify(success=False, error="Database PACKING tidak ditemukan")
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
 
-        df_cat = pd.read_csv(CSV_PACKING, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
-        df_cat.columns = df_cat.columns.str.strip()
-        code_col = next((c for c in df_cat.columns
-            if c.lower() == "code"),
-            None
-        )
-        if not code_col:
-            return jsonify(success=False, error="Kolom code tidak ditemukan")
+        row = conn.execute("""
+            SELECT *
+            FROM katalogpacking
+            WHERE UPPER(TRIM(code)) = ?
+            ORDER BY id DESC
+            LIMIT 1
+        """, (code_awal,)).fetchone()
 
-        df_cat[code_col] = (df_cat[code_col].astype(str).str.strip().str.upper())
-        match = df_cat[df_cat[code_col] == code_awal]
-        if match.empty:
-            return jsonify(success=False, error="Kode awal tidak ditemukan")
-        r = match.iloc[0]
-        # DATA TIKET AWAL
-        spk_awal = str(r.get(df_cat.columns[3], "")).strip()
-        customer = str(r.get(df_cat.columns[4], "")).strip()
-        produk = str(r.get(df_cat.columns[5], "")).strip()
-        uk = str(r.get(df_cat.columns[6], "")).strip()
-        mesin = ""
-        try:
-            mesin_col = next(
-                (
-                    c for c in df_cat.columns
-                    if c.lower().strip() == "mesin"
-                ),
-                None
+        conn.close()
+
+        if not row:
+            return jsonify(
+                success=False,
+                error="Kode awal tidak ditemukan"
             )
 
-            if mesin_col:
-                mesin = str(r.get(mesin_col, "")).strip()
+        r = dict(row)
 
-        except Exception as e:
-            print("Gagal ambil mesin:", e)
+        # DATA TIKET AWAL
+        spk_awal = str(r.get("spk", "")).strip()
+        customer = str(r.get("customer", "")).strip()
+        produk = str(r.get("produk", "")).strip()
+        uk = str(r.get("uk", "")).strip()
+        mesin = str(r.get("mesin", "")).strip()
+
         try:
-            berat_awal = float(str(r.get(df_cat.columns[10], "0")).replace(",", "."))
+            berat_awal = float(
+                r.get("berat_bersih")
+                or r.get("berat_kg")
+                or 0
+            )
         except:
             berat_awal = 0
 
@@ -2381,8 +2422,42 @@ def api_mutasi_packing():
 
         code_sisa = generate_code(spk_awal, shift, hasil_timbang)
         code_mutasi = generate_code(spk_baru, shift, terpakai)
-    
-        # SIMPAN CSV MUTASI HD
+
+        # ── SIAPKAN ROW LOG MUTASI ──
+        row_sisa_log = {
+            "create_at": created_at,
+            "tanggal": tanggal,
+            "shift": shift,
+            "code_scan": code_awal,
+            "code_baru": code_sisa,
+            "spk": spk_awal,
+            "customer": customer,
+            "produk": produk,
+            "uk": uk,
+            "berat_awal": berat_awal,
+            "berat_bersih": f"{terpakai:.2f}",
+            "operator": operator,
+            "checker": admin,
+            "keterangan": keterangan
+        }
+        row_mutasi_log = {
+            "create_at": created_at,
+            "tanggal": tanggal,
+            "shift": shift,
+            "code_scan": code_awal,
+            "code_baru": code_mutasi,
+            "spk": spk_baru,
+            "customer": customer_baru,
+            "produk": produk_baru,
+            "uk": uk_baru,
+            "berat_awal": berat_awal,
+            "berat_bersih": f"{hasil_timbang:.2f}",
+            "operator": operator,
+            "checker": admin,
+            "keterangan": keterangan
+        }
+
+        # SIMPAN CSV MUTASI PACKING
         path = Path(CSV_MUTASI_PACKING)
         path.parent.mkdir(parents=True, exist_ok=True)
         file_exists_mutasi = path.exists()
@@ -2392,112 +2467,75 @@ def api_mutasi_packing():
             if not file_exists_mutasi:
                 writer.writeheader()
 
-            # SISA SPK LAMA
-            writer.writerow({
-                "create_at": created_at,
-                "tanggal": tanggal,
-                "shift": shift,
-                "code_scan": code_awal,
-                "code_baru": code_sisa,
-                "spk": spk_awal,
-                "customer": customer,
-                "produk": produk,
-                "uk": uk,
-                "berat_awal": berat_awal,
-                "berat_bersih": f"{hasil_timbang:.2f}",
-                "operator": operator,
-                "checker": admin,
-                "keterangan": keterangan
-            })
-            # HASIL MUTASI
-            writer.writerow({
-                "create_at": created_at,
-                "tanggal": tanggal,
-                "shift": shift,
-                "code_scan": code_awal,
-                "code_baru": code_mutasi,
-                "spk": spk_baru,
-                "customer": customer_baru,
-                "produk": produk_baru,
-                "uk": uk_baru,
-                "berat_awal": berat_awal,
-                "berat_bersih": f"{terpakai:.2f}",
-                "operator": operator,
-                "checker": admin,
-                "keterangan": keterangan
-            })
-            # DATA BARU UNTUK KATALOG
-            data_sisa = {
-                "tanggal": tanggal,
-                "shift": shift,
-                "divisi": "PACKING",
-                "spk": spk_awal,
-                "customer": customer,
-                "produk": produk,
-                "uk": uk,
-                "operator_pa": operator,
-                "checker": admin,
-                "mesin": mesin,
-                "berat_bersih": round(terpakai,2),
-                "created_at": created_at,
-                "code": code_sisa
-            }
-            data_mutasi = {
-                "tanggal": tanggal,
-                "shift": shift,
-                "divisi": "PACKING",
-                "spk": spk_baru,
-                "customer": customer_baru,
-                "produk": produk_baru,
-                "uk": uk_baru,
-                "operator_pa": operator,
-                "checker": admin,
-                "mesin": mesin,
-                "berat_bersih": round(hasil_timbang,2),
-                "created_at": created_at,
-                "code": code_mutasi
-            }
+            writer.writerow(row_sisa_log)
+            writer.writerow(row_mutasi_log)
 
-            # SIMPAN KE CSV_HD
-            file_exists = os.path.exists(CSV_PACKING)
+        # DATA BARU UNTUK KATALOG
+        data_sisa = {
+            "tanggal": tanggal,
+            "shift": shift,
+            "divisi": "PACKING",
+            "spk": spk_awal,
+            "customer": customer,
+            "produk": produk,
+            "uk": uk,
+            "operator_pa": operator,
+            "checker": admin,
+            "mesin": mesin,
+            "berat_bersih": round(hasil_timbang,2),
+            "created_at": created_at,
+            "code": code_sisa
+        }
+        data_mutasi = {
+            "tanggal": tanggal,
+            "shift": shift,
+            "divisi": "PACKING",
+            "spk": spk_baru,
+            "customer": customer_baru,
+            "produk": produk_baru,
+            "uk": uk_baru,
+            "operator_pa": operator,
+            "checker": admin,
+            "mesin": mesin,
+            "berat_bersih": round(terpakai,2),
+            "created_at": created_at,
+            "code": code_mutasi
+        }
 
-            if file_exists:
-                try:
-                    df_header = pd.read_csv(CSV_PACKING, nrows=0, encoding="utf-8-sig")
-                    headers = (df_header.columns.str.strip().tolist())
+        # SIMPAN KE CSV_PACKING
+        file_exists = os.path.exists(CSV_PACKING)
 
-                except Exception as e:
-                    print("Gagal baca header:",e)
+        if file_exists:
+            try:
+                df_header = pd.read_csv(CSV_PACKING, nrows=0, encoding="utf-8-sig")
+                headers = (df_header.columns.str.strip().tolist())
 
-                    headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_pa", "checker", "mesin","berat_bersih", "created_at", "code"]
-            else:
-                headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_pa", "checker", "mesin", "berat_bersih", "created_at", "code"]
+            except Exception as e:
+                print("Gagal baca header:",e)
 
-            if "code" not in headers:
-                headers.append("code")
+                headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_pa", "checker", "mesin","berat_bersih", "created_at", "code"]
+        else:
+            headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_pa", "checker", "mesin", "berat_bersih", "created_at", "code"]
 
-            with open(CSV_PACKING, "a", newline="", encoding="utf-8-sig") as mf:
-                writer = csv.DictWriter(mf, fieldnames=headers, extrasaction="ignore")
+        if "code" not in headers:
+            headers.append("code")
 
-                if not file_exists:
-                    writer.writeheader()
-                row_sisa = {
-                    key: data_sisa.get(key,"")
-                    for key in headers
-                }
-                row_mutasi = {
-                    key: data_mutasi.get(key, "")
-                    for key in headers
-                }
-                writer.writerow(row_sisa)
-                writer.writerow(row_mutasi)
+        with open(CSV_PACKING, "a", newline="", encoding="utf-8-sig") as mf:
+            writer = csv.DictWriter(mf, fieldnames=headers, extrasaction="ignore")
+
+            if not file_exists:
+                writer.writeheader()
+            row_sisa = {key: data_sisa.get(key,"") for key in headers}
+            row_mutasi = {key: data_mutasi.get(key, "") for key in headers}
+            writer.writerow(row_sisa)
+            writer.writerow(row_mutasi)
 
         # SQLITE
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         sql = """
         INSERT INTO katalogpacking (
-            tanggal, shift, divisi, spk, customer, produk, uk, operator_pa, checker, berat_kg, berat_bersih, created_at, code
+            tanggal, shift, divisi, spk, customer, produk, uk, operator_pa, checker, mesin, berat_bersih, created_at, code
         ) VALUES (
             :tanggal,
             :shift,
@@ -2517,6 +2555,22 @@ def api_mutasi_packing():
 
         c.execute(sql,data_sisa)
         c.execute(sql,data_mutasi)
+
+        # log mutasi ke tabel mutasipacking
+        sql_log = """
+        INSERT INTO mutasipacking (
+            create_at, tanggal, shift, code_scan, code_baru,
+            spk, customer, produk, uk, berat_awal, berat_bersih,
+            operator, checker, keterangan
+        ) VALUES (
+            :create_at, :tanggal, :shift, :code_scan, :code_baru,
+            :spk, :customer, :produk, :uk, :berat_awal, :berat_bersih,
+            :operator, :checker, :keterangan
+        )
+        """
+        c.execute(sql_log, row_sisa_log)
+        c.execute(sql_log, row_mutasi_log)
+
         conn.commit()
         conn.close()
         
@@ -2531,9 +2585,7 @@ def api_mutasi_packing():
                 "customer": rec_data["customer"],
                 "produk": rec_data["produk"],
                 "uk": rec_data["uk"],
-                # field HD asli
                 "operator_pa": operator,
-                # alias untuk template label mixing
                 "operator_mix": operator,
                 "checker": admin,
                 "mesin": mesin,
@@ -2554,7 +2606,7 @@ def api_mutasi_packing():
     except Exception as e:
         import traceback
         return jsonify(success=False, error=str(e), detail=traceback.format_exc())
-
+    
 CSV_MUTASI_SISAPACK = r"Z:\Checker\Production\Database\mutasi\katalogmutasisisapack.csv"
 CSV_MUTASI_SISAPACK_COLUMNS = ["create_at", "tanggal", "shift", "code_scan", "code_baru", "spk", "customer", "produk", "uk", "berat_awal", "berat_bersih", "operator", "checker", "keterangan"]
 
@@ -2587,52 +2639,44 @@ def api_mutasi_sisapack():
 
         tanggal = format_tanggal(tanggal_raw)
         # LOOKUP DATA KATALOG
-        if not os.path.exists(CSV_SISA_PACK):
-            return jsonify(success=False, error="Database SISA PACK tidak ditemukan")
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
 
-        df_cat = pd.read_csv(CSV_SISA_PACK, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
-        df_cat.columns = df_cat.columns.str.strip()
-        code_col = next((c for c in df_cat.columns
-            if c.lower() == "code"),
-            None
-        )
-        if not code_col:
-            return jsonify(success=False,error="Kolom code tidak ditemukan")
+        row = conn.execute("""
+            SELECT *
+            FROM katalogsisapack
+            WHERE UPPER(TRIM(code)) = ?
+            ORDER BY id DESC
+            LIMIT 1
+        """, (code_awal,)).fetchone()
 
-        df_cat[code_col] = (df_cat[code_col].astype(str).str.strip().str.upper())
-        match = df_cat[df_cat[code_col] == code_awal]
-        if match.empty:
+        conn.close()
+
+        if not row:
             return jsonify(success=False, error="Kode awal tidak ditemukan")
 
-        r = match.iloc[0]
+        r = dict(row)
+
         # DATA TIKET AWAL
-        spk_awal = str(r.get(df_cat.columns[3], "")).strip()
-        customer = str(r.get(df_cat.columns[4], "")).strip()
-        produk = str(r.get(df_cat.columns[5], "")).strip()
-        uk = str(r.get(df_cat.columns[6], "")).strip()
-        mesin = ""
+        spk_awal = str(r.get("spk", "")).strip()
+        customer = str(r.get("customer", "")).strip()
+        produk = str(r.get("produk", "")).strip()
+        uk = str(r.get("uk", "")).strip()
+        mesin = str(r.get("mesin", "")).strip()
 
         try:
-            mesin_col = next(
-                (
-                    c for c in df_cat.columns
-                    if c.lower().strip() == "mesin"
-                ),
-                None
+            berat_awal = float(
+                r.get("berat_bersih")
+                or 0
             )
-            if mesin_col:
-                mesin = str(r.get(mesin_col, "")).strip()
-
-        except Exception as e:
-            print("Gagal ambil mesin:", e)
-
-        try:
-            berat_awal = float(str(r.get(df_cat.columns[10], "0")).replace(",", "."))
         except:
             berat_awal = 0
+
         try:
-            sisa_col = next((c for c in df_cat.columns if c.lower().strip() == "sisa"),None)
-            sisa_awal = float(str(r.get(sisa_col, "0")).replace(",", ".")) if sisa_col else 0
+            sisa_awal = float(
+                r.get("sisa")
+                or 0
+            )
         except:
             sisa_awal = 0
 
@@ -2691,8 +2735,42 @@ def api_mutasi_sisapack():
 
         code_sisa = generate_code(spk_awal, shift, hasil_timbang)
         code_mutasi = generate_code(spk_baru, shift, terpakai)
-        
-        # SIMPAN CSV MUTASI HD
+
+        # ── SIAPKAN ROW LOG MUTASI ──
+        row_sisa_log = {
+            "create_at": created_at,
+            "tanggal": tanggal,
+            "shift": shift,
+            "code_scan": code_awal,
+            "code_baru": code_sisa,
+            "spk": spk_awal,
+            "customer": customer,
+            "produk": produk,
+            "uk": uk,
+            "berat_awal": berat_awal,
+            "berat_bersih": f"{terpakai:.2f}",
+            "operator": operator,
+            "checker": admin,
+            "keterangan": keterangan
+        }
+        row_mutasi_log = {
+            "create_at": created_at,
+            "tanggal": tanggal,
+            "shift": shift,
+            "code_scan": code_awal,
+            "code_baru": code_mutasi,
+            "spk": spk_baru,
+            "customer": customer_baru,
+            "produk": produk_baru,
+            "uk": uk_baru,
+            "berat_awal": berat_awal,
+            "berat_bersih": f"{hasil_timbang:.2f}",
+            "operator": operator,
+            "checker": admin,
+            "keterangan": keterangan
+        }
+
+        # SIMPAN CSV MUTASI SISAPACK
         path = Path(CSV_MUTASI_SISAPACK)
         path.parent.mkdir(parents=True, exist_ok=True)
         file_exists_mutasi = path.exists()
@@ -2702,105 +2780,69 @@ def api_mutasi_sisapack():
             if not file_exists_mutasi:
                 writer.writeheader()
 
-            # SISA SPK LAMA
-            writer.writerow({
-                "create_at": created_at,
-                "tanggal": tanggal,
-                "shift": shift,
-                "code_scan": code_awal,
-                "code_baru": code_sisa,
-                "spk": spk_awal,
-                "customer": customer,
-                "produk": produk,
-                "uk": uk,
-                "berat_awal": berat_awal,
-                "berat_bersih": f"{hasil_timbang:.2f}",
-                "operator": operator,
-                "checker": admin,
-                "keterangan": keterangan
-            })
-            # HASIL MUTASI
-            writer.writerow({
-                "create_at": created_at,
-                "tanggal": tanggal,
-                "shift": shift,
-                "code_scan": code_awal,
-                "code_baru": code_mutasi,
-                "spk": spk_baru,
-                "customer": customer_baru,
-                "produk": produk_baru,
-                "uk": uk_baru,
-                "berat_awal": berat_awal,
-                "berat_bersih": f"{terpakai:.2f}",
-                "operator": operator,
-                "checker": admin,
-                "keterangan": keterangan
-            })
-            # DATA BARU UNTUK KATALOG
-            data_sisa = {
-                "tanggal": tanggal,
-                "shift": shift,
-                "divisi": "SISA_PACK",
-                "spk": spk_awal,
-                "customer": customer,
-                "produk": produk,
-                "uk": uk,
-                "operator_sp": operator,
-                "checker": admin,
-                "mesin": mesin,
-                "berat_bersih": round(terpakai,2),
-                "sisa": round(terpakai_sisa, 0),
-                "created_at": created_at,
-                "code": code_sisa
-            }
-            data_mutasi = {
-                "tanggal": tanggal,
-                "shift": shift,
-                "divisi": "SISA_PACK",
-                "spk": spk_baru,
-                "customer": customer_baru,
-                "produk": produk_baru,
-                "uk": uk_baru,
-                "operator_sp": operator,
-                "checker": admin,
-                "mesin": mesin,
-                "berat_bersih": round(hasil_timbang,2),
-                "sisa": round(hasil_sisa, 0),
-                "created_at": created_at,
-                "code": code_mutasi
-            }
-            # SIMPAN KE CSV_HD
-            file_exists = os.path.exists(CSV_SISA_PACK)
+            writer.writerow(row_sisa_log)
+            writer.writerow(row_mutasi_log)
 
-            if file_exists:
-                try:
-                    df_header = pd.read_csv(CSV_SISA_PACK, nrows=0, encoding="utf-8-sig")
-                    headers = (df_header.columns.str.strip().tolist())
-                except Exception as e:
-                    print("Gagal baca header:", e)
+        # DATA BARU UNTUK KATALOG
+        data_sisa = {
+            "tanggal": tanggal,
+            "shift": shift,
+            "divisi": "SISA_PACK",
+            "spk": spk_awal,
+            "customer": customer,
+            "produk": produk,
+            "uk": uk,
+            "operator_sp": operator,
+            "checker": admin,
+            "mesin": mesin,
+            "berat_bersih": round(terpakai,2),
+            "sisa": round(terpakai_sisa, 0),
+            "created_at": created_at,
+            "code": code_sisa
+        }
+        data_mutasi = {
+            "tanggal": tanggal,
+            "shift": shift,
+            "divisi": "SISA_PACK",
+            "spk": spk_baru,
+            "customer": customer_baru,
+            "produk": produk_baru,
+            "uk": uk_baru,
+            "operator_sp": operator,
+            "checker": admin,
+            "mesin": mesin,
+            "berat_bersih": round(hasil_timbang,2),
+            "sisa": round(hasil_sisa, 0),
+            "created_at": created_at,
+            "code": code_mutasi
+        }
 
-                    headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_sp", "checker", "mesin", "berat_bersih", "created_at", "code"]
-            else:
+        # SIMPAN KE CSV_SISA_PACK
+        file_exists = os.path.exists(CSV_SISA_PACK)
+
+        if file_exists:
+            try:
+                df_header = pd.read_csv(CSV_SISA_PACK, nrows=0, encoding="utf-8-sig")
+                headers = (df_header.columns.str.strip().tolist())
+            except Exception as e:
+                print("Gagal baca header:", e)
+
                 headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_sp", "checker", "mesin", "berat_bersih", "created_at", "code"]
+        else:
+            headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_sp", "checker", "mesin", "berat_bersih", "created_at", "code"]
 
-            if "code" not in headers:
-                headers.append("code")
+        if "code" not in headers:
+            headers.append("code")
 
-            with open(CSV_SISA_PACK, "a", newline="", encoding="utf-8-sig") as mf:
-                writer = csv.DictWriter(mf, fieldnames=headers, extrasaction="ignore")
+        with open(CSV_SISA_PACK, "a", newline="", encoding="utf-8-sig") as mf:
+            writer = csv.DictWriter(mf, fieldnames=headers, extrasaction="ignore")
 
-                if not file_exists:
-                    writer.writeheader()
-                row_sisa = {
-                    key: data_sisa.get(key,"")
-                    for key in headers
-                }
-                row_mutasi = {
-                    key: data_mutasi.get(key,"")
-                    for key in headers
-                }
-                writer.writerow(row_sisa)
-                writer.writerow(row_mutasi)
+            if not file_exists:
+                writer.writeheader()
+            row_sisa = {key: data_sisa.get(key,"") for key in headers}
+            row_mutasi = {key: data_mutasi.get(key,"") for key in headers}
+            writer.writerow(row_sisa)
+            writer.writerow(row_mutasi)
 
         # SQLITE
         conn = sqlite3.connect(DB_PATH)
@@ -2827,6 +2869,22 @@ def api_mutasi_sisapack():
         """
         c.execute(sql,data_sisa)
         c.execute(sql,data_mutasi)
+
+        # log mutasi ke tabel mutasisisapack
+        sql_log = """
+        INSERT INTO mutasisisapack (
+            create_at, tanggal, shift, code_scan, code_baru,
+            spk, customer, produk, uk, berat_awal, berat_bersih,
+            operator, checker, keterangan
+        ) VALUES (
+            :create_at, :tanggal, :shift, :code_scan, :code_baru,
+            :spk, :customer, :produk, :uk, :berat_awal, :berat_bersih,
+            :operator, :checker, :keterangan
+        )
+        """
+        c.execute(sql_log, row_sisa_log)
+        c.execute(sql_log, row_mutasi_log)
+
         conn.commit()
         conn.close()
         
@@ -2841,9 +2899,7 @@ def api_mutasi_sisapack():
                 "customer": rec_data["customer"],
                 "produk": rec_data["produk"],
                 "uk": rec_data["uk"],
-                # field HD asli
                 "operator_sp": operator,
-                # alias untuk template label mixing
                 "operator_mix": operator,
                 "checker": admin,
                 "mesin": mesin,
