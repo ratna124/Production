@@ -3874,66 +3874,100 @@ def submit_summary_spk():
 def check_spk_berat(spk):
     try:
         spk = str(spk).strip()
-        # ── Limit dari Summary SPK ────────────────────────────
+
+        # ── Limit dari Summary SPK (CSV tetap) ────────────────
         limit = None
         try:
             df_spk = pd.read_csv(SPK_CSV, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
             df_spk.columns = df_spk.columns.str.strip()
-            spk_col = next((c for c in df_spk.columns if "spk" in c.lower()), df_spk.columns[1])
+            spk_col = next(
+                (c for c in df_spk.columns if "spk" in c.lower()),
+                df_spk.columns[1]
+            )
             df_spk[spk_col] = df_spk[spk_col].astype(str).str.strip()
             row_spk = df_spk[df_spk[spk_col] == spk]
             if not row_spk.empty:
-                u_col = next((c for c in df_spk.columns if c.strip().upper() == "U"), None)
+                u_col = next(
+                    (c for c in df_spk.columns if c.strip().upper() == "U"),
+                    None
+                )
                 if u_col is None and len(df_spk.columns) > 20:
                     u_col = df_spk.columns[20]
+
                 if u_col:
                     try:
                         limit = float(str(row_spk.iloc[0][u_col]).replace(",", ".").strip())
                     except:
                         limit = None
+
         except Exception as e:
             print(f"Gagal baca SPK CSV: {e}")
 
-        # ── Bad codes mixing (scan salah) ─────────────────────
+        # ── Ambil bad codes dari SQLite scansalahmixing ───────
         bad_codes = set()
-        scan_salah_path = SCAN_DIR / "scansalahmixing.csv"
-        if scan_salah_path.exists():
-            try:
-                ds = pd.read_csv(scan_salah_path, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
-                ds.columns = ds.columns.str.strip()
-                code_col = next((c for c in ds.columns if c.lower() == "code"), ds.columns[-1])
-                bad_codes = set(ds[code_col].astype(str).str.strip().dropna())
-            except Exception as e:
-                print(f"Gagal baca scan salah mixing: {e}")
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT code
+                FROM scansalahmixing
+                WHERE code IS NOT NULL
+            """)
+            bad_codes = {
+                str(row[0]).strip()
+                for row in cur.fetchall()
+                if row[0]
+            }
+            conn.close()
 
-        # ── Hitung used dari katalogmixing (tanpa scan salah) ─
+        except Exception as e:
+            print(f"Gagal baca scansalahmixing: {e}")
+
+        # ── Hitung used dari SQLite katalogmixing ─────────────
         used = 0.0
         try:
-            if os.path.exists(CSV_MIXING):
-                df_mix = pd.read_csv(CSV_MIXING, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
-                df_mix.columns = df_mix.columns.str.strip()
-                if "spk" in df_mix.columns and "berat_bersih" in df_mix.columns:
-                    code_col_mix = next((c for c in df_mix.columns if c.lower() == "code"), None)
-                    df_mix["spk"] = df_mix["spk"].astype(str).str.strip()
-                    df_rows = df_mix[df_mix["spk"] == spk]
-                    if code_col_mix:
-                        df_mix[code_col_mix] = df_mix[code_col_mix].astype(str).str.strip()
-                        df_rows = df_rows[~df_rows[code_col_mix].isin(bad_codes)]
-                    for val in df_rows["berat_bersih"]:
-                        try:
-                            used += float(str(val).replace(",", "."))
-                        except:
-                            pass
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT code, berat_bersih
+                FROM katalogmixing
+                WHERE TRIM(spk) = ?
+            """, (spk,))
+
+            rows = cur.fetchall()
+            for row in rows:
+                code = str(row["code"]).strip() if row["code"] else ""
+
+                # skip jika masuk scan salah
+                if code in bad_codes:
+                    continue
+                try:
+                    used += float(row["berat_bersih"] or 0)
+                except:
+                    pass
+            conn.close()
+
         except Exception as e:
             print(f"Gagal baca katalogmixing: {e}")
 
         used = round(used, 2)
-        remaining  = round(limit - used, 2) if limit is not None else None
-        over_limit = (used >= limit) if limit is not None else False
+
+        remaining = (round(limit - used, 2)
+            if limit is not None
+            else None
+        )
+        over_limit = (
+            used >= limit
+            if limit is not None
+            else False
+        )
 
         return jsonify(spk=spk, limit=limit, used=used, remaining=remaining, over_limit=over_limit)
+
     except Exception as e:
         import traceback
+
         return jsonify(success=False, error=str(e), detail=traceback.format_exc())
 
 @app.route("/api/check_spk_berat_hd/<spk>")
@@ -3941,16 +3975,23 @@ def check_spk_berat(spk):
 def check_spk_berat_hd(spk):
     try:
         spk = str(spk).strip()
-        # ── Limit dari Summary SPK ────────────────────────────
+
+        # ── Limit dari Summary SPK (CSV tetap) ────────────────
         limit = None
         try:
             df_spk = pd.read_csv(SPK_CSV, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
             df_spk.columns = df_spk.columns.str.strip()
-            spk_col = next((c for c in df_spk.columns if "spk" in c.lower()), df_spk.columns[1])
+            spk_col = next(
+                (c for c in df_spk.columns if "spk" in c.lower()),
+                df_spk.columns[1]
+            )
             df_spk[spk_col] = df_spk[spk_col].astype(str).str.strip()
             row_spk = df_spk[df_spk[spk_col] == spk]
             if not row_spk.empty:
-                u_col = next((c for c in df_spk.columns if c.strip().upper() == "U"), None)
+                u_col = next(
+                    (c for c in df_spk.columns if c.strip().upper() == "U"),
+                    None
+                )
                 if u_col is None and len(df_spk.columns) > 20:
                     u_col = df_spk.columns[20]
                 if u_col:
@@ -3958,49 +3999,86 @@ def check_spk_berat_hd(spk):
                         limit = float(str(row_spk.iloc[0][u_col]).replace(",", ".").strip())
                     except:
                         limit = None
+
         except Exception as e:
             print(f"Gagal baca SPK CSV: {e}")
 
-        # ── Bad codes HD (scan salah) ─────────────────────────
+        # ── Ambil code scan salah dari SQLite ────────────────
         bad_codes = set()
-        scan_salah_path = SCAN_DIR / "scansalahhd.csv"
-        if scan_salah_path.exists():
-            try:
-                ds = pd.read_csv(scan_salah_path, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
-                ds.columns = ds.columns.str.strip()
-                code_col = next((c for c in ds.columns if c.lower() == "code"), ds.columns[-1])
-                bad_codes = set(ds[code_col].astype(str).str.strip().dropna())
-            except Exception as e:
-                print(f"Gagal baca scan salah HD: {e}")
 
-        # ── Hitung used dari kataloghd (tanpa scan salah) ─────
-        used = 0.0
         try:
-            if os.path.exists(CSV_HD):
-                df_hd = pd.read_csv(CSV_HD, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
-                df_hd.columns = df_hd.columns.str.strip()
-                if "spk" in df_hd.columns and "berat_bersih" in df_hd.columns:
-                    code_col_hd = next((c for c in df_hd.columns if c.lower() == "code"), None)
-                    df_hd["spk"] = df_hd["spk"].astype(str).str.strip()
-                    df_rows = df_hd[df_hd["spk"] == spk]
-                    if code_col_hd:
-                        df_hd[code_col_hd] = df_hd[code_col_hd].astype(str).str.strip()
-                        df_rows = df_rows[~df_rows[code_col_hd].isin(bad_codes)]
-                    for val in df_rows["berat_bersih"]:
-                        try:
-                            used += float(str(val).replace(",", "."))
-                        except:
-                            pass
+            conn = sqlite3.connect(DB_PATH)
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT code
+                FROM scansalahhd
+                WHERE code IS NOT NULL
+            """)
+            bad_codes = {
+                str(row[0]).strip()
+                for row in cur.fetchall()
+                if row[0]
+            }
+            conn.close()
+
+        except Exception as e:
+            print(f"Gagal baca scansalahhd: {e}")
+
+        # ── Hitung total berat dari kataloghd ────────────────
+        used = 0.0
+
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cur = conn.cursor()
+
+            if bad_codes:
+                placeholders = ",".join(["?"] * len(bad_codes))
+
+                sql = f"""
+                    SELECT COALESCE(SUM(berat_bersih), 0)
+                    FROM kataloghd
+                    WHERE TRIM(spk)=?
+                    AND code NOT IN ({placeholders})
+                """
+
+                params = [spk] + list(bad_codes)
+
+            else:
+                sql = """
+                    SELECT COALESCE(SUM(berat_bersih), 0)
+                    FROM kataloghd
+                    WHERE TRIM(spk)=?
+                """
+
+                params = [spk]
+
+            cur.execute(sql, params)
+
+            result = cur.fetchone()
+            used = float(result[0] or 0)
+
+            conn.close()
+
         except Exception as e:
             print(f"Gagal baca kataloghd: {e}")
 
         used = round(used, 2)
-        remaining  = round(limit - used, 2) if limit is not None else None
-        over_limit = (used >= limit) if limit is not None else False
-        return jsonify(spk=spk, limit=limit, used=used,
-                       remaining=remaining, over_limit=over_limit)
+
+        remaining = (
+            round(limit - used, 2)
+            if limit is not None
+            else None
+        )
+        over_limit = (
+            used >= limit
+            if limit is not None
+            else False
+        )
+        return jsonify(spk=spk, limit=limit, used=used, remaining=remaining, over_limit=over_limit)
+
     except Exception as e:
         import traceback
+
         return jsonify(success=False, error=str(e), detail=traceback.format_exc())
         
 # ─── API: RECENT ────────────────────────────────────────────
