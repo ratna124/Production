@@ -842,6 +842,10 @@ input[readonly]:focus {
       {% endif %}
 
       {% if session.get('role') in ('administrator', 'checker') %}
+      <div class="sidebar-section">Stok Checker</div>
+      <a href="/stok_checker" class="sidebar-item {% if active_page == 'stok_checker' %}active{% endif %}">
+        <span class="sidebar-dot"></span>Stok Checker
+      </a>
       <div class="sidebar-section">Scan Transfer</div>
       <a href="/scan_transfer" class="sidebar-item {% if active_page == 'scan_transfer' %}active{% endif %}">
         <span class="sidebar-dot"></span>Scan Transfer

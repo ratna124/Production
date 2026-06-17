@@ -316,6 +316,7 @@ def generate_qr(code):
     qr.make(fit=True)
     return qr.make_image(fill_color="black", back_color="white").convert("RGB")
 
+#LABEL BARCODE
 # ─── LABEL SIZE ─────────────────────────────────────────────
 LABEL_W = 302  
 LABEL_H = 200   
@@ -392,37 +393,47 @@ def generate_label_image(order_id, data, source_route=None):
         customer = "AVAL SAPUAN"
         produk   = "MIXING"
 
-    CELTIC_MAP = {
-    "0": "0", "1": "1", "2": "E", "3": "F", "4": "4",
-    "5": "5", "6": "6", "7": "X", "8": "8", "9": "Y",
-    "10": "U", "11": "V", "12": "S", "17": "z", "18": "m",
-    "P": "b", "M": "v", "20": "T",
+# NOMOR URUT LABEL PER SPK
+    table_map = {
+        "HD": "kataloghd",
+        "POTONG": "katalogpotong",
+        "SISA_POTONG": "katalogsisapotong",
+        "PACKING": "katalogpacking",
+        "SISA_PACK": "katalogsisapack",
+        "MIXING": "katalogmixing",
+        "AVAL_HD": "katalogavalhd",
+        "AVAL_POTONG": "katalogavalpotong",
+        "AVAL_PACKING": "katalogavalpacking",
+        "AVAL_MIXING": "katalogavalmixing",
+        "AVAL_QC": "katalogavalqc"
     }
 
-    def to_celtic(val):
-        s = str(val).strip()
-        if s in CELTIC_MAP:
-            return CELTIC_MAP[s]
-        return "".join(CELTIC_MAP.get(c, c) for c in s)
+    urut_label = ""
 
-    DIVISI_NO_MESIN = {"MIXING", "AVAL_MIXING", "AVAL_QC"}
+    try:
+        table_name = table_map.get(divisi_raw)
+        if table_name and data.get("code") and spk:
+            conn = sqlite3.connect(DB_PATH)
+            c = conn.cursor()
 
-    spk_str = str(spk).strip()
-    spk_last2 = spk_str[-2:] if len(spk_str) >= 2 else spk_str
+            row = c.execute(f"""
+                SELECT COUNT(*)
+                FROM {table_name}
+                WHERE spk = ?
+                AND id <= (
+                        SELECT id
+                        FROM {table_name}
+                        WHERE code = ?
+                        LIMIT 1
+                )
+            """, (spk, data["code"])).fetchone()
+            conn.close()
+            if row:
+                urut_label = f"#{row[0]:03d}"
 
-    if len(spk_last2) == 1:
-        d1 = to_celtic(spk_last2)
-        d2 = to_celtic(spk_last2)
-    else:
-        d1 = to_celtic(spk_last2[0])
-        d2 = to_celtic(spk_last2[1])
-
-    if divisi_raw in DIVISI_NO_MESIN:
-        d3 = to_celtic(shift)
-    else:
-        d3 = to_celtic(str(mesin).strip()) if mesin else ""
-    
-    celtic_str = " ".join(filter(None, [d1, d2, d3]))    
+    except Exception as e:
+        print("Nomor urut label:", e)
+        urut_label = ""   
     
     padding_top = 7 * SCALE
 
@@ -441,12 +452,6 @@ def generate_label_image(order_id, data, source_route=None):
     total_h = (n_rows - 1) * gap + 13 * SCALE
     qr_center = padding_top + qr_size // 2
     y         = qr_center - total_h // 2
-
-    CELTIC_FONT_PATH = r"Z:\Checker\Production\Production\templates\celtic-astrologer\CelticAstrologer.ttf"
-    try:
-        celtic_font = ImageFont.truetype(CELTIC_FONT_PATH, 16 * SCALE)
-    except:
-        celtic_font = font_md
 
     # Baris 1: Customer  Produk
     draw.text((x, y), f"{customer}    {produk}", fill=0, font=font_md)
@@ -499,12 +504,15 @@ def generate_label_image(order_id, data, source_route=None):
     y += gap
     draw.text((x, y), created, fill=0, font=font_md)
         
-    # Celtic — sejajar baris terakhir, rata kanan
-    celtic_bbox = draw.textbbox((0, 0), celtic_str, font=celtic_font)
-    celtic_w    = celtic_bbox[2] - celtic_bbox[0]
-    celtic_x    = LABEL_W_HI - celtic_w - (4 * SCALE)
-    celtic_y = y - (2 * SCALE)
-    draw.text((celtic_x, celtic_y), celtic_str, fill=0, font=celtic_font)
+    # Celtic / Nomor urut label per SPK
+    if urut_label:
+        urut_font = font_lg
+        urut_bbox = draw.textbbox((0, 0), urut_label, font=urut_font)
+        urut_w    = urut_bbox[2] - urut_bbox[0]
+        urut_x = LABEL_W_HI - urut_w - (4 * SCALE)
+        urut_y = y - (2 * SCALE)
+
+        draw.text((urut_x, urut_y), urut_label, fill=0, font=urut_font)
     return img
 
 @app.route("/label/<order_id>")
@@ -522,6 +530,7 @@ def label(order_id):
     buf.seek(0)
     return send_file(buf, mimetype="image/png")
 
+#LABEL BARCODE
 @app.route("/label/print/<order_id>")
 @login_required
 def label_print(order_id):
@@ -1259,6 +1268,12 @@ def aval_packing():
 @checker_required
 def aval_qc():
     return render_template("aval_qc.html", active_page="aval_qc", current_user=session.get("name"))
+
+@app.route("/stok_checker")
+@login_required
+@checker_required
+def stok_checker():
+    return render_template("stok_checker.html", active_page="stok_checker", current_user=session.get("name"))
 
 # ADMIN WIP
 @app.route("/summary_spk")
@@ -4080,6 +4095,165 @@ def check_spk_berat_hd(spk):
         import traceback
 
         return jsonify(success=False, error=str(e), detail=traceback.format_exc())
+    
+def _build_stok_opname(divisi_key):
+    """
+    divisi_key: "hd" atau "potong"
+    Return list of dict: tanggal, shift, spk, customer, produk, uk,
+                          input_count, input_qty,
+                          transfer_count, transfer_qty,
+                          sisa_count, sisa_qty
+    Grouping: per SPK + Tanggal + Shift
+    Input dikecualikan code yang ada di scan_salah terkait.
+    """
+    config = {
+        "hd": {
+            "katalog_table": "kataloghd",
+            "scansalah_table": "scansalahhd",
+            "transfer_table": "scantransferhd",
+        },
+        "potong": {
+            "katalog_table": "katalogpotong",
+            "scansalah_table": "scansalahpotong",
+            "transfer_table": "scantransferpotong",
+        },
+    }.get(divisi_key)
+
+    if not config:
+        return []
+
+    katalog_table   = config["katalog_table"]
+    scansalah_table = config["scansalah_table"]
+    transfer_table  = config["transfer_table"]
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    # ── Ambil semua code yang masuk scan_salah untuk divisi ini ──
+    c.execute(f"SELECT code FROM {scansalah_table} WHERE code IS NOT NULL")
+    bad_codes = {str(r[0]).strip().upper() for r in c.fetchall() if r[0]}
+
+    # ── Ambil semua baris katalog (INPUT) ──
+    c.execute(f"""
+        SELECT tanggal, shift, spk, customer, produk, uk, code, berat_bersih
+        FROM {katalog_table}
+    """)
+    katalog_rows = c.fetchall()
+
+    # ── Ambil semua baris transfer ──
+    c.execute(f"""
+        SELECT tanggal, shift, spk, customer, produk, uk, code, berat_bersih
+        FROM {transfer_table}
+    """)
+    transfer_rows = c.fetchall()
+
+    conn.close()
+
+    # ── Agregasi INPUT per (tanggal, shift, spk) ──
+    summary = {}
+
+    def get_bucket(tanggal, shift, spk, customer, produk, uk):
+        key = (str(tanggal or "").strip(), str(shift or "").strip(), str(spk or "").strip())
+        if key not in summary:
+            summary[key] = {
+                "tanggal": key[0],
+                "shift": key[1],
+                "spk": key[2],
+                "customer": customer or "",
+                "produk": produk or "",
+                "uk": uk or "",
+                "input_count": 0,
+                "input_qty": 0.0,
+                "transfer_count": 0,
+                "transfer_qty": 0.0,
+            }
+        return summary[key]
+
+    for row in katalog_rows:
+        r = dict(row)
+        code = str(r.get("code", "") or "").strip().upper()
+        if code in bad_codes:
+            continue  # skip data yang masuk scan_salah
+
+        bucket = get_bucket(
+            r.get("tanggal"), r.get("shift"), r.get("spk"),
+            r.get("customer"), r.get("produk"), r.get("uk")
+        )
+        bucket["input_count"] += 1
+        try:
+            bucket["input_qty"] += float(r.get("berat_bersih") or 0)
+        except (TypeError, ValueError):
+            pass
+
+    for row in transfer_rows:
+        r = dict(row)
+        bucket = get_bucket(
+            r.get("tanggal"), r.get("shift"), r.get("spk"),
+            r.get("customer"), r.get("produk"), r.get("uk")
+        )
+        bucket["transfer_count"] += 1
+        try:
+            bucket["transfer_qty"] += float(r.get("berat_bersih") or 0)
+        except (TypeError, ValueError):
+            pass
+
+    # ── Hitung SISA & susun hasil akhir ──
+    result = []
+    for bucket in summary.values():
+        sisa_count = bucket["input_count"] - bucket["transfer_count"]
+        sisa_qty   = round(bucket["input_qty"] - bucket["transfer_qty"], 2)
+        result.append({
+            "tanggal":        bucket["tanggal"],
+            "shift":          bucket["shift"],
+            "spk":            bucket["spk"],
+            "customer":       bucket["customer"],
+            "produk":         bucket["produk"],
+            "uk":             bucket["uk"],
+            "input_count":    bucket["input_count"],
+            "input_qty":      round(bucket["input_qty"], 2),
+            "transfer_count": bucket["transfer_count"],
+            "transfer_qty":   round(bucket["transfer_qty"], 2),
+            "sisa_count":     sisa_count,
+            "sisa_qty":       sisa_qty,
+        })
+
+    # Urutkan: tanggal terbaru dulu, lalu shift, lalu SPK
+    def sort_key(r):
+        # tanggal disimpan format DD-MM-YYYY -> ubah jadi YYYY-MM-DD biar sortable
+        t = r["tanggal"]
+        try:
+            d, m, y = t.split("-")
+            t_sort = f"{y}-{m}-{d}"
+        except Exception:
+            t_sort = t
+        return (t_sort, r["shift"], r["spk"])
+
+    result.sort(key=sort_key, reverse=True)
+    return result
+
+
+@app.route("/api/stok_opname/hd")
+@login_required
+def api_stok_opname_hd():
+    try:
+        data = _build_stok_opname("hd")
+        return jsonify(data)
+    except Exception as e:
+        print("ERROR api_stok_opname_hd:", e)
+        return jsonify([])
+
+
+@app.route("/api/stok_opname/potong")
+@login_required
+def api_stok_opname_potong():
+    try:
+        data = _build_stok_opname("potong")
+        return jsonify(data)
+    except Exception as e:
+        print("ERROR api_stok_opname_potong:", e)
+        return jsonify([])
+    
         
 # ─── API: RECENT ────────────────────────────────────────────
 @app.route("/api/recent/<divisi>")
