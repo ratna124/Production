@@ -4096,15 +4096,56 @@ def check_spk_berat_hd(spk):
 
         return jsonify(success=False, error=str(e), detail=traceback.format_exc())
     
+# ── Helper sorting kronologis untuk stok opname (taruh sebelum _build_stok_opname) ──
+def _tanggal_sort_key(tanggal_str):
+    """DD-MM-YYYY -> YYYY-MM-DD biar bisa diurutkan. Gagal parse -> dianggap paling lama."""
+    try:
+        d, m, y = str(tanggal_str).strip().split("-")
+        return f"{y}-{m}-{d}"
+    except Exception:
+        return "0000-00-00"
+
+
+# Urutan shift dalam satu hari produksi: Pagi (P) -> Malam (M)
+SHIFT_ORDER = {"P": 0, "PAGI": 0, "M": 1, "MALAM": 1}
+
+
+def _shift_sort_key(shift_str):
+    s = str(shift_str or "").strip().upper()
+    return SHIFT_ORDER.get(s, 99)
+
+
 def _build_stok_opname(divisi_key):
     """
     divisi_key: "hd" atau "potong"
-    Return list of dict: tanggal, shift, spk, customer, produk, uk,
-                          input_count, input_qty,
-                          transfer_count, transfer_qty,
-                          sisa_count, sisa_qty
-    Grouping: per SPK + Tanggal + Shift
-    Input dikecualikan code yang ada di scan_salah terkait.
+
+    FIFO running balance per SPK. Transfer tidak tahu barang itu hasil
+    produksi shift/tanggal mana, jadi transfer pada suatu shift dialokasikan
+    dulu dari saldo SPK yang sudah terkumpul sebelumnya (carry over),
+    baru sisanya dari input shift itu sendiri. Dengan ini "sisa" tidak akan
+    pernah minus secara membingungkan -- kalau transfer > input shift ini,
+    kelebihannya otomatis ditandai sebagai carry over dari stok lama.
+
+    Untuk COUNT (jumlah roll/keranjang) TIDAK dipakai logika FIFO carry-over
+    yang sama seperti qty (kg). Alasannya: count itu satuan utuh (unit fisik),
+    sedangkan tiap unit bisa beda berat -- jadi "carry-over count" tidak selalu
+    masuk akal secara fisik (1 unit besar belum tentu bisa menutupi 3 unit
+    kecil meski total kg-nya cukup). Count cukup dihitung sebagai saldo
+    berjalan sederhana: akumulasi input_count dikurangi akumulasi
+    transfer_count per SPK, berjalan sejalan urutan kronologis yang sama.
+
+    Return per baris (per tanggal+shift+spk, urut kronologis per SPK):
+        tanggal, shift, spk, customer, produk, uk,
+        input_count, input_qty,
+        transfer_count, transfer_qty,
+        transfer_dari_shift_ini,        -> qty (kg) transfer yg dipenuhi dari input shift ini
+        transfer_dari_stok_lama,        -> qty (kg) transfer yg narik dari saldo sebelumnya (carry over)
+        saldo_sebelum,                  -> saldo qty (kg) SPK sebelum shift ini berjalan
+        saldo_akhir,                    -> saldo qty (kg) SPK setelah input & transfer shift ini
+        saldo_count_sebelum,            -> saldo jumlah unit SPK sebelum shift ini (running total sederhana)
+        saldo_count_akhir,              -> saldo jumlah unit SPK setelah shift ini (running total sederhana)
+        sisa_count, sisa_qty            -> kompatibilitas field lama
+                                            (sisa_qty = saldo_akhir, sisa_count = saldo_count_akhir)
     """
     config = {
         "hd": {
@@ -4130,18 +4171,15 @@ def _build_stok_opname(divisi_key):
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
-    # ── Ambil semua code yang masuk scan_salah untuk divisi ini ──
     c.execute(f"SELECT code FROM {scansalah_table} WHERE code IS NOT NULL")
     bad_codes = {str(r[0]).strip().upper() for r in c.fetchall() if r[0]}
 
-    # ── Ambil semua baris katalog (INPUT) ──
     c.execute(f"""
         SELECT tanggal, shift, spk, customer, produk, uk, code, berat_bersih
         FROM {katalog_table}
     """)
     katalog_rows = c.fetchall()
 
-    # ── Ambil semua baris transfer ──
     c.execute(f"""
         SELECT tanggal, shift, spk, customer, produk, uk, code, berat_bersih
         FROM {transfer_table}
@@ -4150,13 +4188,12 @@ def _build_stok_opname(divisi_key):
 
     conn.close()
 
-    # ── Agregasi INPUT per (tanggal, shift, spk) ──
-    summary = {}
+    buckets = {}
 
     def get_bucket(tanggal, shift, spk, customer, produk, uk):
         key = (str(tanggal or "").strip(), str(shift or "").strip(), str(spk or "").strip())
-        if key not in summary:
-            summary[key] = {
+        if key not in buckets:
+            buckets[key] = {
                 "tanggal": key[0],
                 "shift": key[1],
                 "spk": key[2],
@@ -4168,13 +4205,20 @@ def _build_stok_opname(divisi_key):
                 "transfer_count": 0,
                 "transfer_qty": 0.0,
             }
-        return summary[key]
+        b = buckets[key]
+        if not b["customer"] and customer:
+            b["customer"] = customer
+        if not b["produk"] and produk:
+            b["produk"] = produk
+        if not b["uk"] and uk:
+            b["uk"] = uk
+        return b
 
     for row in katalog_rows:
         r = dict(row)
         code = str(r.get("code", "") or "").strip().upper()
         if code in bad_codes:
-            continue  # skip data yang masuk scan_salah
+            continue
 
         bucket = get_bucket(
             r.get("tanggal"), r.get("shift"), r.get("spk"),
@@ -4198,40 +4242,92 @@ def _build_stok_opname(divisi_key):
         except (TypeError, ValueError):
             pass
 
-    # ── Hitung SISA & susun hasil akhir ──
-    result = []
-    for bucket in summary.values():
-        sisa_count = bucket["input_count"] - bucket["transfer_count"]
-        sisa_qty   = round(bucket["input_qty"] - bucket["transfer_qty"], 2)
-        result.append({
-            "tanggal":        bucket["tanggal"],
-            "shift":          bucket["shift"],
-            "spk":            bucket["spk"],
-            "customer":       bucket["customer"],
-            "produk":         bucket["produk"],
-            "uk":             bucket["uk"],
-            "input_count":    bucket["input_count"],
-            "input_qty":      round(bucket["input_qty"], 2),
-            "transfer_count": bucket["transfer_count"],
-            "transfer_qty":   round(bucket["transfer_qty"], 2),
-            "sisa_count":     sisa_count,
-            "sisa_qty":       sisa_qty,
-        })
+    by_spk = {}
+    for b in buckets.values():
+        by_spk.setdefault(b["spk"], []).append(b)
 
-    # Urutkan: tanggal terbaru dulu, lalu shift, lalu SPK
+    result = []
+    for spk, rows in by_spk.items():
+        rows.sort(key=lambda b: (_tanggal_sort_key(b["tanggal"]), _shift_sort_key(b["shift"])))
+
+        saldo = 0.0
+        saldo_count = 0
+        for b in rows:
+            saldo_sebelum = round(saldo, 2)
+            saldo += b["input_qty"]
+
+            saldo_count_sebelum = saldo_count
+            saldo_count += b["input_count"]
+
+            transfer_qty = b["transfer_qty"]
+            dari_shift_ini = min(transfer_qty, b["input_qty"])
+            dari_stok_lama = round(transfer_qty - dari_shift_ini, 2)
+            dari_shift_ini = round(dari_shift_ini, 2)
+
+            transfer_count = b["transfer_count"]
+
+            saldo -= transfer_qty
+            saldo_akhir = round(saldo, 2)
+
+            saldo_count -= transfer_count
+            saldo_count_akhir = saldo_count
+
+            result.append({
+                "tanggal":        b["tanggal"],
+                "shift":          b["shift"],
+                "spk":            b["spk"],
+                "customer":       b["customer"],
+                "produk":         b["produk"],
+                "uk":             b["uk"],
+                "input_count":    b["input_count"],
+                "input_qty":      round(b["input_qty"], 2),
+                "transfer_count": transfer_count,
+                "transfer_qty":   round(transfer_qty, 2),
+                "transfer_dari_shift_ini": dari_shift_ini,
+                "transfer_dari_stok_lama": dari_stok_lama,
+                "saldo_sebelum":  saldo_sebelum,
+                "saldo_akhir":    saldo_akhir,
+                "saldo_count_sebelum": saldo_count_sebelum,
+                "saldo_count_akhir":   saldo_count_akhir,
+                "sisa_count":     saldo_count_akhir,
+                "sisa_qty":       saldo_akhir,
+            })
+
     def sort_key(r):
-        # tanggal disimpan format DD-MM-YYYY -> ubah jadi YYYY-MM-DD biar sortable
-        t = r["tanggal"]
-        try:
-            d, m, y = t.split("-")
-            t_sort = f"{y}-{m}-{d}"
-        except Exception:
-            t_sort = t
-        return (t_sort, r["shift"], r["spk"])
+        return (_tanggal_sort_key(r["tanggal"]), _shift_sort_key(r["shift"]), r["spk"])
 
     result.sort(key=sort_key, reverse=True)
     return result
 
+
+def _build_stok_ringkasan(divisi_key):
+
+    rows = _build_stok_opname(divisi_key)
+
+    # rows sudah urut tanggal+shift TERBARU dulu (reverse=True di _build_stok_opname),
+    # jadi baris pertama yang ditemui untuk tiap SPK adalah baris paling baru -> saldo akhir terkini.
+    latest_per_spk = {}
+    for r in rows:
+        spk = r["spk"]
+        if spk not in latest_per_spk:
+            latest_per_spk[spk] = r
+
+    result = []
+    for spk, r in latest_per_spk.items():
+        stok_qty = r["saldo_akhir"]
+        if stok_qty is None or stok_qty <= 0:
+            continue  # sembunyikan yg sudah habis/minus, biar ringkas
+        result.append({
+            "spk":        r["spk"],
+            "customer":   r["customer"],
+            "produk":     r["produk"],
+            "uk":         r["uk"],
+            "stok_count": r["saldo_count_akhir"],
+            "stok_qty":   stok_qty,
+        })
+
+    result.sort(key=lambda r: r["stok_qty"], reverse=True)
+    return result
 
 @app.route("/api/stok_opname/hd")
 @login_required
@@ -4253,7 +4349,30 @@ def api_stok_opname_potong():
     except Exception as e:
         print("ERROR api_stok_opname_potong:", e)
         return jsonify([])
-    
+
+
+@app.route("/api/stok_ringkasan/hd")
+@login_required
+def api_stok_ringkasan_hd():
+    try:
+        data = _build_stok_ringkasan("hd")
+        return jsonify(data)
+    except Exception as e:
+        print("ERROR api_stok_ringkasan_hd:", e)
+        return jsonify([])
+
+
+@app.route("/api/stok_ringkasan/potong")
+@login_required
+def api_stok_ringkasan_potong():
+    try:
+        data = _build_stok_ringkasan("potong")
+        return jsonify(data)
+    except Exception as e:
+        print("ERROR api_stok_ringkasan_potong:", e)
+        return jsonify([])
+
+
         
 # ─── API: RECENT ────────────────────────────────────────────
 @app.route("/api/recent/<divisi>")

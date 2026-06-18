@@ -30,6 +30,7 @@
       --gray5: #aaa;
       --success: #22c55e;
       --danger: #ef4444;
+      --info: #60a5fa;
       --border: #2e2e2e;
       --radius: 4px;
       --font-sans: 'IBM Plex Sans', sans-serif;
@@ -45,7 +46,6 @@
       line-height: 1.5;
     }
 
-    /* ── LAYOUT ────────────────────────────────────────── */
     .shell {
       display: grid;
       grid-template-columns: 260px 1fr;
@@ -53,7 +53,6 @@
       min-height: 100vh;
     }
 
-    /* ── TOPBAR ────────────────────────────────────────── */
     .topbar {
       grid-column: 1 / -1;
       background: var(--gray1);
@@ -113,7 +112,6 @@
       color: var(--white);
     }
 
-    /* ── SIDEBAR ────────────────────────────────────────── */
     .sidebar {
       background: var(--gray1);
       border-right: 1px solid var(--border);
@@ -168,7 +166,6 @@
       background: var(--accent);
     }
 
-    /* ── MAIN CONTENT ───────────────────────────────────── */
     .main {
       overflow-y: auto;
       padding: 32px 40px;
@@ -195,7 +192,6 @@
       color: var(--gray4);
     }
 
-    /* ── CARD ──────────────────────────────────────────── */
     .card {
       background: var(--gray1);
       border: 1px solid var(--border);
@@ -239,7 +235,34 @@
       color: var(--gray4);
     }
 
-    /* ── FILTER BAR ────────────────────────────────────── */
+    .legend {
+      display: flex;
+      gap: 16px;
+      padding: 10px 16px;
+      background: #111;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      font-size: 11px;
+      color: var(--gray4);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-dot.carry { background: var(--accent2); }
+    .legend-dot.ok { background: var(--success); }
+    .legend-dot.warn { background: var(--danger); }
+
     .filter-bar {
       display: flex;
       gap: 10px;
@@ -301,9 +324,14 @@
       color: var(--white);
     }
 
-    /* ── TABLE ─────────────────────────────────────────── */
     .table-wrap {
       max-height: 460px;
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+
+    .ringkasan-table-wrap {
+      max-height: 360px;
       overflow-y: auto;
       overflow-x: auto;
     }
@@ -334,7 +362,7 @@
     }
 
     th.group-input { color: var(--accent2); }
-    th.group-transfer { color: #60a5fa; }
+    th.group-transfer { color: var(--info); }
     th.group-sisa { color: var(--success); }
 
     td {
@@ -355,10 +383,11 @@
     }
 
     td.col-input { color: var(--accent2); }
-    td.col-transfer { color: #60a5fa; }
+    td.col-transfer { color: var(--info); }
     td.col-sisa { font-weight: 500; }
     td.col-sisa.positive { color: var(--success); }
     td.col-sisa.negative { color: var(--danger); }
+    td.col-sisa.zero { color: var(--gray5); }
 
     tr:hover td {
       background: rgba(255, 255, 255, 0.02);
@@ -375,13 +404,71 @@
       border: 1px solid rgba(232, 66, 10, 0.2);
     }
 
+    .badge-carry {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      background: rgba(245, 166, 35, 0.12);
+      color: var(--accent2);
+      border: 1px solid rgba(245, 166, 35, 0.25);
+      white-space: nowrap;
+    }
+
+    .badge-ok {
+      display: inline-flex;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+
+    .badge-warn {
+      display: inline-flex;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    .badge-info {
+      display: inline-flex;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      background: rgba(96, 165, 250, 0.1);
+      color: var(--info);
+      border: 1px solid rgba(96, 165, 250, 0.2);
+    }
+
     .empty-row td {
       text-align: center;
       color: var(--gray4);
       padding: 28px;
     }
 
-    /* ── RESPONSIVE ───────────────────────────────────────── */
+    .error-row td {
+      text-align: center;
+      color: var(--danger);
+      padding: 28px;
+    }
+
+    .ringkasan-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
     @media (max-width: 900px) {
       .shell {
         grid-template-columns: 1fr;
@@ -399,13 +486,17 @@
       .filter-bar select {
         min-width: 100px;
       }
+
+      .ringkasan-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 
 <body>
   <div class="shell">
-    <!-- ── TOPBAR ── -->
+    <!-- TOPBAR -->
     <header class="topbar">
       <span class="topbar-logo">&#9632; Garindra Plastik</span>
       <span class="topbar-sep"></span>
@@ -418,7 +509,7 @@
       </div>
     </header>
 
-    <!-- ── SIDEBAR ── -->
+    <!-- SIDEBAR -->
     <aside class="sidebar">
       {% if session.get('role') in 'administrator' %}
       <div class="sidebar-section">Production Input</div>
@@ -487,19 +578,86 @@
       </a>
     </aside>
 
-    <!-- ── MAIN ── -->
+    <!-- MAIN -->
     <main class="main">
       <div class="page-header">
         <h1 class="page-title">Stok Checker</h1>
         <span class="page-sub">Summary Stok Checker</span>
       </div>
 
-      <!-- ════════════ TABEL HD ════════════ -->
+      <!-- RINGKASAN STOK (ROLL & KERANJANG) -->
+      <div class="ringkasan-grid">
+        <!-- Stok Roll (HD) -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-header-num">R</span>
+            <span class="card-header-title">Stok Roll (HD)</span>
+            <span class="card-header-meta" id="ringkasan-hd-meta"></span>
+          </div>
+          <div class="filter-bar">
+            <input id="ringkasan-hd-search-spk" type="text" placeholder="Cari SPK...">
+          </div>
+          <div class="ringkasan-table-wrap">
+            <table id="ringkasan-hd-table">
+              <thead>
+                <tr>
+                  <th>No SPK</th>
+                  <th>Customer</th>
+                  <th>Produk</th>
+                  <th>UK</th>
+                  <th class="group-sisa">Stok Roll</th>
+                  <th class="group-sisa">Stok (kg)</th>
+                </tr>
+              </thead>
+              <tbody id="ringkasan-hd-body">
+                <tr class="empty-row"><td colspan="6">Memuat data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Stok Keranjang (Potong) -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-header-num">K</span>
+            <span class="card-header-title">Stok Keranjang (Potong)</span>
+            <span class="card-header-meta" id="ringkasan-potong-meta"></span>
+          </div>
+          <div class="filter-bar">
+            <input id="ringkasan-potong-search-spk" type="text" placeholder="Cari SPK...">
+          </div>
+          <div class="ringkasan-table-wrap">
+            <table id="ringkasan-potong-table">
+              <thead>
+                <tr>
+                  <th>No SPK</th>
+                  <th>Customer</th>
+                  <th>Produk</th>
+                  <th>UK</th>
+                  <th class="group-sisa">Stok Keranjang</th>
+                  <th class="group-sisa">Stok (kg)</th>
+                </tr>
+              </thead>
+              <tbody id="ringkasan-potong-body">
+                <tr class="empty-row"><td colspan="6">Memuat data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABEL HD -->
       <div class="card">
         <div class="card-header">
           <span class="card-header-num">1</span>
           <span class="card-header-title">Stok HD</span>
           <span class="card-header-meta" id="hd-meta"></span>
+        </div>
+
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot ok"></span> Saldo SPK aman</div>
+          <div class="legend-item"><span class="legend-dot carry"></span> Sebagian transfer (kg) dari stok shift/tanggal sebelumnya</div>
+          <div class="legend-item"><span class="legend-dot warn"></span> Saldo kg atau unit minus</div>
         </div>
 
         <div class="filter-bar">
@@ -526,23 +684,30 @@
                 <th class="group-input">Roll Qty (kg)</th>
                 <th class="group-transfer">Transfer</th>
                 <th class="group-transfer">Transfer Qty (kg)</th>
-                <th class="group-sisa">Sisa Roll</th>
-                <th class="group-sisa">Sisa Roll Qty (kg)</th>
+                <th class="group-transfer">Sumber Transfer</th>
+                <th class="group-sisa">Saldo Roll</th>
+                <th class="group-sisa">Saldo (kg)</th>
               </tr>
             </thead>
             <tbody id="hd-body">
-              <tr class="empty-row"><td colspan="11">Memuat data...</td></tr>
+              <tr class="empty-row"><td colspan="12">Memuat data...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- ════════════ TABEL POTONG ════════════ -->
+      <!-- TABEL POTONG -->
       <div class="card">
         <div class="card-header">
           <span class="card-header-num">2</span>
           <span class="card-header-title">Stok Potong</span>
           <span class="card-header-meta" id="potong-meta"></span>
+        </div>
+
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot ok"></span> Saldo SPK aman</div>
+          <div class="legend-item"><span class="legend-dot carry"></span> Sebagian transfer (kg) dari stok shift/tanggal sebelumnya</div>
+          <div class="legend-item"><span class="legend-dot warn"></span> Saldo kg atau unit minus</div>
         </div>
 
         <div class="filter-bar">
@@ -569,12 +734,13 @@
                 <th class="group-input">Keranjang Qty (kg)</th>
                 <th class="group-transfer">Transfer</th>
                 <th class="group-transfer">Transfer Qty (kg)</th>
-                <th class="group-sisa">Sisa Stok</th>
-                <th class="group-sisa">Sisa Stok Qty (kg)</th>
+                <th class="group-transfer">Sumber Transfer</th>
+                <th class="group-sisa">Saldo Keranjang</th>
+                <th class="group-sisa">Saldo (kg)</th>
               </tr>
             </thead>
             <tbody id="potong-body">
-              <tr class="empty-row"><td colspan="11">Memuat data...</td></tr>
+              <tr class="empty-row"><td colspan="12">Memuat data...</td></tr>
             </tbody>
           </table>
         </div>
@@ -583,40 +749,81 @@
   </div>
 
   <script>
-    // ─── STATE ────────────────────────────────────────────────────
+    // STATE
     const state = {
       hd: { all: [], timeout: null },
       potong: { all: [], timeout: null },
     };
 
-    // ─── INIT ─────────────────────────────────────────────────────
+    const ringkasanState = {
+      hd: { all: [], timeout: null },
+      potong: { all: [], timeout: null },
+    };
+
+    // INIT
     document.addEventListener("DOMContentLoaded", function () {
       loadDivisi("hd");
       loadDivisi("potong");
+      loadRingkasan("hd");
+      loadRingkasan("potong");
 
       ["hd", "potong"].forEach(div => {
         document.getElementById(`${div}-search-date`).addEventListener("input", () => autoFilter(div));
         document.getElementById(`${div}-search-spk`).addEventListener("input", () => autoFilter(div));
         document.getElementById(`${div}-search-shift`).addEventListener("change", () => autoFilter(div));
+
+        document.getElementById(`ringkasan-${div}-search-spk`).addEventListener("input", () => autoFilterRingkasan(div));
       });
 
-      // auto-refresh tiap 60 detik biar data selalu up to date
       setInterval(() => {
         loadDivisi("hd");
         loadDivisi("potong");
+        loadRingkasan("hd");
+        loadRingkasan("potong");
       }, 60000);
     });
 
-    // ─── LOAD DATA ────────────────────────────────────────────────
+    // LOAD DATA: TABEL DETAIL PER SHIFT
     async function loadDivisi(div) {
+      const tbody = document.getElementById(`${div}-body`);
       try {
         const res = await fetch(`/api/stok_opname/${div}`);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
         const rows = await res.json();
-        state[div].all = rows || [];
-        renderTable(div, state[div].all);
-        updateMeta(div, state[div].all);
+        if (!Array.isArray(rows)) {
+          throw new Error("Format respons tidak sesuai");
+        }
+        state[div].all = rows;
+        filterTable(div);
       } catch (e) {
         console.error(`Load error (${div}):`, e);
+        state[div].all = [];
+        tbody.innerHTML = `<tr class="error-row"><td colspan="12">Gagal memuat data. Coba refresh halaman.</td></tr>`;
+        updateMeta(div, []);
+      }
+    }
+
+    // LOAD DATA: RINGKASAN STOK
+    async function loadRingkasan(div) {
+      const tbody = document.getElementById(`ringkasan-${div}-body`);
+      try {
+        const res = await fetch(`/api/stok_ringkasan/${div}`);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const rows = await res.json();
+        if (!Array.isArray(rows)) {
+          throw new Error("Format respons tidak sesuai");
+        }
+        ringkasanState[div].all = rows;
+        filterRingkasanTable(div);
+      } catch (e) {
+        console.error(`Load ringkasan error (${div}):`, e);
+        ringkasanState[div].all = [];
+        tbody.innerHTML = `<tr class="error-row"><td colspan="6">Gagal memuat data. Coba refresh halaman.</td></tr>`;
+        updateRingkasanMeta(div, []);
       }
     }
 
@@ -626,32 +833,92 @@
       meta.textContent = `${rows.length} baris`;
     }
 
-    // ─── RENDER ───────────────────────────────────────────────────
+    function updateRingkasanMeta(div, rows) {
+      const meta = document.getElementById(`ringkasan-${div}-meta`);
+      if (!meta) return;
+      meta.textContent = `${rows.length} SPK`;
+    }
+
+    // RENDER: TABEL DETAIL PER SHIFT
     function renderTable(div, data) {
       const tbody = document.getElementById(`${div}-body`);
       if (!data.length) {
-        tbody.innerHTML = `<tr class="empty-row"><td colspan="11">Tidak ada data</td></tr>`;
+        tbody.innerHTML = `<tr class="empty-row"><td colspan="12">Tidak ada data</td></tr>`;
         return;
       }
 
       tbody.innerHTML = data.map(r => {
-        const sisaQtyClass = r.sisa_qty > 0 ? "positive" : (r.sisa_qty < 0 ? "negative" : "");
+        const saldoAkhir = parseFloat(r.saldo_akhir ?? r.sisa_qty ?? 0) || 0;
+        const saldoCountAkhir = parseInt(r.saldo_count_akhir ?? r.sisa_count ?? 0) || 0;
+        const dariStokLama = parseFloat(r.transfer_dari_stok_lama || 0) || 0;
+
+        let sisaQtyClass = "zero";
+        if (saldoAkhir > 0) sisaQtyClass = "positive";
+        else if (saldoAkhir < 0) sisaQtyClass = "negative";
+
+        let sisaCountClass = "zero";
+        if (saldoCountAkhir > 0) sisaCountClass = "positive";
+        else if (saldoCountAkhir < 0) sisaCountClass = (saldoAkhir < 0 ? "negative" : "");
+
+        let sumberBadge = `<span class="badge-ok">shift sekarang</span>`;
+        if (dariStokLama > 0) {
+          sumberBadge = `<span class="badge-carry">&#9888; carry-over ${formatNum(dariStokLama)} kg</span>`;
+        }
+        if (saldoAkhir < 0) {
+          sumberBadge += ` <span class="badge-warn">saldo kg minus</span>`;
+        } else if (saldoCountAkhir < 0) {
+          sumberBadge += ` <span class="badge-info">unit tidak pas, cek kg</span>`;
+        }
+
         return `
           <tr>
-            <td>${r.tanggal || ""}</td>
-            <td><span class="badge-shift">${r.shift || ""}</span></td>
-            <td class="mono">${r.spk || ""}</td>
-            <td>${r.produk || ""}</td>
-            <td>${r.uk || ""}</td>
+            <td>${escapeHtml(r.tanggal)}</td>
+            <td><span class="badge-shift">${escapeHtml(r.shift)}</span></td>
+            <td class="mono">${escapeHtml(r.spk)}</td>
+            <td>${escapeHtml(r.produk)}</td>
+            <td>${escapeHtml(r.uk)}</td>
             <td class="num col-input">${r.input_count ?? 0}</td>
             <td class="num col-input">${formatNum(r.input_qty)}</td>
             <td class="num col-transfer">${r.transfer_count ?? 0}</td>
             <td class="num col-transfer">${formatNum(r.transfer_qty)}</td>
-            <td class="num col-sisa ${sisaQtyClass}">${r.sisa_count ?? 0}</td>
-            <td class="num col-sisa ${sisaQtyClass}">${formatNum(r.sisa_qty)}</td>
+            <td>${sumberBadge}</td>
+            <td class="num col-sisa ${sisaCountClass}">${saldoCountAkhir}</td>
+            <td class="num col-sisa ${sisaQtyClass}">${formatNum(saldoAkhir)}</td>
           </tr>
         `;
       }).join("");
+    }
+
+    // RENDER: RINGKASAN STOK
+    function renderRingkasanTable(div, data) {
+      const tbody = document.getElementById(`ringkasan-${div}-body`);
+      if (!data.length) {
+        tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Tidak ada stok</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map(r => {
+        const stokCount = parseInt(r.stok_count ?? 0) || 0;
+        const stokCountClass = stokCount < 0 ? "" : "positive";
+        return `
+          <tr>
+            <td class="mono">${escapeHtml(r.spk)}</td>
+            <td>${escapeHtml(r.customer)}</td>
+            <td>${escapeHtml(r.produk)}</td>
+            <td>${escapeHtml(r.uk)}</td>
+            <td class="num col-sisa ${stokCountClass}">${stokCount}</td>
+            <td class="num col-sisa positive">${formatNum(r.stok_qty)}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function escapeHtml(v) {
+      if (v === null || v === undefined) return "";
+      return String(v)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
     }
 
     function formatNum(v) {
@@ -660,27 +927,33 @@
       return n.toFixed(2);
     }
 
-    // ─── FILTER ───────────────────────────────────────────────────
+    // FILTER: TABEL DETAIL PER SHIFT
     function filterTable(div) {
-      const dateVal = document.getElementById(`${div}-search-date`).value;
-      const spkVal = document.getElementById(`${div}-search-spk`).value.toLowerCase().trim();
-      const shiftVal = document.getElementById(`${div}-search-shift`).value;
+      const dateEl = document.getElementById(`${div}-search-date`);
+      const spkEl = document.getElementById(`${div}-search-spk`);
+      const shiftEl = document.getElementById(`${div}-search-shift`);
 
-      let filtered = state[div].all;
+      const dateVal = dateEl ? dateEl.value.trim() : "";
+      const spkVal = spkEl ? spkEl.value.toLowerCase().trim() : "";
+      const shiftVal = shiftEl ? shiftEl.value.trim() : "";
+
+      let filtered = state[div].all.slice();
 
       if (spkVal) {
         filtered = filtered.filter(r => (r.spk || "").toString().toLowerCase().includes(spkVal));
       }
 
       if (shiftVal) {
-        filtered = filtered.filter(r => (r.shift || "").toString().toUpperCase() === shiftVal);
+        filtered = filtered.filter(r => (r.shift || "").toString().trim().toUpperCase() === shiftVal.toUpperCase());
       }
 
       if (dateVal) {
-        // input date format: YYYY-MM-DD, data tersimpan format: DD-MM-YYYY
-        const [y, m, d] = dateVal.split("-");
-        const target = `${d}-${m}-${y}`;
-        filtered = filtered.filter(r => (r.tanggal || "").trim() === target);
+        const parts = dateVal.split("-");
+        if (parts.length === 3) {
+          const [y, m, d] = parts;
+          const target = `${d}-${m}-${y}`;
+          filtered = filtered.filter(r => (r.tanggal || "").toString().trim() === target);
+        }
       }
 
       renderTable(div, filtered);
@@ -693,14 +966,34 @@
     }
 
     function resetFilter(div) {
-      document.getElementById(`${div}-search-date`).value = "";
-      document.getElementById(`${div}-search-spk`).value = "";
-      document.getElementById(`${div}-search-shift`).value = "";
-      renderTable(div, state[div].all);
-      updateMeta(div, state[div].all);
+      const dateEl = document.getElementById(`${div}-search-date`);
+      const spkEl = document.getElementById(`${div}-search-spk`);
+      const shiftEl = document.getElementById(`${div}-search-shift`);
+      if (dateEl) dateEl.value = "";
+      if (spkEl) spkEl.value = "";
+      if (shiftEl) shiftEl.value = "";
+      filterTable(div);
     }
 
-    // ─── SESSION CHECK ────────────────────────────────────────────
+    // FILTER: RINGKASAN STOK
+    function filterRingkasanTable(div) {
+      const spkEl = document.getElementById(`ringkasan-${div}-search-spk`);
+      const spkVal = spkEl ? spkEl.value.toLowerCase().trim() : "";
+
+      let filtered = ringkasanState[div].all.slice();
+      if (spkVal) {
+        filtered = filtered.filter(r => (r.spk || "").toString().toLowerCase().includes(spkVal));
+      }
+      renderRingkasanTable(div, filtered);
+      updateRingkasanMeta(div, filtered);
+    }
+
+    function autoFilterRingkasan(div) {
+      clearTimeout(ringkasanState[div].timeout);
+      ringkasanState[div].timeout = setTimeout(() => filterRingkasanTable(div), 150);
+    }
+
+    // SESSION CHECK
     setInterval(async () => {
       try {
         const res = await fetch("/check_session");
