@@ -47,14 +47,12 @@
     /* ITEM */
     .sidebar-item {
       display: flex;
-      /* 🔥 biar rapi horizontal icon + text */
       align-items: center;
       gap: 10px;
       padding: 10px 20px;
       cursor: pointer;
 
       text-decoration: none;
-      /* 🔥 HILANGIN GARIS BAWAH */
       color: #aaa;
 
       border-left: 3px solid transparent;
@@ -104,15 +102,6 @@
       --radius: 4px;
       --font-sans: 'IBM Plex Sans', sans-serif;
       --font-mono: 'IBM Plex Mono', monospace;
-    }
-
-    body {
-      background: var(--black);
-      color: var(--white);
-      font-family: var(--font-sans);
-      font-size: 14px;
-      min-height: 100vh;
-      line-height: 1.5;
     }
 
     /* ── MODAL ALERT ──────────────────────────────────────── */
@@ -191,6 +180,15 @@
 
     .modal-btn:hover {
       background: #c9360a;
+    }
+
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      min-height: 100vh;
+      line-height: 1.5;
     }
 
     /* ── LAYOUT ────────────────────────────────────────── */
@@ -826,12 +824,15 @@
           &#128100; {{ current_user }}
         </span>
         <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
+        <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
+        <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a> -->
       </div>
     </header>
 
     <!-- ── SIDEBAR ── -->
     <aside class="sidebar">
       {% if session.get('role') in 'administrator' %}
+
       <div class="sidebar-section">Production Input</div>
       <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
         <span class="sidebar-dot"></span>Admin Input
@@ -851,7 +852,6 @@
       <a href="/stok_checker" class="sidebar-item {% if active_page == 'stok_checker' %}active{% endif %}">
         <span class="sidebar-dot"></span>Stok Checker
       </a>
-
       <div class="sidebar-section">Scan Transfer</div>
       <a href="/scan_transfer" class="sidebar-item {% if active_page == 'scan_transfer' %}active{% endif %}">
         <span class="sidebar-dot"></span>Scan Transfer
@@ -915,7 +915,7 @@
     <!-- ── MAIN ── -->
     <main class="main">
       <div class="page-header">
-        <h1 class="page-title">Potong</h1>
+        <h1 class="page-title">Karantina Packing</h1>
         <span class="page-sub" id="current-date"></span>
       </div>
 
@@ -974,10 +974,14 @@
               </select>
             </div>
             <div class="field">
-              <label class="field-label">Operator Potong <span class="req">*</span></label>
-              <select id="operator_cu" required>
+              <label class="field-label">Operator Packing <span class="req">*</span></label>
+              <select id="operator_pa" required>
                 <option value="">-- Loading... --</option>
               </select>
+            </div>
+            <div class="field">
+              <label class="field-label">Team Packing <span class="req">*</span></label>
+              <input type="text" id="team" value="Team" readonly>
             </div>
             <div class="field">
               <label class="field-label">Checker<span class="req"></span></label>
@@ -985,7 +989,7 @@
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
-              <input type="text" id="divisi" value="Potong" readonly>
+              <input type="text" id="divisi" value="Karantina_Packing" readonly>
             </div>
           </div>
         </div>
@@ -1021,9 +1025,9 @@
             </div>
             <!-- Mesin -->
             <div class="field">
-              <label class="field-label">Mesin<span class="req">*</span></label>
-              <select id="mesin" required oninput="validateMesin(this)">
-                <option value="">-- Pilih Nomor Mesin --</option>
+              <label class="field-label">Meja<span class="req">*</span></label>
+              <select id="mesin" required oninput="validateMeja(this)">
+                <option value="">-- Pilih Nomor Meja --</option>
                 <option value="1">1</option>
                 <option value="2">2</option>
                 <option value="3">3</option>
@@ -1033,24 +1037,17 @@
                 <option value="7">7</option>
                 <option value="8">8</option>
                 <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="17">17</option>
+                <option value="18">18</option>
               </select>
-            </div>
-            <!-- Berat Total -->
-            <div class="field">
-              <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_kg" placeholder="Masukkan Berat Total" required min="0.01" max="40"
-                step="0.01" oninput="validateBerat(this)">
-            </div>
-            <!-- Berat Keranjang -->
-            <div class="field">
-              <label class="field-label">Berat Keranjang (kg)<span class="req">*</span></label>
-              <input type="text" id="keranjang" placeholder="Masukkan Berat Keranjang" required
-                oninput="validateKeranjang(this)">
             </div>
             <!-- Berat Bersih -->
             <div class="field">
               <label class="field-label">Berat Bersih (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_bersih" readonly>
+              <input type="number" id="berat_bersih" placeholder="Masukkan Berat Bersih" required min="19" max="40"
+                step="0.01" onblur="validateBerat(this)">
             </div>
           </div>
         </div>
@@ -1092,17 +1089,18 @@
                     <th>No SPK</th>
                     <th>Produk</th>
                     <th>Customer</th>
-                    <th>Mesin</th>
-                    <th>Berat Total (kg)</th>
+                    <th>Meja</th>
                     <th>Berat Bersih (kg)</th>
                     <th>Divisi</th>
                     <th>Shift</th>
                     <th>Operator</th>
+                    <th>Team</th>
                     <th>Checker</th>
                     <th>Timestamps</th>
                     <th>Code</th>
                   </tr>
                 </thead>
+
                 <tbody id="recent-body">
                   <tr>
                     <td colspan="9" style="text-align:center;color:var(--gray4);padding:24px">
@@ -1188,9 +1186,6 @@
           function updateTime() {
             let now = new Date();
             let hour = now.getHours();
-            //    // SHIFT
-            //     let shift = (hour >= 7 && hour < 19) ? "P" : "M";
-            //    document.getElementById("shift").value = shift;
             // TANGGAL PRODUKSI
             let prodDate = new Date(now);
             // 🔥 kalau jam 00:00 - 06:59 → mundur 1 hari
@@ -1212,7 +1207,7 @@
           // LOAD DATA
           async function loadRecent() {
             try {
-              const res = await fetch('/api/recent/potong');
+              const res = await fetch('/api/recent/packing');
               const rows = await res.json();
 
               console.log(rows);
@@ -1247,11 +1242,11 @@
             <td>${r.produk || ""}</td>
             <td>${r.customer || ""}</td>
             <td>${r.mesin || ""}</td>
-            <td>${r.berat_kg || ""}</td>
             <td>${r.berat_bersih || ""}</td>
             <td>${r.divisi || ""}</td>
             <td>${r.shift || ""}</td>
-            <td>${r.operator_cu || ""}</td>
+            <td>${r.operator_pa || ""}</td>
+            <td>${r.team || ""}</td>
             <td>${r.checker || ""}</td>
             <td>${r.created_at || ""}</td>
             <td>${r.code || ""}</td>
@@ -1337,17 +1332,21 @@
         </script>
         <script>
           async function loadOperators() {
-            const divisi = document.getElementById("divisi").value; // "Mixing"
+            const divisi = document.getElementById("divisi").value;
 
             try {
-              const res = await fetch(`/api/operators/${divisi}`);
+              const res = await fetch(`/api/operators_team/packing`);
               const operators = await res.json();
 
-              const select = document.getElementById("operator_cu");
-              select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
+              const select = document.getElementById("operator_pa");
+              select.innerHTML = `<option value="">-- Pilih Operator Packing --</option>`;
 
               operators.forEach(op => {
-                select.innerHTML += `<option value="${op}">${op}</option>`;
+                const opt = document.createElement("option");
+                opt.value = op.operator;
+                opt.textContent = op.operator;
+                opt.dataset.team = op.team || "";
+                select.appendChild(opt);
               });
 
             } catch (e) {
@@ -1355,7 +1354,16 @@
             }
           }
 
-          // Panggil saat halaman siap
+          // Auto-fill team saat operator dipilih
+          document.addEventListener("DOMContentLoaded", function () {
+            loadOperators();
+
+            document.getElementById("operator_pa").addEventListener("change", function () {
+              const selected = this.options[this.selectedIndex];
+              document.getElementById("team").value = selected.dataset.team || "";
+            });
+          });
+
           document.addEventListener("DOMContentLoaded", function () {
             loadOperators();
           });
@@ -1388,12 +1396,11 @@
             // ── Validasi required fields ──
             const requiredFields = [
               { id: "shift", name: "Shift" },
-              { id: "operator_cu", name: "Operator Potong" },
+              { id: "operator_pa", name: "Operator Packing" },
               { id: "checker", name: "Checker" },
               { id: "spk", name: "No. SPK" },
-              { id: "mesin", name: "Mesin" },
-              { id: "berat_kg", name: "Berat (kg)" },
-              { id: "keranjang", name: "Berat Keranjang (kg)" }
+              { id: "mesin", name: "Meja" },
+              { id: "berat_bersih", name: "Berat Bersih (kg)" }
             ];
             for (let f of requiredFields) {
               const el = document.getElementById(f.id);
@@ -1402,30 +1409,23 @@
               }
             }
 
-            const beratVal = parseFloat(document.getElementById("berat_kg").value);
-            if (isNaN(beratVal) || beratVal <= 0) {
-              return validationFail("Berat tidak boleh minus, nol, atau bukan angka", "berat_kg", ["berat_kg"]);
+            const beratVal = parseFloat(document.getElementById("berat_bersih").value);
+            if (isNaN(beratVal)) {
+              return validationFail("Berat harus berupa angka", "berat_bersih", ["berat_bersih"]);
+            }
+            if (beratVal < 19) {
+              return validationFail("Berat minimal 19 kg", "berat_bersih", ["berat_bersih"]);
             }
             if (beratVal > 40) {
-              return validationFail("Berat maksimal 40 kg", "berat_kg", ["berat_kg"]);
+              return validationFail("Berat maksimal 40 kg", "berat_bersih", ["berat_bersih"]);
             }
-            document.getElementById("berat_kg").style.borderColor = "";
+            document.getElementById("berat_bersih").style.borderColor = "";
 
-            const mesinVal = parseFloat(document.getElementById("mesin").value);
-            if (isNaN(mesinVal) || mesinVal <= 0) {
-              return validationFail("Mesin tidak valid", "mesin", ["mesin"]);
+            const mejaVal = parseFloat(document.getElementById("mesin").value);
+            if (isNaN(mejaVal) || mejaVal <= 0) {
+              return validationFail("Meja tidak valid", "mesin", ["mesin"]);
             }
             document.getElementById("mesin").style.borderColor = "";
-
-            const keranjangVal = parseFloat(document.getElementById("keranjang").value);
-            if (isNaN(keranjangVal) || keranjangVal <= 0) {
-              return validationFail("Berat keranjang tidak boleh minus atau nol", "keranjang", ["keranjang"]);
-            }
-            document.getElementById("keranjang").style.borderColor = "";
-
-            if (beratVal < keranjangVal) {
-              return validationFail("Berat total tidak boleh lebih kecil dari berat keranjang", "berat_kg", ["berat_kg"]);
-            }
 
             errorMsg.classList.remove("show");
 
@@ -1433,7 +1433,8 @@
             const data = {
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
-              operator_cu: document.getElementById("operator_cu").value,
+              operator_pa: document.getElementById("operator_pa").value,
+              team: document.getElementById("team").value,
               checker: document.getElementById("checker").value,
               divisi: document.getElementById("divisi").value,
               spk: document.getElementById("spk").value,
@@ -1441,8 +1442,6 @@
               produk: document.getElementById("product").value,
               uk: document.getElementById("uk").value,
               mesin: document.getElementById("mesin").value,
-              berat_kg: document.getElementById("berat_kg").value,
-              keranjang: document.getElementById("keranjang").value,
               berat_bersih: document.getElementById("berat_bersih").value,
             };
 
@@ -1453,12 +1452,12 @@
                 body: JSON.stringify(data)
               });
               const result = await res.json();
-              if (!result.success) throw new Error(result.message || "Gagal menyimpan data");
+              if (!result.success) throw new Error(result.message);
 
               document.getElementById("result-panel").classList.add("show");
               document.getElementById("result-order-id").innerText = result.order_id;
               document.getElementById("label-img").src = result.label_url;
-              document.getElementById("btn-print").href = `/label/print/${result.order_id}`;
+              document.getElementById("btn-print").href = result.print_url;
               document.getElementById("print-frame").src = `/label/print/${result.order_id}`;
 
               loadRecent();
@@ -1478,79 +1477,67 @@
           function resetForm() {
             document.getElementById('result-panel').classList.remove('show');
 
-            ['operator_cu', 'spk', 'customer', 'product', 'uk', 'mesin', 'berat_kg', 'keranjang', 'berat_bersih']
+            ['tanggal', 'spk', 'customer', 'product', 'uk', 'berat_bersih']
               .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
               });
 
             // Reset dropdown operator ke default
-            const opSelect = document.getElementById("operator_cu");
-            if (opSelect) opSelect.selectedIndex = 0;
+            //const opSelect = document.getElementById("operator_pa");
+            //if (opSelect) opSelect.selectedIndex = 0;
 
             // Scroll ke atas
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
             // Fokus ke SPK biar langsung bisa input
-            document.getElementById("operator_cu").focus();
+            document.getElementById("operator_pa").focus();
           }
-        </script>
-        <script>
-          function hitungBersih() {
-            const berat = parseFloat(document.getElementById("berat_kg").value) || 0;
-            const keranjang = parseFloat(document.getElementById("keranjang").value) || 0;
-
-            let hasil = berat - keranjang;
-
-            // biar tidak minus
-            if (hasil < 0) hasil = 0;
-
-            document.getElementById("berat_bersih").value = hasil.toFixed(2);
-          }
-
-          // trigger saat input berubah
-          document.getElementById("berat_kg").addEventListener("input", hitungBersih);
-          document.getElementById("keranjang").addEventListener("input", hitungBersih);
-
 
           //TIDAK BOLEH MINUS
           function validateBerat(el) {
             const val = parseFloat(el.value);
             const errorMsg = document.getElementById("error-msg");
 
-            if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Berat tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
+            // kalau kosong jangan validasi
+            if (el.value.trim() === "") {
+              errorMsg.classList.remove("show");
+              el.style.borderColor = "";
+              return;
+            }
+
+            // bukan angka
+            if (isNaN(val)) {
+              showAlert("Berat harus angka");
               el.style.borderColor = "var(--accent)";
-            } else if (val > 40) {
+              return;
+            }
+
+            // min
+            if (val < 19) {
+              showAlert("Berat minimal 19 kg");
+              el.style.borderColor = "var(--accent)";
+              return;
+            }
+
+            // max
+            if (val > 40) {
               showAlert("Berat maksimal 40 kg");
               el.style.borderColor = "var(--accent)";
-            } else {
-              errorMsg.classList.remove("show");
-              el.style.borderColor = "";
+              return;
             }
+
+            // valid
+            errorMsg.classList.remove("show");
+            el.style.borderColor = "";
           }
 
-          function validateMesin(el) {
+          function validateMeja(el) {
             const val = parseFloat(el.value);
             const errorMsg = document.getElementById("error-msg");
 
             if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Mesin tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
-              el.style.borderColor = "var(--accent)";
-            } else {
-              errorMsg.classList.remove("show");
-              el.style.borderColor = "";
-            }
-          }
-
-          function validateKeranjang(el) {
-            const val = parseFloat(el.value);
-            const errorMsg = document.getElementById("error-msg");
-
-            if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Berat keranjang tidak boleh minus atau nol";
+              errorMsg.innerText = "Meja tidak boleh minus atau nol";
               errorMsg.classList.add("show");
               el.style.borderColor = "var(--accent)";
             } else {

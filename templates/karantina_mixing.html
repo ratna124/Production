@@ -115,84 +115,6 @@
       line-height: 1.5;
     }
 
-    /* ── MODAL ALERT ──────────────────────────────────────── */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .2s ease;
-    }
-
-    .modal-overlay.show {
-      opacity: 1;
-      pointer-events: all;
-    }
-
-    .modal-box {
-      background: var(--gray1);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 28px 32px;
-      min-width: 300px;
-      max-width: 400px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      transform: translateY(-12px);
-      transition: transform .2s ease;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
-    }
-
-    .modal-overlay.show .modal-box {
-      transform: translateY(0);
-    }
-
-    .modal-icon {
-      font-size: 28px;
-      text-align: center;
-    }
-
-    .modal-title {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--gray4);
-      text-align: center;
-    }
-
-    .modal-msg {
-      font-size: 14px;
-      color: var(--white);
-      text-align: center;
-      line-height: 1.6;
-    }
-
-    .modal-btn {
-      height: 40px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: var(--radius);
-      font-family: var(--font-mono);
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: background .15s;
-    }
-
-    .modal-btn:hover {
-      background: #c9360a;
-    }
-
     /* ── LAYOUT ────────────────────────────────────────── */
     .shell {
       display: grid;
@@ -452,6 +374,7 @@
       margin-left: 2px;
     }
 
+    /* FIELD NORMAL */
     input,
     select,
     textarea {
@@ -508,8 +431,16 @@
       cursor: pointer;
     }
 
-    select option {
+    select:focus option {
+      background: #1a1a1a;
+      color: #fff;
+    }
+
+    input[readonly]:focus {
       background: var(--gray2);
+      border-color: var(--border);
+      color: var(--white);
+      box-shadow: none;
     }
 
     /* ── SHIFT SELECTOR (toggle pills) ───────────────────── */
@@ -539,6 +470,84 @@
       border-color: var(--accent);
       color: var(--accent);
       background: rgba(232, 66, 10, 0.1);
+    }
+
+    /* ── MODAL ALERT ──────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+
+    .modal-overlay.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal-box {
+      background: var(--gray1);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 28px 32px;
+      min-width: 300px;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transform: translateY(-12px);
+      transition: transform .2s ease;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+    }
+
+    .modal-overlay.show .modal-box {
+      transform: translateY(0);
+    }
+
+    .modal-icon {
+      font-size: 28px;
+      text-align: center;
+    }
+
+    .modal-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--gray4);
+      text-align: center;
+    }
+
+    .modal-msg {
+      font-size: 14px;
+      color: var(--white);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .modal-btn {
+      height: 40px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .modal-btn:hover {
+      background: #c9360a;
     }
 
     /* ── SUBMIT BUTTON ────────────────────────────────────── */
@@ -815,7 +824,6 @@
 
 <body>
   <div class="shell">
-
     <!-- ── TOPBAR ── -->
     <header class="topbar">
       <span class="topbar-logo">&#9632; Garindra Plastik</span>
@@ -826,6 +834,8 @@
           &#128100; {{ current_user }}
         </span>
         <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
+        <!--  <a href="/history" class="btn-ghost">&#8635; Riwayat</a>
+        <a href="/api/download_csv" class="btn-ghost">&#8595; CSV</a> -->
       </div>
     </header>
 
@@ -851,7 +861,6 @@
       <a href="/stok_checker" class="sidebar-item {% if active_page == 'stok_checker' %}active{% endif %}">
         <span class="sidebar-dot"></span>Stok Checker
       </a>
-
       <div class="sidebar-section">Scan Transfer</div>
       <a href="/scan_transfer" class="sidebar-item {% if active_page == 'scan_transfer' %}active{% endif %}">
         <span class="sidebar-dot"></span>Scan Transfer
@@ -915,7 +924,7 @@
     <!-- ── MAIN ── -->
     <main class="main">
       <div class="page-header">
-        <h1 class="page-title">Potong</h1>
+        <h1 class="page-title">Karantina Mixing</h1>
         <span class="page-sub" id="current-date"></span>
       </div>
 
@@ -937,14 +946,6 @@
               <span class="btn-action-icon">&#9113;</span>
               <span>Cetak Label</span>
             </a>
-            <!-- <a class="btn-action" id="btn-download" href="#">
-            <span class="btn-action-icon">&#8595;</span>
-            <span>Download PNG</span>
-          </a>
-          <div style="font-size:11px;color:var(--gray4);font-family:var(--font-mono);margin:8px 0 4px">STATUS</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; Tersimpan ke database</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; Dicatat ke CSV</div>
-          <div style="font-size:12px;color:var(--success);font-family:var(--font-mono)">&#10003; QR Code generated</div> -->
             <button class="btn-action btn-new" onclick="resetForm()">
               <span class="btn-action-icon">+</span>
               <span>Input baru</span>
@@ -966,16 +967,12 @@
               <input type="datetime-local" id="tanggal" readonly>
             </div>
             <div class="field">
-              <label class="field-label">Shift<span class="req">*</span></label>
-              <select id="shift" required>
-                <option value="">-- Pilih Shift --</option>
-                <option value="P">P</option>
-                <option value="M">M</option>
-              </select>
+              <label class="field-label">Shift</label>
+              <input type="text" id="shift" readonly>
             </div>
             <div class="field">
-              <label class="field-label">Operator Potong <span class="req">*</span></label>
-              <select id="operator_cu" required>
+              <label class="field-label">Operator Mix <span class="req">*</span></label>
+              <select id="operator_mix" required>
                 <option value="">-- Loading... --</option>
               </select>
             </div>
@@ -985,7 +982,7 @@
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
-              <input type="text" id="divisi" value="Potong" readonly>
+              <input type="text" id="divisi" value="Karantina_Mixing" readonly>
             </div>
           </div>
         </div>
@@ -999,63 +996,41 @@
         </div>
         <div class="card-body">
           <div class="form-grid cols-2">
-            <!-- SPK -->
             <div class="field">
               <label class="field-label">No. SPK <span class="req">*</span></label>
               <input type="text" id="spk" placeholder="Masukkan No SPK" required>
             </div>
-            <!-- CUSTOMER -->
             <div class="field">
               <label class="field-label">Customer</label>
               <input type="text" id="customer" readonly>
             </div>
-            <!-- PRODUCT -->
             <div class="field">
               <label class="field-label">Produk</label>
               <input type="text" id="product" readonly>
             </div>
-            <!-- UK -->
             <div class="field">
               <label class="field-label">UKURAN</label>
               <input type="text" id="uk" readonly>
             </div>
-            <!-- Mesin -->
-            <div class="field">
-              <label class="field-label">Mesin<span class="req">*</span></label>
-              <select id="mesin" required oninput="validateMesin(this)">
-                <option value="">-- Pilih Nomor Mesin --</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-              </select>
-            </div>
-            <!-- Berat Total -->
             <div class="field">
               <label class="field-label">Berat Total (kg)<span class="req">*</span></label>
-              <input type="text" id="berat_kg" placeholder="Masukkan Berat Total" required min="0.01" max="40"
-                step="0.01" oninput="validateBerat(this)">
+              <input type="text" id="berat_kg" placeholder="Masukkan Berat" required min="0.01" max="21" step="0.01"
+                oninput="validateBerat(this)">
             </div>
-            <!-- Berat Keranjang -->
             <div class="field">
-              <label class="field-label">Berat Keranjang (kg)<span class="req">*</span></label>
-              <input type="text" id="keranjang" placeholder="Masukkan Berat Keranjang" required
-                oninput="validateKeranjang(this)">
+              <label class="field-label">Berat Karung (kg)</label>
+              <input type="text" id="karung" value="0.09" readonly>
             </div>
-            <!-- Berat Bersih -->
             <div class="field">
               <label class="field-label">Berat Bersih (kg)<span class="req">*</span></label>
               <input type="text" id="berat_bersih" readonly>
             </div>
+            <div class="field col-span-2" id="spk-status-wrap" style="display:none">
+              <div id="spk-status"></div>
+            </div>
           </div>
         </div>
 
-        <!-- SUBMIT -->
         <div>
           <button class="btn-submit" id="btn-submit" onclick="submitForm()">
             <span id="btn-text">&#9632; SIMPAN & CETAK LABEL</span>
@@ -1064,7 +1039,6 @@
           <div class="error-msg" id="error-msg"></div>
         </div>
 
-        <!-- RECENT ENTRIES -->
         <div class="card">
           <div class="card-header">
             <span class="card-header-num" style="background:var(--gray3)">&#9776;</span>
@@ -1073,7 +1047,6 @@
 
           <div class="card-body" style="padding:0">
 
-            <!-- SEARCH 2 KOLOM -->
             <div style="display:flex; gap:10px; padding:10px; background:#111; border-bottom:1px solid #222;">
               <!-- TANGGAL -->
               <input id="search-date" type="date"
@@ -1083,7 +1056,6 @@
                 style="flex:1; padding:8px; font-size:12px; background:#1a1a1a; color:#fff; border:1px solid #333; border-radius:6px;">
             </div>
 
-            <!-- TABLE -->
             <div class="table-wrap">
               <table id="recent-table">
                 <thead>
@@ -1092,9 +1064,8 @@
                     <th>No SPK</th>
                     <th>Produk</th>
                     <th>Customer</th>
-                    <th>Mesin</th>
-                    <th>Berat Total (kg)</th>
-                    <th>Berat Bersih (kg)</th>
+                    <th>Berat</th>
+                    <th>Berat Bersih</th>
                     <th>Divisi</th>
                     <th>Shift</th>
                     <th>Operator</th>
@@ -1117,249 +1088,278 @@
 
         <script>
           let allData = [];
-          let searchTimeout;
+          let searchTimeout = null;
+          let timeout = null;
+          let beratCheckTimer = null;
+          let spkBeratData = null;  // { spk, limit, used, remaining, over_limit }
 
-          // INIT
           document.addEventListener("DOMContentLoaded", function () {
             updateTime();
             setInterval(updateTime, 1000);
-
             loadRecent();
+            loadOperators();
 
-            // SEARCH
             document.getElementById("search-date").addEventListener("input", autoFilter);
             document.getElementById("search-spk").addEventListener("input", autoFilter);
 
-            // SPK AUTOFILL
-            const spkInput = document.getElementById("spk");
-            spkInput.addEventListener("input", debounce(handleSpkInput, 300));
+            // SPK input → autofill + check limit
+            document.getElementById("spk").addEventListener("input", function () {
+              const spk = this.value.trim();
 
-            // Set href multi-port
+              // autofill customer/produk/uk
+              clearTimeout(timeout);
+              timeout = setTimeout(async () => {
+                if (!spk) { clearAutoFill(); return; }
+                try {
+                  const res = await fetch(`/get-spk/${spk}`);
+                  const data = await res.json();
+                  if (data && Object.keys(data).length > 0) {
+                    document.getElementById("customer").value = data.customer || "";
+                    document.getElementById("product").value = data.product || "";
+                    document.getElementById("uk").value = data.uk || "";
+                  } else {
+                    clearAutoFill();
+                  }
+                } catch (err) { console.error("Error SPK:", err); }
+              }, 70);
+
+              // check berat limit
+              clearTimeout(beratCheckTimer);
+              beratCheckTimer = setTimeout(checkSpkBerat, 400);
+            });
+
+            // berat input → hitung bersih + update status bar
+            document.getElementById("berat_kg").addEventListener("input", onBeratChange);
+            document.getElementById("karung").addEventListener("input", onBeratChange);
+
+            // multi-port links
             const host = window.location.hostname;
             document.querySelectorAll('a[data-port]').forEach(link => {
               link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
             });
           });
 
-          // DEBOUNCE
-          function debounce(func, delay) {
-            let timer;
-            return function (...args) {
-              clearTimeout(timer);
-              timer = setTimeout(() => func.apply(this, args), delay);
-            };
-          }
-
-          // SPK AUTOFILL
-          async function handleSpkInput(e) {
-            const spk = e.target.value.trim();
-
-            if (!spk || spk.length < 2) {
-              clearAutoFill();
-              return;
-            }
-
-            try {
-              const res = await fetch(`/api/spk/${spk}`);
-              const data = await res.json();
-
-              if (!data || Object.keys(data).length === 0) {
-                clearAutoFill();
-                return;
-              }
-
-              document.getElementById("customer").value = data.customer || "";
-              document.getElementById("product").value = data.product || "";
-              document.getElementById("uk").value = data.uk || "";
-
-            } catch (err) {
-              console.log("SPK error:", err);
-            }
-          }
-
-          // CLEAR FIELD
           function clearAutoFill() {
             document.getElementById("customer").value = "";
             document.getElementById("product").value = "";
             document.getElementById("uk").value = "";
           }
 
-          // TIME + SHIFT
+          // ─── WAKTU & SHIFT ───────────────────────────────────────────────────────
           function updateTime() {
-            let now = new Date();
-            let hour = now.getHours();
-            //    // SHIFT
-            //     let shift = (hour >= 7 && hour < 19) ? "P" : "M";
-            //    document.getElementById("shift").value = shift;
-            // TANGGAL PRODUKSI
-            let prodDate = new Date(now);
-            // 🔥 kalau jam 00:00 - 06:59 → mundur 1 hari
-            if (hour < 7) {
-              prodDate.setDate(prodDate.getDate() - 1);
-            }
+            const now = new Date();
+            const hour = now.getHours();
+            const shift = (hour >= 7 && hour < 19) ? "P" : "M";
+            document.getElementById("shift").value = shift;
 
-            // FORMAT datetime-local
-            let formatted =
+            const prodDate = new Date(now);
+            if (hour < 7) prodDate.setDate(prodDate.getDate() - 1);
+
+            const formatted =
               prodDate.getFullYear() + "-" +
-              String(prodDate.getMonth() + 1).padStart(2, '0') + "-" +
-              String(prodDate.getDate()).padStart(2, '0') + "T" +
-              String(now.getHours()).padStart(2, '0') + ":" +
-              String(now.getMinutes()).padStart(2, '0');
+              String(prodDate.getMonth() + 1).padStart(2, "0") + "-" +
+              String(prodDate.getDate()).padStart(2, "0") + "T" +
+              String(now.getHours()).padStart(2, "0") + ":" +
+              String(now.getMinutes()).padStart(2, "0");
 
             document.getElementById("tanggal").value = formatted;
           }
 
-          // LOAD DATA
-          async function loadRecent() {
-            try {
-              const res = await fetch('/api/recent/potong');
-              const rows = await res.json();
-
-              console.log(rows);
-
-              allData = rows || [];
-              renderTable(allData);
-
-            } catch (e) {
-              console.error("Load error:", e);
-            }
-          }
-
-          // RENDER TABLE
-          function renderTable(data) {
-            console.log(data);
-            const tbody = document.getElementById("recent-body");
-
-            if (!data.length) {
-              tbody.innerHTML = `
-            <tr>
-                <td colspan="12" style="text-align:center;color:#777;padding:20px">
-                    Tidak ada data
-                </td>
-            </tr>`;
-              return;
-            }
-
-            tbody.innerHTML = data.map(r => `
-        <tr>
-            <td>${(r.tanggal || "").replace("T", " ")}</td>
-            <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
-            <td>${r.produk || ""}</td>
-            <td>${r.customer || ""}</td>
-            <td>${r.mesin || ""}</td>
-            <td>${r.berat_kg || ""}</td>
-            <td>${r.berat_bersih || ""}</td>
-            <td>${r.divisi || ""}</td>
-            <td>${r.shift || ""}</td>
-            <td>${r.operator_cu || ""}</td>
-            <td>${r.checker || ""}</td>
-            <td>${r.created_at || ""}</td>
-            <td>${r.code || ""}</td>
-        </tr>
-    `).join('');
-          }
-
-          // FILTER TABLE
-          function filterTable() {
-            const date = document.getElementById("search-date").value;
-            const spk = document.getElementById("search-spk").value.toLowerCase();
-
-            let filtered = allData;
-
-            // SPK FILTER
-            if (spk) {
-              filtered = filtered.filter(r => {
-                let val = (r.spk || r.SPK || r.no_spk || "").toString().toLowerCase();
-                return val.includes(spk);
-              });
-            }
-
-            // DATE FILTER (DD-MM-YYYY)
-            if (date) {
-              const [y, m, d] = date.split("-");
-              const target = `${d}-${m}-${y}`;  // ← ubah ke DD-MM-YYYY
-
-              filtered = filtered.filter(r =>
-                (r.tanggal || "").trim().startsWith(target)
-              );
-            }
-
-            renderTable(filtered);
-          }
-
-          // AUTO FILTER
-          function autoFilter() {
-            clearTimeout(searchTimeout);
-
-            searchTimeout = setTimeout(() => {
-              filterTable();
-            }, 150);
-          }
-
-          // DIVISI
-          function filterDivision(div, el) {
-            document.querySelectorAll('.sidebar-item')
-              .forEach(i => i.classList.remove('active'));
-
-            el.classList.add('active');
-            document.getElementById('divisi').value = div;
-          }
-        </script>
-        <script>
-          let timeout = null;
-
-          document.getElementById("spk").addEventListener("input", function () {
-            clearTimeout(timeout);
-
-            const spk = this.value.trim();
-
-            timeout = setTimeout(async () => {
-              if (!spk) return;
-
-              try {
-                const res = await fetch(`/get-spk/${spk}`);
-                const data = await res.json();
-
-                if (data && Object.keys(data).length > 0) {
-                  document.getElementById("customer").value = data.customer || "";
-                  document.getElementById("product").value = data.product || "";
-                  document.getElementById("uk").value = data.uk || "";
-                } else {
-                  document.getElementById("customer").value = "";
-                  document.getElementById("product").value = "";
-                  document.getElementById("uk").value = "";
-                }
-              } catch (err) {
-                console.error("Error SPK:", err);
-              }
-            }, 70); // delay biar tidak spam request
-          });
-        </script>
-        <script>
           async function loadOperators() {
-            const divisi = document.getElementById("divisi").value; // "Mixing"
-
+            const divisi = document.getElementById("divisi").value;
             try {
-              const res = await fetch(`/api/operators/${divisi}`);
+              const res = await fetch(`/api/operators/mixing`);
               const operators = await res.json();
-
-              const select = document.getElementById("operator_cu");
-              select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
-
+              const select = document.getElementById("operator_mix");
+              select.innerHTML = `<option value="">-- Pilih Operator Mixing --</option>`;
               operators.forEach(op => {
                 select.innerHTML += `<option value="${op}">${op}</option>`;
               });
+            } catch (e) { console.error("Gagal load operator:", e); }
+          }
 
-            } catch (e) {
-              console.error("Gagal load operator:", e);
+          async function loadRecent() {
+            try {
+              const res = await fetch("/api/recent/karantina_mixing");
+              const rows = await res.json();
+              allData = rows || [];
+              renderTable(allData);
+            } catch (e) { console.error("Load error:", e); }
+          }
+
+          function renderTable(data) {
+            const tbody = document.getElementById("recent-body");
+            if (!data.length) {
+              tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:#777;padding:20px">Tidak ada data</td></tr>`;
+              return;
+            }
+            tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${(r.tanggal || "").replace("T", " ")}</td>
+        <td class="mono">${r.spk || r.SPK || r.no_spk || ""}</td>
+        <td>${r.produk || ""}</td>
+        <td>${r.customer || ""}</td>
+        <td>${r.berat_kg || ""}</td>
+        <td>${r.berat_bersih || ""}</td>
+        <td>${r.divisi || ""}</td>
+        <td>${r.shift || ""}</td>
+        <td>${r.operator_mix || ""}</td>
+        <td>${r.checker || ""}</td>
+        <td>${r.created_at || ""}</td>
+        <td>${r.code || ""}</td>
+      </tr>
+    `).join("");
+          }
+
+          function filterTable() {
+            const date = document.getElementById("search-date").value;
+            const spk = document.getElementById("search-spk").value.toLowerCase();
+            let filtered = allData;
+
+            if (spk) {
+              filtered = filtered.filter(r =>
+                (r.spk || r.SPK || r.no_spk || "").toString().toLowerCase().includes(spk)
+              );
+            }
+            if (date) {
+              const [y, m, d] = date.split("-");
+              const target = `${d}-${m}-${y}`;
+              filtered = filtered.filter(r => (r.tanggal || "").trim().startsWith(target));
+            }
+            renderTable(filtered);
+          }
+
+          function autoFilter() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(filterTable, 150);
+          }
+
+          function hitungBersih() {
+            const berat = parseFloat(document.getElementById("berat_kg").value) || 0;
+            const karung = parseFloat(document.getElementById("karung").value) || 0;
+            const hasil = Math.max(berat - karung, 0);
+            document.getElementById("berat_bersih").value = hasil.toFixed(2);
+          }
+
+          // ─── ON BERAT CHANGE ─────────────────────────────────────────────────────
+          function onBeratChange() {
+            hitungBersih();
+            const berat = parseFloat(document.getElementById("berat_bersih").value) || 0;
+            if (spkBeratData) renderSpkStatus(spkBeratData, berat);
+
+            if (spkBeratData && spkBeratData.limit !== null && spkBeratData.limit !== undefined) {
+              const limit = parseFloat(spkBeratData.limit) || 0;
+              const used = parseFloat(spkBeratData.used) || 0;
+              const projected = used + berat;
+              const over = projected > limit;
+              document.getElementById("berat_kg").style.borderColor = over ? "var(--danger)" : "";
+              document.getElementById("berat_bersih").style.borderColor = over ? "var(--danger)" : "";
             }
           }
 
-          // Panggil saat halaman siap
-          document.addEventListener("DOMContentLoaded", function () {
-            loadOperators();
-          });
+          function validateBerat(el) {
+            const val = parseFloat(el.value);
+            const errorMsg = document.getElementById("error-msg");
+            if (el.value !== "" && (isNaN(val) || val <= 0)) {
+              errorMsg.classList.add("show");
+              el.style.borderColor = "var(--accent)";
+            } else if (val > 26) {
+              showAlert("Berat maksimal 26 kg");
+              el.style.borderColor = "var(--accent)";
+            } else {
+              errorMsg.classList.remove("show");
+              el.style.borderColor = "";
+            }
+          }
 
+          // CEK BERAT LIMIT SPK 
+          async function checkSpkBerat() {
+            const spk = (document.getElementById("spk")?.value || "").trim();
+            const berat = parseFloat(document.getElementById("berat_bersih")?.value) || 0;
+
+            if (!spk || spk.length < 2) {
+              spkBeratData = null;
+              hideSpkStatus();
+              return;
+            }
+            try {
+              const res = await fetch(`/api/check_spk_berat/${encodeURIComponent(spk)}`);
+              const data = await res.json();
+              spkBeratData = data;
+              renderSpkStatus(data, berat);
+            } catch (e) {
+              spkBeratData = null;
+              hideSpkStatus();
+            }
+          }
+
+          function hideSpkStatus() {
+            const wrap = document.getElementById("spk-status-wrap");
+            if (wrap) wrap.style.display = "none";
+          }
+
+          // ─── RENDER STATUS BAR ───────────────────────────────────────────────────
+          function renderSpkStatus(data, inputBerat) {
+            const wrap = document.getElementById("spk-status-wrap");
+            const el = document.getElementById("spk-status");
+            if (!wrap || !el) return;
+
+            if (!data || data.limit === null || data.limit === undefined) {
+              wrap.style.display = "none";
+              return;
+            }
+
+            wrap.style.display = "";
+
+            const limit = parseFloat(data.limit) || 0;
+            const used = parseFloat(data.used) || 0;
+            const berat = parseFloat(inputBerat) || 0;
+            const projected = used + berat;
+            const pct = Math.min((projected / limit) * 100, 100);
+
+            let barColor = "var(--success)";
+            let textColor = "var(--success)";
+            let statusText = "";
+
+            if (projected > limit) {
+              barColor = "var(--danger)";
+              textColor = "var(--danger)";
+              statusText = `⛔ Melebihi limit! Projected: ${projected.toFixed(2)} kg / Limit: ${limit.toFixed(2)} kg`;
+            } else if (pct >= 90) {
+              barColor = "var(--accent2)";
+              textColor = "var(--accent2)";
+              statusText = `⚠ Hampir penuh · Sudah: ${used.toFixed(2)} kg · Sisa: ${(limit - projected).toFixed(2)} kg`;
+            } else {
+              statusText = `✔ Sudah: ${used.toFixed(2)} kg · Sisa setelah input: ${(limit - projected).toFixed(2)} kg / ${limit.toFixed(2)} kg`;
+            }
+
+            el.innerHTML = `
+      <div style="
+        background:var(--gray2);border:1px solid var(--border);
+        border-radius:var(--radius);padding:10px 14px;
+        display:flex;flex-direction:column;gap:7px;
+      ">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--gray4);
+            letter-spacing:.08em;text-transform:uppercase">
+            Total Berat SPK ${data.spk}
+          </span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:${textColor};font-weight:500">
+            ${projected.toFixed(2)} / ${limit.toFixed(2)} kg
+          </span>
+        </div>
+        <div style="background:var(--gray3);border-radius:2px;height:6px;overflow:hidden">
+          <div style="
+            height:100%;width:${pct}%;background:${barColor};
+            border-radius:2px;transition:width .3s ease;
+          "></div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:${textColor}">
+          ${statusText}
+        </div>
+      </div>
+    `;
+          }
           let isSubmitting = false;
 
           async function submitForm() {
@@ -1373,77 +1373,85 @@
             btn.disabled = true;
             spinner.style.display = "block";
 
-            function validationFail(msg, focusId = null, borderIds = []) {
+            // Helper: reset state lalu tampilkan alert
+            function validationFail(msg, focusId = null) {
               isSubmitting = false;
               btn.disabled = false;
               spinner.style.display = "none";
-              borderIds.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.style.borderColor = "var(--accent)";
-              });
               showAlert(msg);
               if (focusId) document.getElementById(focusId)?.focus();
             }
 
             // ── Validasi required fields ──
             const requiredFields = [
-              { id: "shift", name: "Shift" },
-              { id: "operator_cu", name: "Operator Potong" },
+              { id: "operator_mix", name: "Operator Mix" },
               { id: "checker", name: "Checker" },
               { id: "spk", name: "No. SPK" },
-              { id: "mesin", name: "Mesin" },
-              { id: "berat_kg", name: "Berat (kg)" },
-              { id: "keranjang", name: "Berat Keranjang (kg)" }
+              { id: "berat_kg", name: "Berat (kg)" }
             ];
             for (let f of requiredFields) {
               const el = document.getElementById(f.id);
-              if (!(el?.value || "").toString().trim()) {
+              if (!(el?.value || "").trim()) {
                 return validationFail(`${f.name} wajib diisi`, f.id);
               }
             }
 
-            const beratVal = parseFloat(document.getElementById("berat_kg").value);
-            if (isNaN(beratVal) || beratVal <= 0) {
-              return validationFail("Berat tidak boleh minus, nol, atau bukan angka", "berat_kg", ["berat_kg"]);
+            const beratKgVal = parseFloat(document.getElementById("berat_kg").value);
+            if (isNaN(beratKgVal) || beratKgVal <= 0) {
+              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
+              return validationFail("Berat tidak boleh minus, nol, atau bukan angka", "berat_kg");
             }
-            if (beratVal > 40) {
-              return validationFail("Berat maksimal 40 kg", "berat_kg", ["berat_kg"]);
+            if (beratKgVal > 26) {
+              document.getElementById("berat_kg").style.borderColor = "var(--accent)";
+              return validationFail("Berat maksimal 26 kg", "berat_kg");
             }
             document.getElementById("berat_kg").style.borderColor = "";
 
-            const mesinVal = parseFloat(document.getElementById("mesin").value);
-            if (isNaN(mesinVal) || mesinVal <= 0) {
-              return validationFail("Mesin tidak valid", "mesin", ["mesin"]);
+            // ── Validasi limit SPK ──
+            const beratBersih = parseFloat(document.getElementById("berat_bersih").value) || 0;
+            if (!spkBeratData) {
+              const spk = (document.getElementById("spk")?.value || "").trim();
+              if (spk) {
+                try {
+                  const res = await fetch(`/api/check_spk_berat/${encodeURIComponent(spk)}`);
+                  spkBeratData = await res.json();
+                  renderSpkStatus(spkBeratData, beratBersih);
+                } catch (e) { /* lanjut */ }
+              }
             }
-            document.getElementById("mesin").style.borderColor = "";
-
-            const keranjangVal = parseFloat(document.getElementById("keranjang").value);
-            if (isNaN(keranjangVal) || keranjangVal <= 0) {
-              return validationFail("Berat keranjang tidak boleh minus atau nol", "keranjang", ["keranjang"]);
-            }
-            document.getElementById("keranjang").style.borderColor = "";
-
-            if (beratVal < keranjangVal) {
-              return validationFail("Berat total tidak boleh lebih kecil dari berat keranjang", "berat_kg", ["berat_kg"]);
+            if (spkBeratData?.limit != null) {
+              const limit = parseFloat(spkBeratData.limit) || 0;
+              const used = parseFloat(spkBeratData.used) || 0;
+              const projected = used + beratBersih;
+              if (projected > limit) {
+                const remaining = Math.max(limit - used, 0);
+                document.getElementById("berat_kg").style.borderColor = "var(--danger)";
+                document.getElementById("berat_bersih").style.borderColor = "var(--danger)";
+                return validationFail(
+                  `Melebihi batas order!\n\nSPK ${spkBeratData.spk}\n` +
+                  `Limit: ${limit.toFixed(2)} kg\nSudah diinput: ${used.toFixed(2)} kg\n` +
+                  `Input sekarang: ${beratBersih.toFixed(2)} kg\nProjected: ${projected.toFixed(2)} kg\n\n` +
+                  `Sisa yang boleh diinput: ${remaining.toFixed(2)} kg`
+                );
+              }
             }
 
             errorMsg.classList.remove("show");
 
-            // ── Simpan ──
+            // ── Submit ──
             const data = {
               tanggal: document.getElementById("tanggal").value,
               shift: document.getElementById("shift").value,
-              operator_cu: document.getElementById("operator_cu").value,
+              operator_mix: document.getElementById("operator_mix").value,
               checker: document.getElementById("checker").value,
               divisi: document.getElementById("divisi").value,
               spk: document.getElementById("spk").value,
               customer: document.getElementById("customer").value,
               produk: document.getElementById("product").value,
               uk: document.getElementById("uk").value,
-              mesin: document.getElementById("mesin").value,
               berat_kg: document.getElementById("berat_kg").value,
-              keranjang: document.getElementById("keranjang").value,
               berat_bersih: document.getElementById("berat_bersih").value,
+              karung: document.getElementById("karung").value
             };
 
             try {
@@ -1452,6 +1460,8 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data)
               });
+              if (!res.ok) throw new Error("Gagal koneksi ke server");
+
               const result = await res.json();
               if (!result.success) throw new Error(result.message || "Gagal menyimpan data");
 
@@ -1462,104 +1472,41 @@
               document.getElementById("print-frame").src = `/label/print/${result.order_id}`;
 
               loadRecent();
-              setTimeout(() => { resetForm(); }, 2000);
+
+              setTimeout(() => {
+                ["spk", "customer", "product", "uk", "berat_kg", "berat_bersih"].forEach(id => {
+                  const el = document.getElementById(id);
+                  if (el) el.value = "";
+                });
+                document.getElementById("result-panel").classList.remove("show");
+                document.getElementById("operator_mix").focus();
+                spkBeratData = null;
+                hideSpkStatus();
+              }, 2000);
 
             } catch (err) {
               console.error(err);
               showAlert(err.message || "Terjadi kesalahan, coba lagi");
             } finally {
+              // Selalu reset, apapun yang terjadi
               isSubmitting = false;
               btn.disabled = false;
               spinner.style.display = "none";
             }
           }
 
-          // ── RESET ────────────────────────────────────────────────
           function resetForm() {
-            document.getElementById('result-panel').classList.remove('show');
-
-            ['operator_cu', 'spk', 'customer', 'product', 'uk', 'mesin', 'berat_kg', 'keranjang', 'berat_bersih']
-              .forEach(id => {
+            setTimeout(() => {
+              ["spk", "customer", "product", "uk", "berat_kg", "berat_bersih"].forEach(id => {
                 const el = document.getElementById(id);
-                if (el) el.value = '';
+                if (el) el.value = "";
               });
-
-            // Reset dropdown operator ke default
-            const opSelect = document.getElementById("operator_cu");
-            if (opSelect) opSelect.selectedIndex = 0;
-
-            // Scroll ke atas
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-
-            // Fokus ke SPK biar langsung bisa input
-            document.getElementById("operator_cu").focus();
+              document.getElementById("result-panel").classList.remove("show");
+              document.getElementById("spk").focus();
+              spkBeratData = null;
+              hideSpkStatus();
+            }, 2000);
           }
-        </script>
-        <script>
-          function hitungBersih() {
-            const berat = parseFloat(document.getElementById("berat_kg").value) || 0;
-            const keranjang = parseFloat(document.getElementById("keranjang").value) || 0;
-
-            let hasil = berat - keranjang;
-
-            // biar tidak minus
-            if (hasil < 0) hasil = 0;
-
-            document.getElementById("berat_bersih").value = hasil.toFixed(2);
-          }
-
-          // trigger saat input berubah
-          document.getElementById("berat_kg").addEventListener("input", hitungBersih);
-          document.getElementById("keranjang").addEventListener("input", hitungBersih);
-
-
-          //TIDAK BOLEH MINUS
-          function validateBerat(el) {
-            const val = parseFloat(el.value);
-            const errorMsg = document.getElementById("error-msg");
-
-            if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Berat tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
-              el.style.borderColor = "var(--accent)";
-            } else if (val > 40) {
-              showAlert("Berat maksimal 40 kg");
-              el.style.borderColor = "var(--accent)";
-            } else {
-              errorMsg.classList.remove("show");
-              el.style.borderColor = "";
-            }
-          }
-
-          function validateMesin(el) {
-            const val = parseFloat(el.value);
-            const errorMsg = document.getElementById("error-msg");
-
-            if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Mesin tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
-              el.style.borderColor = "var(--accent)";
-            } else {
-              errorMsg.classList.remove("show");
-              el.style.borderColor = "";
-            }
-          }
-
-          function validateKeranjang(el) {
-            const val = parseFloat(el.value);
-            const errorMsg = document.getElementById("error-msg");
-
-            if (el.value !== "" && (isNaN(val) || val <= 0)) {
-              errorMsg.innerText = "Berat keranjang tidak boleh minus atau nol";
-              errorMsg.classList.add("show");
-              el.style.borderColor = "var(--accent)";
-            } else {
-              errorMsg.classList.remove("show");
-              el.style.borderColor = "";
-            }
-          }
-        </script>
-        <script>
 
           function showAlert(msg) {
             document.getElementById("modal-msg").textContent = msg;
@@ -1567,93 +1514,57 @@
           }
 
           function closeModal(e) {
-            // Kalau klik overlay (bukan box) atau klik tombol OK
             if (!e || e.target === document.getElementById("modal-overlay")) {
               document.getElementById("modal-overlay").classList.remove("show");
             }
           }
 
-          // Button save
+          // ─── KEYBOARD ENTER NAVIGATION ───────────────────────────────────────────
           document.addEventListener("keydown", function (e) {
-
-            // hanya Enter / Tab
-            if (e.key !== "Enter" && e.key !== "Tab") return;
-
+            if (e.key !== "Enter") return;
             const active = document.activeElement;
-
-            // ambil field input yang aktif
+            if (active.id === "btn-submit") return
             const fields = [
               ...document.querySelectorAll(
-                'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
+                "input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])"
               )
             ].filter(el => el.offsetParent !== null);
 
             const index = fields.indexOf(active);
             if (index === -1) return;
-
-            // 🔥 stop submit default browser
             e.preventDefault();
-            e.stopPropagation();
 
-            // validasi field aktif kalau required
-            const value = (active.value || "").trim();
-
-            if (active.hasAttribute("required") && !value) {
+            if (active.hasAttribute("required") && !(active.value || "").trim()) {
               showAlert("Field ini wajib diisi");
               active.focus();
               return;
             }
 
-            // SHIFT + ENTER → mundur
-            if (e.shiftKey) {
-              const prev = fields[index - 1];
-              if (prev) {
-                prev.focus();
-                prev.select?.();
-              }
-              return;
-            }
-
-            // ENTER / TAB → next field
             const next = fields[index + 1];
+            if (next) { next.focus(); if (next.select) next.select(); return; }
 
-            if (next) {
-              next.focus();
-              next.select?.();
-              return;
-            }
-
-            // kalau field terakhir → submit
-            const requiredFields = document.querySelectorAll("[required]");
-
-            for (const field of requiredFields) {
-              const val = (field.value || "").trim();
-
-              if (!val) {
+            for (const field of document.querySelectorAll("[required]")) {
+              if (!(field.value || "").trim()) {
                 showAlert("Masih ada field yang belum diisi");
                 field.focus();
                 return;
               }
             }
           });
-        </script>
-        <script>
+
+          // ─── SESSION CHECK ───────────────────────────────────────────────────────
           setInterval(async () => {
             try {
               const res = await fetch("/check_session");
               const data = await res.json();
-
               if (!data.active) {
                 alert("Session habis, silakan login kembali");
                 window.location.href = "/login";
               }
-            } catch (err) {
-              console.error(err);
-            }
-          }, 300000);
+            } catch (err) { console.error(err); }
+          }, 60000);
         </script>
-        <iframe id="print-frame" style="display:none"></iframe>
-        <!-- MODAL ALERT -->
+        <iframe id="print-frame" style="display:none;"></iframe>
         <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
           <div class="modal-box">
             <div class="modal-icon">&#9888;</div>
@@ -1663,6 +1574,5 @@
           </div>
         </div>
 </body>
-
 
 </html>

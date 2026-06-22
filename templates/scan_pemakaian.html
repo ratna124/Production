@@ -1222,7 +1222,7 @@
       showToast("⏳ Mencari kode...", "success");
 
       try {
-        const res = await fetch("/api/lookup_code", {
+        const res = await fetch("/api/lookup_codep", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code: val })

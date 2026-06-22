@@ -364,8 +364,25 @@ def generate_label_image(order_id, data, source_route=None):
         font_lg = font_sm
 
     divisi_raw      = str(data.get("divisi", "")).strip().upper()
+    KARANTINA_DIVISI = {
+        "KARANTINA_MIXING",
+        "KARANTINA_HD",
+        "KARANTINA_POTONG",
+        "KARANTINA_PACKING"
+    }
+    is_karantina = divisi_raw in KARANTINA_DIVISI
+    KARANTINA_DISPLAY_MAP = {
+    "KARANTINA_MIXING": "KMI",
+    "KARANTINA_HD": "KHD",
+    "KARANTINA_POTONG": "KCU",
+    "KARANTINA_PACKING": "KPA"
+    }
     prefix, _, _, _ = get_prefix_from_code(data.get("code", ""))
-    divisi_display  = prefix if prefix else divisi_raw
+
+    if divisi_raw in KARANTINA_DISPLAY_MAP:
+        divisi_display = KARANTINA_DISPLAY_MAP[divisi_raw]
+    else:
+        divisi_display = prefix if prefix else divisi_raw
 
     config         = FIELD_MAP.get(divisi_raw, {})
     operator_field = config.get("operator", "")
@@ -474,6 +491,8 @@ def generate_label_image(order_id, data, source_route=None):
         label_tag = "TS"
     if not label_tag and divisi_raw == "SISA_POTONG":
         label_tag = "ROLL SISA"
+    if not label_tag and is_karantina:
+        label_tag = "KARANTINA"
     if label_tag:
         line2_bbox = draw.textbbox((0, 0), line2, font=font_md)
         line2_w    = line2_bbox[2] - line2_bbox[0]
@@ -616,6 +635,10 @@ def generate_code(data):
         "SISA_PACK": "PS",
         "AVAL_MIXING": "AMS",
         "AVAL_QC": "AQC",
+        "KARANTINA_MIXING": "KMI",
+        "KARANTINA_HD": "KHD",
+        "KARANTINA_POTONG": "KCU",
+        "KARANTINA_PACKING": "KPA",
     }
 
     div = div_map.get(divisi, "XX")
@@ -920,6 +943,35 @@ def init_db():
         berat_awal REAL, berat_bersih REAL,
         operator TEXT, checker TEXT, keterangan TEXT
     )""")
+    
+    #karantina
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS karantinamixing (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_mix TEXT, checker TEXT, berat_kg REAL,
+        berat_bersih REAL, karung REAL, created_at TEXT, code TEXT
+    )""")
+    
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS karantinahd (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_hd TEXT, checker TEXT,
+        mesin REAL, berat_kg REAL, bobin REAL, berat_bersih REAL, created_at TEXT, code TEXT
+    )""")
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS karantinapotong (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_cu TEXT, checker TEXT,
+        mesin REAL, berat_kg REAL, keranjang REAL, berat_bersih REAL, created_at TEXT, code TEXT
+    )""")
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS karantinapacking (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
+        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_pa TEXT, checker TEXT,
+        mesin REAL, berat_bersih REAL, created_at TEXT, code TEXT, team TEXT
+    )""")
 
     conn.commit()
     conn.close()
@@ -1092,6 +1144,46 @@ def save_record(data):
         csv_path = SPK_CSV
         headers  = ["spk", "so", "tanggal", "customer", "product", "warna", "aval", "uk", "lembar", "pack", "kg",
                     "berat_lembar", "berat_pack", "tebal", "order_ball", "qty", "checker", "satuan", "blongsong", "etiket", "mixing"]
+    
+    elif div == "KARANTINA_MIXING":
+        c.execute("""
+        INSERT INTO karantinamixing (
+            tanggal, shift, divisi, spk, customer, produk, uk,
+            operator_mix, checker, berat_kg, berat_bersih, karung, created_at, code
+        ) VALUES (
+            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
+            :operator_mix, :checker, :berat_kg, :berat_bersih, :karung, :created_at, :code
+        )""", data)
+        
+    elif div == "KARANTINA_HD":
+        c.execute("""
+        INSERT INTO karantinahd (
+            tanggal, shift, divisi, spk, customer, produk, uk,
+            operator_hd, checker, mesin, berat_kg, bobin, berat_bersih, created_at, code
+        ) VALUES (
+            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
+            :operator_hd, :checker, :mesin, :berat_kg, :bobin, :berat_bersih, :created_at, :code
+        )""", data)
+
+    elif div == "KARANTINA_POTONG":
+        c.execute("""
+        INSERT INTO karantinapotong (
+            tanggal, shift, divisi, spk, customer, produk, uk,
+            operator_cu, checker, mesin, berat_kg, keranjang, berat_bersih, created_at, code
+        ) VALUES (
+            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
+            :operator_cu, :checker, :mesin, :berat_kg, :keranjang, :berat_bersih, :created_at, :code
+        )""", data)
+
+    elif div == "KARANTINA_PACKING":
+        c.execute("""
+        INSERT INTO karantinapacking (
+            tanggal, shift, divisi, spk, customer, produk, uk,
+            operator_pa, checker, mesin, berat_bersih, created_at, code, team
+        ) VALUES (
+            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
+            :operator_pa, :checker, :mesin, :berat_bersih, :created_at, :code, :team
+        )""", data)
 
     else:
         conn.close()
@@ -1099,10 +1191,6 @@ def save_record(data):
 
     conn.commit()
     conn.close()
-
-    success = safe_write_csv(csv_path, headers, data)
-    if not success:
-        raise IOError(f"Gagal menyimpan ke CSV: {csv_path}")
         
 import math
 
@@ -1300,6 +1388,26 @@ def scan_transfer():
 @checker_required
 def scan_retur():
     return render_template("scan_retur.html", active_page="scan_retur", current_user=session.get("name"))
+
+@app.route("/karantina_mixing")
+@checker_required
+def karantina_mixing():
+    return render_template("karantina_mixing.html", active_page="karantina_mixing", current_user=session.get("name"))
+
+@app.route("/karantina_hd")
+@checker_required
+def karantina_hd():
+    return render_template("karantina_hd.html", active_page="karantina_hd", current_user=session.get("name"))
+
+@app.route("/karantina_potong")
+@checker_required
+def karantina_potong():
+    return render_template("karantina_potong.html", active_page="karantina_potong", current_user=session.get("name"))
+
+@app.route("/karantina_packing")
+@checker_required
+def karantina_packing():
+    return render_template("karantina_packing.html", active_page="karantina_packing", current_user=session.get("name"))
 
 @app.route("/barcode_mixing")
 @adminwip_required
@@ -1545,16 +1653,6 @@ def api_mutasi_mixing():
         }
 
         # SIMPAN CSV MUTASI
-        path = Path(CSV_MUTASI_MIXING)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        file_exists = path.exists()
-
-        with open(path, "a", newline="", encoding="utf-8-sig") as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_MUTASI_MIXING_COLUMNS)
-            if not file_exists:
-                writer.writeheader()
-            writer.writerow(row_sisa_log)
-            writer.writerow(row_mutasi_log)
 
         # DATA BARU UNTUK KATALOG MIXING
         data_sisa = {
@@ -1591,30 +1689,6 @@ def api_mutasi_mixing():
         }
 
         # SIMPAN KE CSV MIXING
-        file_exists = os.path.exists(CSV_MIXING)
-
-        if file_exists:
-            try:
-                df_header = pd.read_csv(CSV_MIXING, nrows=0, encoding="utf-8-sig")
-                headers = (df_header.columns.str.strip().tolist())
-            except Exception as e:
-                print("Gagal baca header CSV_MIXING:", e)
-                headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_mix", "checker", "berat_kg", "berat_bersih", "karung", "created_at", "code"]
-        else:
-            headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_mix", "checker", "berat_kg", "berat_bersih", "karung", "created_at", "code"]
-
-        if "code" not in headers:
-            headers.append("code")
-
-        with open(CSV_MIXING, "a", newline="", encoding="utf-8-sig") as mf:
-            writer = csv.DictWriter(mf, fieldnames=headers, extrasaction="ignore")
-
-            if not file_exists:
-                writer.writeheader()
-            row_sisa = {key: data_sisa.get(key, "") for key in headers}
-            row_mutasi = {key: data_mutasi.get(key, "") for key in headers}
-            writer.writerow(row_sisa)
-            writer.writerow(row_mutasi)
 
         # ── SIMPAN SQLITE ──
         conn = sqlite3.connect(DB_PATH)
@@ -1837,17 +1911,6 @@ def api_mutasi_hd():
         }
 
         # SIMPAN CSV MUTASI HD
-        path = Path(CSV_MUTASI_HD)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        file_exists_mutasi = path.exists()
-
-        with open(path, "a", newline="", encoding="utf-8-sig") as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_MUTASI_HD_COLUMNS)
-            if not file_exists_mutasi:
-                writer.writeheader()
-
-            writer.writerow(row_sisa_log)
-            writer.writerow(row_mutasi_log)
 
         # DATA BARU UNTUK KATALOG
         data_sisa = {
@@ -1886,33 +1949,6 @@ def api_mutasi_hd():
         }
 
         # SIMPAN KE CSV_HD
-        file_exists = os.path.exists(CSV_HD)
-
-        if file_exists:
-            try:
-                df_header = pd.read_csv(CSV_HD, nrows=0, encoding="utf-8-sig")
-                headers = (df_header.columns.str.strip().tolist())
-
-            except Exception as e:
-                print("Gagal baca header:", e)
-
-                headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_hd", "checker", "mesin", "berat_kg", "berat_bersih", "bobin", "created_at", "code"]
-        else:
-            headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_hd", "checker", "mesin", "berat_kg", "berat_bersih", "bobin", "created_at", "code"]
-
-        if "code" not in headers:
-            headers.append("code")
-
-        with open(CSV_HD, "a", newline="", encoding="utf-8-sig") as mf:
-            writer = csv.DictWriter(mf, fieldnames=headers, extrasaction="ignore")
-
-            if not file_exists:
-                writer.writeheader()
-
-            row_sisa = {key: data_sisa.get(key,"") for key in headers}
-            row_mutasi = {key: data_mutasi.get(key, "") for key in headers}
-            writer.writerow(row_sisa)
-            writer.writerow(row_mutasi)
 
         # SQLITE
         conn = sqlite3.connect(DB_PATH)
@@ -2151,17 +2187,6 @@ def api_mutasi_potong():
         }
 
         # SIMPAN CSV MUTASI POTONG
-        path = Path(CSV_MUTASI_POTONG)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        file_exists_mutasi = path.exists()
-
-        with open(path, "a", newline="", encoding="utf-8-sig") as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_MUTASI_POTONG_COLUMNS)
-            if not file_exists_mutasi:
-                writer.writeheader()
-
-            writer.writerow(row_sisa_log)
-            writer.writerow(row_mutasi_log)
 
         # DATA BARU UNTUK KATALOG
         data_sisa = {
@@ -2200,32 +2225,6 @@ def api_mutasi_potong():
         }
 
         # SIMPAN KE CSV_POTONG
-        file_exists = os.path.exists(CSV_POTONG)
-
-        if file_exists:
-            try:
-                df_header = pd.read_csv(CSV_POTONG, nrows=0, encoding="utf-8-sig")
-                headers = (df_header.columns.str.strip().tolist())
-
-            except Exception as e:
-                print("Gagal baca header:", e)
-
-                headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_cu", "checker", "mesin", "berat_kg", "berat_bersih", "keranjang", "created_at", "code"]
-        else:
-            headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_cu", "checker", "mesin", "berat_kg", "berat_bersih", "keranjang", "created_at", "code"]
-
-        if "code" not in headers:
-            headers.append("code")
-
-        with open(CSV_POTONG, "a", newline="", encoding="utf-8-sig") as mf:
-            writer = csv.DictWriter(mf, fieldnames=headers, extrasaction="ignore")
-
-            if not file_exists:
-                writer.writeheader()
-            row_sisa = {key: data_sisa.get(key,"") for key in headers}
-            row_mutasi = {key: data_mutasi.get(key,"") for key in headers}
-            writer.writerow(row_sisa)
-            writer.writerow(row_mutasi)
 
         # SQLITE
         conn = sqlite3.connect(DB_PATH)
@@ -2299,17 +2298,12 @@ def api_mutasi_potong():
             }
             cleanup_cache()
             record_cache[rec_code] = (cache_rec, time.time())
-        return jsonify(
-    success=True,
-    saved=2,
-    code_sisa=code_sisa,
-    code_mutasi=code_mutasi,
+        return jsonify(success=True, saved=2, code_sisa=code_sisa, code_mutasi=code_mutasi,
     print_urls=[
         f"/label/print/{code_sisa}",
         f"/label/print/{code_mutasi}"
     ]
 )
-
     except Exception as e:
         import traceback
 
@@ -2360,10 +2354,7 @@ def api_mutasi_packing():
         conn.close()
 
         if not row:
-            return jsonify(
-                success=False,
-                error="Kode awal tidak ditemukan"
-            )
+            return jsonify(success=False, error="Kode awal tidak ditemukan")
 
         r = dict(row)
 
@@ -2473,17 +2464,6 @@ def api_mutasi_packing():
         }
 
         # SIMPAN CSV MUTASI PACKING
-        path = Path(CSV_MUTASI_PACKING)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        file_exists_mutasi = path.exists()
-
-        with open(path, "a", newline="", encoding="utf-8-sig") as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_MUTASI_PACKING_COLUMNS)
-            if not file_exists_mutasi:
-                writer.writeheader()
-
-            writer.writerow(row_sisa_log)
-            writer.writerow(row_mutasi_log)
 
         # DATA BARU UNTUK KATALOG
         data_sisa = {
@@ -2518,32 +2498,6 @@ def api_mutasi_packing():
         }
 
         # SIMPAN KE CSV_PACKING
-        file_exists = os.path.exists(CSV_PACKING)
-
-        if file_exists:
-            try:
-                df_header = pd.read_csv(CSV_PACKING, nrows=0, encoding="utf-8-sig")
-                headers = (df_header.columns.str.strip().tolist())
-
-            except Exception as e:
-                print("Gagal baca header:",e)
-
-                headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_pa", "checker", "mesin","berat_bersih", "created_at", "code"]
-        else:
-            headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_pa", "checker", "mesin", "berat_bersih", "created_at", "code"]
-
-        if "code" not in headers:
-            headers.append("code")
-
-        with open(CSV_PACKING, "a", newline="", encoding="utf-8-sig") as mf:
-            writer = csv.DictWriter(mf, fieldnames=headers, extrasaction="ignore")
-
-            if not file_exists:
-                writer.writeheader()
-            row_sisa = {key: data_sisa.get(key,"") for key in headers}
-            row_mutasi = {key: data_mutasi.get(key, "") for key in headers}
-            writer.writerow(row_sisa)
-            writer.writerow(row_mutasi)
 
         # SQLITE
         conn = sqlite3.connect(DB_PATH)
@@ -2786,17 +2740,6 @@ def api_mutasi_sisapack():
         }
 
         # SIMPAN CSV MUTASI SISAPACK
-        path = Path(CSV_MUTASI_SISAPACK)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        file_exists_mutasi = path.exists()
-
-        with open(path, "a", newline="", encoding="utf-8-sig") as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_MUTASI_SISAPACK_COLUMNS)
-            if not file_exists_mutasi:
-                writer.writeheader()
-
-            writer.writerow(row_sisa_log)
-            writer.writerow(row_mutasi_log)
 
         # DATA BARU UNTUK KATALOG
         data_sisa = {
@@ -2833,31 +2776,6 @@ def api_mutasi_sisapack():
         }
 
         # SIMPAN KE CSV_SISA_PACK
-        file_exists = os.path.exists(CSV_SISA_PACK)
-
-        if file_exists:
-            try:
-                df_header = pd.read_csv(CSV_SISA_PACK, nrows=0, encoding="utf-8-sig")
-                headers = (df_header.columns.str.strip().tolist())
-            except Exception as e:
-                print("Gagal baca header:", e)
-
-                headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_sp", "checker", "mesin", "berat_bersih", "created_at", "code"]
-        else:
-            headers = ["tanggal", "shift", "divisi", "spk", "customer", "produk", "uk", "operator_sp", "checker", "mesin", "berat_bersih", "created_at", "code"]
-
-        if "code" not in headers:
-            headers.append("code")
-
-        with open(CSV_SISA_PACK, "a", newline="", encoding="utf-8-sig") as mf:
-            writer = csv.DictWriter(mf, fieldnames=headers, extrasaction="ignore")
-
-            if not file_exists:
-                writer.writeheader()
-            row_sisa = {key: data_sisa.get(key,"") for key in headers}
-            row_mutasi = {key: data_mutasi.get(key,"") for key in headers}
-            writer.writerow(row_sisa)
-            writer.writerow(row_mutasi)
 
         # SQLITE
         conn = sqlite3.connect(DB_PATH)
@@ -2970,7 +2888,6 @@ def get_operators_team(divisi):
                 "operator": str(row[op_col]).strip(),
                 "team":     str(row[team_col]).strip() if team_col else ""
             })
-
         return jsonify(result)
 
     except Exception as e:
@@ -3069,12 +2986,104 @@ def lookup_code():
     except Exception as e:
         return jsonify(found=False, error=str(e))
 
+TRANSFER_TABLE = {
+    "MIXING":       "scantransfermixing",
+    "HD":           "scantransferhd",
+    "POTONG":       "scantransferpotong",
+    "SISA_POTONG":  "scantransferpotong",
+    "PACKING":      "scantransferpacking",
+    "SISA_PACK":    "scantransferpacking",
+}
+
+#SCAN PEMAKAIAN
+@app.route("/api/lookup_codep", methods=["POST"])
+@login_required
+def lookup_codep():
+    try:
+        data = request.get_json()
+        code = (data.get("code") or "").strip()
+
+        if not code:
+            return jsonify(found=False, error="Kode kosong")
+
+        # normalisasi code (biar tidak gagal karena spasi/format aneh)
+        clean_code = "".join(code.strip().upper().split())
+
+        prefix, csv_file, catalog_key, divisi_label = get_prefix_from_code(clean_code)
+
+        catalog_key = (catalog_key or "").strip().upper()
+
+        if not prefix:
+            return jsonify(found=False, error="Prefix kosong")
+
+        if catalog_key not in TRANSFER_TABLE:
+            return jsonify(
+                found=False,
+                error=f"Prefix tidak dikenal: {catalog_key}",
+                prefix=prefix,
+                divisi_label="Unknown",
+                csv_file=None,
+                debug_keys=list(TRANSFER_TABLE.keys())
+            )
+
+        table = TRANSFER_TABLE[catalog_key]
+
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+
+        # DEBUG OPTIONAL (aktifkan kalau perlu)
+        # print("TABLE:", table)
+        # print("LOOKUP CODE:", clean_code)
+
+        c.execute(f"""
+            SELECT * FROM {table}
+            WHERE REPLACE(UPPER(code), ' ', '') = ?
+            LIMIT 1
+        """, (clean_code,))
+
+        row = c.fetchone()
+        conn.close()
+
+        if row is None:
+            return jsonify(
+                found=False,
+                prefix=prefix,
+                divisi_label=divisi_label,
+                csv_file=csv_file,
+                error="Data transfer tidak ditemukan",
+                debug_code=clean_code,
+                debug_table=table
+            )
+
+        r = dict(row)
+
+        return jsonify(
+            found=True,
+            prefix=prefix,
+            divisi_label=divisi_label,
+            csv_file=csv_file,
+
+            spk=str(r.get("spk", "")),
+            customer=str(r.get("customer", "")),
+            produk=str(r.get("produk", "")),
+            uk=str(r.get("uk", "")),
+            berat_bersih=str(r.get("berat_bersih", "")),
+            checker=str(r.get("checker", "")),
+            sisa=str(r.get("sisa", "")),
+        )
+
+    except Exception as e:
+        print("ERROR:", str(e))
+        print("TABLE YANG DIPAKAI:", table)
+        return jsonify(found=False, error=str(e))
+
 # ─── API: SAVE SCAN SALAH ───────────────────────────────────
 @app.route("/save_csv", methods=["POST"])
 @login_required
 def save_csv():
     try:
-        data    = request.get_json()
+        data = request.get_json()
         records = data.get("records", [])
         keterangan = data.get("keterangan", "")
 
@@ -3084,52 +3093,32 @@ def save_csv():
         from collections import defaultdict
         groups = defaultdict(list)
 
+        # ── GROUPING (tetap sama) ─────────────────────────────
         for rec in records:
             csv_file = rec.get("csv_file")
+
             if not csv_file or csv_file not in CSV_SCAN_FILES:
                 _, csv_file, _, _ = get_prefix_from_code(rec.get("code", ""))
+
             if not csv_file or csv_file not in CSV_SCAN_FILES:
                 return jsonify(
                     success=False,
-                    error=f"Kode '{rec.get('code')}' tidak bisa ditentukan CSV tujuannya"
-                )
+                    error=f"Kode '{rec.get('code')}' tidak bisa ditentukan CSV tujuannya")
+
             groups[csv_file].append(rec)
 
-        now_str    = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         scanned_by = session.get("name", "")
 
-        with _csv_lock:
-            for csv_filename, recs in groups.items():
-                path = CSV_SCAN_FILES[csv_filename]
-                path.parent.mkdir(parents=True, exist_ok=True)
-                file_exists = path.exists()
+        # ── CSV SECTION DIHAPUS TOTAL ─────────────────────────
 
-                with open(path, "a", newline="", encoding="utf-8-sig") as f:
-                    writer = csv.DictWriter(f, fieldnames=CSV_SCAN_COLUMNS)
-                    if not file_exists:
-                        writer.writeheader()
-                    for rec in recs:
-                        writer.writerow({
-                            "create_at":    now_str,
-                            "divisi":       rec.get("prefix", ""),
-                            "prefix":       rec.get("prefix", ""),
-                            "divisi_label": rec.get("divisi_label", ""),
-                            "spk":          rec.get("spk", ""),
-                            "customer":     rec.get("customer", ""),
-                            "produk":       rec.get("produk", ""),
-                            "uk":           rec.get("uk", ""),
-                            "checker":      rec.get("checker", ""),
-                            "scanned_by":   scanned_by,
-                            "code":         rec.get("code", ""),
-                            "keterangan":   keterangan,
-                        })
-
-        # ── INSERT KE SQLITE ─────────────────────────────────
+        # ── INSERT KE SQLITE (tetap sama) ─────────────────────
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
 
         for csv_filename, recs in groups.items():
             table_divisi = SCAN_SALAH_TABLE_MAP.get(csv_filename)
+
             for rec in recs:
                 row_vals = (
                     now_str,
@@ -3145,6 +3134,7 @@ def save_csv():
                     rec.get("code", ""),
                     keterangan,
                 )
+
                 # tabel gabungan
                 c.execute("""
                     INSERT INTO scan_salah
@@ -3153,7 +3143,8 @@ def save_csv():
                      checker, scanned_by, code, keterangan)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
                 """, row_vals)
-                # tabel per-divisi
+
+                # tabel per divisi
                 if table_divisi:
                     c.execute(f"""
                         INSERT INTO {table_divisi}
@@ -3170,7 +3161,6 @@ def save_csv():
 
     except Exception as e:
         return jsonify(success=False, error=str(e))
-
 
 # ─── API: SAVE SCAN PEMAKAIAN ───────────────────────────────────
 @app.route("/save_pemakaian", methods=["POST"])
@@ -3200,46 +3190,15 @@ def save_pemakaian():
         for rec in records:
             csv_file = rec.get("csv_file")
 
-            if not csv_file or csv_file not in CSV_SCAN_PFILES:
+            if not csv_file or csv_file not in PEMAKAIAN_TABLE_MAP:
                 prefix, _, _, _ = get_prefix_from_code(rec.get("code", ""))
                 csv_file = PEMAKAIAN_MAP.get(prefix)
 
-            if not csv_file or csv_file not in CSV_SCAN_PFILES:
+            if not csv_file or csv_file not in PEMAKAIAN_TABLE_MAP:
                 return jsonify(
                     success=False,
-                    error=f"Kode '{rec.get('code')}' tidak bisa ditentukan CSV tujuannya"
-                )
-
+                    error=f"Kode '{rec.get('code')}' tidak bisa ditentukan tabel tujuannya")
             groups[csv_file].append(rec)
-
-        with _csv_lock:
-            for csv_filename, recs in groups.items():
-                path = CSV_SCAN_PFILES[csv_filename]
-                path.parent.mkdir(parents=True, exist_ok=True)
-                file_exists = path.exists()
-
-                with open(path, "a", newline="", encoding="utf-8-sig") as f:
-                    writer = csv.DictWriter(f, fieldnames=CSV_PSCAN_COLUMNS)
-                    if not file_exists:
-                        writer.writeheader()
-                    for rec in recs:
-                        writer.writerow({
-                            "create_at":    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "tanggal":      tanggal_clean,
-                            "shift":        shift,
-                            "divisi":       rec.get("prefix", ""),
-                            "prefix":       rec.get("prefix", ""),
-                            "divisi_label": rec.get("divisi_label", ""),
-                            "spk":          rec.get("spk", ""),
-                            "customer":     rec.get("customer", ""),
-                            "produk":       rec.get("produk", ""),
-                            "uk":           rec.get("uk", ""),
-                            "checker":      rec.get("checker", ""),
-                            "scanned_by":   session.get("name", ""),
-                            "code":         rec.get("code", ""),
-                            "mesin":        mesin,
-                            "berat_bersih": rec.get("berat_bersih", ""),
-                        })
 
         # INSERT KE SQLITE 
         conn = sqlite3.connect(DB_PATH)
@@ -3293,7 +3252,6 @@ def save_pemakaian():
     except Exception as e:
         return jsonify(success=False, error=str(e))
 
-
 def format_tanggal(raw):
     """Normalisasi tanggal ke DD-MM-YYYY"""
     val = (raw or "").split("T")[0].strip()
@@ -3303,7 +3261,6 @@ def format_tanggal(raw):
         except:
             continue
     return val
-
 
 @app.route("/save_transfer", methods=["POST"])
 @login_required
@@ -3333,42 +3290,9 @@ def save_transfer():
             prefix, _, _, _ = get_prefix_from_code(rec.get("code", ""))
             csv_file = TRANSFER_MAP.get(prefix)
 
-            if not csv_file or csv_file not in CSV_SCAN_TFILES:
-                return jsonify(
-                    success=False,
-                    error=f"Kode '{rec.get('code')}' tidak bisa ditentukan CSV tujuannya (prefix: {prefix})"
-                )
-
+            if not csv_file or csv_file not in TRANSFER_TABLE_MAP:
+                return jsonify(success=False, error=f"Kode '{rec.get('code')}' tidak bisa ditentukan CSV tujuannya (prefix: {prefix})")
             groups[csv_file].append(rec)
-
-        with _csv_lock:
-            for csv_filename, recs in groups.items():
-                path = CSV_SCAN_TFILES[csv_filename]
-                path.parent.mkdir(parents=True, exist_ok=True)
-                file_exists = path.exists()
-
-                with open(path, "a", newline="", encoding="utf-8-sig") as f:
-                    writer = csv.DictWriter(f, fieldnames=CSV_TSCAN_COLUMNS)
-                    if not file_exists:
-                        writer.writeheader()
-                    for rec in recs:
-                        writer.writerow({
-                            "create_at":    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "tanggal":      tanggal_clean,
-                            "shift":        shift,
-                            "divisi":       rec.get("prefix", ""),
-                            "prefix":       rec.get("prefix", ""),
-                            "divisi_label": rec.get("divisi_label", ""),
-                            "spk":          rec.get("spk", ""),
-                            "customer":     rec.get("customer", ""),
-                            "produk":       rec.get("produk", ""),
-                            "uk":           rec.get("uk", ""),
-                            "checker":      rec.get("checker", ""),
-                            "scanned_by":   session.get("name", ""),
-                            "code":         rec.get("code", ""),
-                            "foreman":      foreman,
-                            "berat_bersih": rec.get("berat_bersih", ""),
-                        })
 
         # INSERT KE SQLITE
         conn = sqlite3.connect(DB_PATH)
@@ -3602,48 +3526,7 @@ def save_retur():
         conn.close()
 
         # ── 4. Hapus dari CSV transfer ───────────────────────────────────────
-        all_codes_deleted = {row["code"] for row in log_rows}
-
-        with _csv_lock:
-            for tf, recs in groups.items():
-                path = CSV_SCAN_TFILES.get(tf)
-                if not path or not path.exists():
-                    continue
-
-                try:
-                    df = pd.read_csv(path, encoding="utf-8-sig", dtype=str,
-                                     on_bad_lines="skip", engine="python")
-                except Exception:
-                    continue
-
-                df.columns = df.columns.str.strip()
-                if "code" not in df.columns:
-                    continue
-
-                df["code"] = df["code"].astype(str).str.strip().str.upper()
-                codes_this_file = {
-                    (rec.get("code") or "").strip().upper()
-                    for rec in recs
-                }
-
-                mask_delete = df["code"].isin(codes_this_file)
-                df_clean = df[~mask_delete].dropna(how="all")
-                df_clean = df_clean[~(df_clean.apply(
-                    lambda row: all(str(v).strip() == "" for v in row), axis=1
-                ))]
-                df_clean.to_csv(path, index=False, encoding="utf-8-sig")
-
         # ── 5. Tulis log retur ke CSV ────────────────────────────────────────
-        if log_rows:
-            CSV_RETUR_DIR.mkdir(parents=True, exist_ok=True)
-            file_exists = CSV_RETUR_LOG.exists()
-            with open(CSV_RETUR_LOG, "a", newline="", encoding="utf-8-sig") as f:
-                writer = csv.DictWriter(f, fieldnames=CSV_RETUR_COLUMNS)
-                if not file_exists:
-                    writer.writeheader()
-                for row in log_rows:
-                    writer.writerow(row)
-
         return jsonify(success=True, deleted=deleted, skipped=skipped)
 
     except Exception as e:
@@ -3739,7 +3622,7 @@ def submit():
             record = {
                 "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
                 "shift": d.get("shift"), "divisi": div,
-                "spk": d.get("spk"),"customer": d.get("customer"),
+                "spk": d.get("spk"), "customer": d.get("customer"),
                 "produk": d.get("produk"), "uk": d.get("uk"),
                 "operator_hd": d.get("operator_hd"), "checker": d.get("checker"),
                 "mesin": d.get("mesin"),
@@ -3754,7 +3637,7 @@ def submit():
             record = {
                 "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
                 "shift": d.get("shift"), "divisi": div,
-                "spk": d.get("spk"),"customer": d.get("customer"),
+                "spk": d.get("spk"), "customer": d.get("customer"),
                 "produk": d.get("produk"), "uk": d.get("uk"),
                 "operator_cu": d.get("operator_cu"), "checker": d.get("checker"),
                 "mesin": d.get("mesin"),
@@ -3769,7 +3652,7 @@ def submit():
             record = {
                 "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
                 "shift": d.get("shift"), "divisi": div,
-                "spk": d.get("spk"),"customer": d.get("customer"),
+                "spk": d.get("spk"), "customer": d.get("customer"),
                 "produk": d.get("produk"), "uk": d.get("uk"),
                 "operator_pa": d.get("operator_pa"), "checker": d.get("checker"),
                 "mesin": d.get("mesin"),
@@ -3782,7 +3665,7 @@ def submit():
             record = {
                 "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
                 "shift": d.get("shift"), "divisi": div,
-                "spk": d.get("spk"),"customer": d.get("customer"),
+                "spk": d.get("spk"), "customer": d.get("customer"),
                 "produk": d.get("produk"), "uk": d.get("uk"),
                 "operator_qc": d.get("operator_qc"), "checker": d.get("checker"),
                 "mesin": d.get("mesin"),
@@ -3809,9 +3692,6 @@ def submit():
                 "tanggal": format_tanggal(d.get("tanggal","")),
                 "customer": d.get("customer"),
                 "product": d.get("product"),
-                "spk": d.get("spk"),
-                "customer": d.get("customer"),
-                "produk": d.get("produk"),
                 "warna": d.get("warna"),
                 "aval": d.get("aval"),
                 "uk": d.get("uk"),
@@ -3829,18 +3709,59 @@ def submit():
                 "etiket": d.get("etiket"),
                 "mixing": d.get("mixing"),
             }
+        elif div == "KARANTINA_MIXING":
+            record = {
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
+                "shift": d.get("shift"), "divisi": div,
+                "spk": d.get("spk"), "customer": d.get("customer"),
+                "produk": d.get("produk"), "uk": d.get("uk"),
+                "operator_mix": d.get("operator_mix"), "checker": d.get("checker"),
+                "berat_kg": float(d.get("berat_kg") or 0),
+                "berat_bersih": float(d.get("berat_bersih") or 0),
+                "karung": float(d.get("karung") or 0),
+                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
+            }
+        elif div == "KARANTINA_HD":
+            record = {
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
+                "shift": d.get("shift"), "divisi": div,
+                "spk": d.get("spk"), "customer": d.get("customer"),
+                "produk": d.get("produk"), "uk": d.get("uk"),
+                "operator_hd": d.get("operator_hd"), "checker": d.get("checker"),
+                "mesin": d.get("mesin"),
+                "berat_kg": float(d.get("berat_kg") or 0),
+                "bobin": float(d.get("bobin") or 0),
+                "berat_bersih": float(d.get("berat_bersih") or 0),
+                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
+            }
+        elif div == "KARANTINA_POTONG":
+            record = {
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
+                "shift": d.get("shift"), "divisi": div,
+                "spk": d.get("spk"), "customer": d.get("customer"),
+                "produk": d.get("produk"), "uk": d.get("uk"),
+                "operator_cu": d.get("operator_cu"), "checker": d.get("checker"),
+                "mesin": d.get("mesin"),
+                "berat_kg": float(d.get("berat_kg") or 0),
+                "keranjang": float(d.get("keranjang") or 0),
+                "berat_bersih": float(d.get("berat_bersih") or 0),
+                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code
+            }
+        elif div == "KARANTINA_PACKING":
+            record = {
+                "order_id": order_id, "tanggal": format_tanggal(d.get("tanggal","")),
+                "shift": d.get("shift"), "divisi": div,
+                "spk": d.get("spk"), "customer": d.get("customer"),
+                "produk": d.get("produk"), "uk": d.get("uk"),
+                "operator_pa": d.get("operator_pa"), "checker": d.get("checker"),
+                "mesin": d.get("mesin"),
+                "berat_bersih": float(d.get("berat_bersih") or 0),
+                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"), "code": code, "team": d.get("team")
+            }
         else:
             return jsonify({"success": False, "message": "Divisi tidak dikenali"})
-
         save_record(record)
 
-        _div_to_route = {
-            "mixing": "barcode_mixing", "hd": "barcode_hd",
-            "potong": "barcode_potong", "packing": "barcode_packing",
-            "sisa_pack": "barcode_sisa_pack", "aval_mixing": "barcode_aval_mixing",
-            "aval_hd": "barcode_aval_hd", "aval_potong": "barcode_aval_potong",
-            "aval_packing": "barcode_aval_packing", "aval_qc": "barcode_aval_qc",
-        }
         input_page = (d.get("input_page") or "").strip()
         record["_source_route"] = "barcode" if input_page == "barcode" else ""
         cleanup_cache()
@@ -4096,7 +4017,7 @@ def check_spk_berat_hd(spk):
 
         return jsonify(success=False, error=str(e), detail=traceback.format_exc())
     
-# ── Helper sorting kronologis untuk stok opname (taruh sebelum _build_stok_opname) ──
+# Helper sorting kronologis untuk stok opname
 def _tanggal_sort_key(tanggal_str):
     """DD-MM-YYYY -> YYYY-MM-DD biar bisa diurutkan. Gagal parse -> dianggap paling lama."""
     try:
@@ -4105,48 +4026,15 @@ def _tanggal_sort_key(tanggal_str):
     except Exception:
         return "0000-00-00"
 
-
 # Urutan shift dalam satu hari produksi: Pagi (P) -> Malam (M)
 SHIFT_ORDER = {"P": 0, "PAGI": 0, "M": 1, "MALAM": 1}
-
 
 def _shift_sort_key(shift_str):
     s = str(shift_str or "").strip().upper()
     return SHIFT_ORDER.get(s, 99)
 
-
 def _build_stok_opname(divisi_key):
-    """
-    divisi_key: "hd" atau "potong"
 
-    FIFO running balance per SPK. Transfer tidak tahu barang itu hasil
-    produksi shift/tanggal mana, jadi transfer pada suatu shift dialokasikan
-    dulu dari saldo SPK yang sudah terkumpul sebelumnya (carry over),
-    baru sisanya dari input shift itu sendiri. Dengan ini "sisa" tidak akan
-    pernah minus secara membingungkan -- kalau transfer > input shift ini,
-    kelebihannya otomatis ditandai sebagai carry over dari stok lama.
-
-    Untuk COUNT (jumlah roll/keranjang) TIDAK dipakai logika FIFO carry-over
-    yang sama seperti qty (kg). Alasannya: count itu satuan utuh (unit fisik),
-    sedangkan tiap unit bisa beda berat -- jadi "carry-over count" tidak selalu
-    masuk akal secara fisik (1 unit besar belum tentu bisa menutupi 3 unit
-    kecil meski total kg-nya cukup). Count cukup dihitung sebagai saldo
-    berjalan sederhana: akumulasi input_count dikurangi akumulasi
-    transfer_count per SPK, berjalan sejalan urutan kronologis yang sama.
-
-    Return per baris (per tanggal+shift+spk, urut kronologis per SPK):
-        tanggal, shift, spk, customer, produk, uk,
-        input_count, input_qty,
-        transfer_count, transfer_qty,
-        transfer_dari_shift_ini,        -> qty (kg) transfer yg dipenuhi dari input shift ini
-        transfer_dari_stok_lama,        -> qty (kg) transfer yg narik dari saldo sebelumnya (carry over)
-        saldo_sebelum,                  -> saldo qty (kg) SPK sebelum shift ini berjalan
-        saldo_akhir,                    -> saldo qty (kg) SPK setelah input & transfer shift ini
-        saldo_count_sebelum,            -> saldo jumlah unit SPK sebelum shift ini (running total sederhana)
-        saldo_count_akhir,              -> saldo jumlah unit SPK setelah shift ini (running total sederhana)
-        sisa_count, sisa_qty            -> kompatibilitas field lama
-                                            (sisa_qty = saldo_akhir, sisa_count = saldo_count_akhir)
-    """
     config = {
         "hd": {
             "katalog_table": "kataloghd",
@@ -4304,8 +4192,6 @@ def _build_stok_ringkasan(divisi_key):
 
     rows = _build_stok_opname(divisi_key)
 
-    # rows sudah urut tanggal+shift TERBARU dulu (reverse=True di _build_stok_opname),
-    # jadi baris pertama yang ditemui untuk tiap SPK adalah baris paling baru -> saldo akhir terkini.
     latest_per_spk = {}
     for r in rows:
         spk = r["spk"]
@@ -4316,7 +4202,7 @@ def _build_stok_ringkasan(divisi_key):
     for spk, r in latest_per_spk.items():
         stok_qty = r["saldo_akhir"]
         if stok_qty is None or stok_qty <= 0:
-            continue  # sembunyikan yg sudah habis/minus, biar ringkas
+            continue  # sembunyikan yg sudah habis/minus
         result.append({
             "spk":        r["spk"],
             "customer":   r["customer"],
@@ -4371,9 +4257,7 @@ def api_stok_ringkasan_potong():
     except Exception as e:
         print("ERROR api_stok_ringkasan_potong:", e)
         return jsonify([])
-
-
-        
+    
 # ─── API: RECENT ────────────────────────────────────────────
 @app.route("/api/recent/<divisi>")
 @login_required

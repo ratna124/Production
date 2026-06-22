@@ -915,7 +915,7 @@
     <!-- ── MAIN ── -->
     <main class="main">
       <div class="page-header">
-        <h1 class="page-title">Potong</h1>
+        <h1 class="page-title">Karantina Potong</h1>
         <span class="page-sub" id="current-date"></span>
       </div>
 
@@ -985,7 +985,7 @@
             </div>
             <div class="field">
               <label class="field-label">Divisi</label>
-              <input type="text" id="divisi" value="Potong" readonly>
+              <input type="text" id="divisi" value="Karantina_Potong" readonly>
             </div>
           </div>
         </div>
@@ -1340,11 +1340,11 @@
             const divisi = document.getElementById("divisi").value; // "Mixing"
 
             try {
-              const res = await fetch(`/api/operators/${divisi}`);
+              const res = await fetch(`/api/operators/potong`);
               const operators = await res.json();
 
               const select = document.getElementById("operator_cu");
-              select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
+              select.innerHTML = `<option value="">-- Pilih Operator Potong --</option>`;
 
               operators.forEach(op => {
                 select.innerHTML += `<option value="${op}">${op}</option>`;
