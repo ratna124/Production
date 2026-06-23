@@ -1194,7 +1194,7 @@
 
           async function loadRecent() {
             try {
-              const res = await fetch("/api/recent/hd");
+              const res = await fetch("/api/recent/karantina_hd");
               const rows = await res.json();
               allData = rows || [];
               renderTable(allData);

@@ -4258,6 +4258,84 @@ def api_stok_ringkasan_potong():
         print("ERROR api_stok_ringkasan_potong:", e)
         return jsonify([])
     
+def _build_stok_karantina(divisi_key):
+    """
+    Hitung total stok karantina per SPK untuk masing-masing divisi.
+    divisi_key: 'mixing' | 'hd' | 'potong' | 'packing'
+    """
+    table_map = {
+        "mixing":  ("karantinamixing",  "berat_bersih"),
+        "hd":      ("karantinahd",      "berat_bersih"),
+        "potong":  ("karantinapotong",  "berat_bersih"),
+        "packing": ("karantinapacking", "berat_bersih"),
+    }
+    if divisi_key not in table_map:
+        return []
+
+    table, qty_col = table_map[divisi_key]
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    c.execute(f"""
+        SELECT spk, customer, produk, uk,
+               COUNT(*)        AS stok_count,
+               SUM({qty_col})  AS stok_qty
+        FROM {table}
+        WHERE spk IS NOT NULL
+        GROUP BY spk, customer, produk, uk
+        HAVING stok_qty > 0
+        ORDER BY stok_qty DESC
+    """)
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+
+    for r in rows:
+        r["stok_count"] = int(r["stok_count"] or 0)
+        r["stok_qty"]   = round(float(r["stok_qty"] or 0), 2)
+
+    return rows
+
+
+# ── Routes ──────────────────────────────────────────────────────────────────
+
+@app.route("/api/stok_karantina/mixing")
+@login_required
+def api_stok_karantina_mixing():
+    try:
+        return jsonify(_build_stok_karantina("mixing"))
+    except Exception as e:
+        print("ERROR api_stok_karantina_mixing:", e)
+        return jsonify([])
+
+@app.route("/api/stok_karantina/hd")
+@login_required
+def api_stok_karantina_hd():
+    try:
+        return jsonify(_build_stok_karantina("hd"))
+    except Exception as e:
+        print("ERROR api_stok_karantina_hd:", e)
+        return jsonify([])
+
+@app.route("/api/stok_karantina/potong")
+@login_required
+def api_stok_karantina_potong():
+    try:
+        return jsonify(_build_stok_karantina("potong"))
+    except Exception as e:
+        print("ERROR api_stok_karantina_potong:", e)
+        return jsonify([])
+
+@app.route("/api/stok_karantina/packing")
+@login_required
+def api_stok_karantina_packing():
+    try:
+        return jsonify(_build_stok_karantina("packing"))
+    except Exception as e:
+        print("ERROR api_stok_karantina_packing:", e)
+        return jsonify([])
+    
 # ─── API: RECENT ────────────────────────────────────────────
 @app.route("/api/recent/<divisi>")
 @login_required
@@ -4276,6 +4354,10 @@ def recent(divisi):
             "aval_potong":  "katalogavalpotong",
             "aval_packing": "katalogavalpacking",
             "aval_qc":      "katalogavalqc",
+            "karantina_mixing":       "karantinamixing",
+            "karantina_hd":           "karantinahd",
+            "karantina_potong":       "karantinapotong",
+            "karantina_packing":      "karantinapacking",
         }
         table = table_map.get(divisi)
         if not table:

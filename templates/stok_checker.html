@@ -259,9 +259,17 @@
       flex-shrink: 0;
     }
 
-    .legend-dot.carry { background: var(--accent2); }
-    .legend-dot.ok { background: var(--success); }
-    .legend-dot.warn { background: var(--danger); }
+    .legend-dot.carry {
+      background: var(--accent2);
+    }
+
+    .legend-dot.ok {
+      background: var(--success);
+    }
+
+    .legend-dot.warn {
+      background: var(--danger);
+    }
 
     .filter-bar {
       display: flex;
@@ -361,9 +369,17 @@
       white-space: nowrap;
     }
 
-    th.group-input { color: var(--accent2); }
-    th.group-transfer { color: var(--info); }
-    th.group-sisa { color: var(--success); }
+    th.group-input {
+      color: var(--accent2);
+    }
+
+    th.group-transfer {
+      color: var(--info);
+    }
+
+    th.group-sisa {
+      color: var(--success);
+    }
 
     td {
       padding: 9px 12px;
@@ -382,12 +398,29 @@
       text-align: right;
     }
 
-    td.col-input { color: var(--accent2); }
-    td.col-transfer { color: var(--info); }
-    td.col-sisa { font-weight: 500; }
-    td.col-sisa.positive { color: var(--success); }
-    td.col-sisa.negative { color: var(--danger); }
-    td.col-sisa.zero { color: var(--gray5); }
+    td.col-input {
+      color: var(--accent2);
+    }
+
+    td.col-transfer {
+      color: var(--info);
+    }
+
+    td.col-sisa {
+      font-weight: 500;
+    }
+
+    td.col-sisa.positive {
+      color: var(--success);
+    }
+
+    td.col-sisa.negative {
+      color: var(--danger);
+    }
+
+    td.col-sisa.zero {
+      color: var(--gray5);
+    }
 
     tr:hover td {
       background: rgba(255, 255, 255, 0.02);
@@ -490,6 +523,35 @@
       .ringkasan-grid {
         grid-template-columns: 1fr;
       }
+    }
+
+    .karantina-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 1200px) {
+      .karantina-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .karantina-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .badge-karantina {
+      display: inline-flex;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.25);
     }
   </style>
 </head>
@@ -624,7 +686,9 @@
                 </tr>
               </thead>
               <tbody id="ringkasan-hd-body">
-                <tr class="empty-row"><td colspan="6">Memuat data...</td></tr>
+                <tr class="empty-row">
+                  <td colspan="6">Memuat data...</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -653,12 +717,138 @@
                 </tr>
               </thead>
               <tbody id="ringkasan-potong-body">
-                <tr class="empty-row"><td colspan="6">Memuat data...</td></tr>
+                <tr class="empty-row">
+                  <td colspan="6">Memuat data...</td>
+                </tr>
               </tbody>
             </table>
           </div>
         </div>
       </div>
+      <!-- RINGKASAN STOK KARANTINA -->
+      <div class="page-header">
+        <h2 class="page-title" style="font-size:15px;">Stok Karantina</h2>
+        <span class="page-sub">Total per SPK yang masih dalam karantina</span>
+      </div>
+      <div class="karantina-grid">
+
+        <!-- Karantina Mixing -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-header-num" style="background:var(--danger);">KM</span>
+            <span class="card-header-title">Karantina Mixing</span>
+            <span class="card-header-meta" id="kar-mixing-meta"></span>
+          </div>
+          <div class="filter-bar">
+            <input id="kar-mixing-search" type="text" placeholder="Cari SPK...">
+          </div>
+          <div class="ringkasan-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>No SPK</th>
+                  <th>Produk</th>
+                  <th class="group-sisa">Jumlah</th>
+                  <th class="group-sisa">Qty (kg)</th>
+                </tr>
+              </thead>
+              <tbody id="kar-mixing-body">
+                <tr class="empty-row">
+                  <td colspan="4">Memuat data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Karantina HD -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-header-num" style="background:var(--danger);">KH</span>
+            <span class="card-header-title">Karantina HD</span>
+            <span class="card-header-meta" id="kar-hd-meta"></span>
+          </div>
+          <div class="filter-bar">
+            <input id="kar-hd-search" type="text" placeholder="Cari SPK...">
+          </div>
+          <div class="ringkasan-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>No SPK</th>
+                  <th>Produk</th>
+                  <th class="group-sisa">Roll</th>
+                  <th class="group-sisa">Qty (kg)</th>
+                </tr>
+              </thead>
+              <tbody id="kar-hd-body">
+                <tr class="empty-row">
+                  <td colspan="4">Memuat data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Karantina Potong -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-header-num" style="background:var(--danger);">KP</span>
+            <span class="card-header-title">Karantina Potong</span>
+            <span class="card-header-meta" id="kar-potong-meta"></span>
+          </div>
+          <div class="filter-bar">
+            <input id="kar-potong-search" type="text" placeholder="Cari SPK...">
+          </div>
+          <div class="ringkasan-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>No SPK</th>
+                  <th>Produk</th>
+                  <th class="group-sisa">Keranjang</th>
+                  <th class="group-sisa">Qty (kg)</th>
+                </tr>
+              </thead>
+              <tbody id="kar-potong-body">
+                <tr class="empty-row">
+                  <td colspan="4">Memuat data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Karantina Packing -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-header-num" style="background:var(--danger);">KK</span>
+            <span class="card-header-title">Karantina Packing</span>
+            <span class="card-header-meta" id="kar-packing-meta"></span>
+          </div>
+          <div class="filter-bar">
+            <input id="kar-packing-search" type="text" placeholder="Cari SPK...">
+          </div>
+          <div class="ringkasan-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>No SPK</th>
+                  <th>Produk</th>
+                  <th class="group-sisa">Jumlah</th>
+                  <th class="group-sisa">Qty (kg)</th>
+                </tr>
+              </thead>
+              <tbody id="kar-packing-body">
+                <tr class="empty-row">
+                  <td colspan="4">Memuat data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- tutup karantina-grid -->
 
       <!-- TABEL HD -->
       <div class="card">
@@ -670,7 +860,8 @@
 
         <div class="legend">
           <div class="legend-item"><span class="legend-dot ok"></span> Saldo SPK aman</div>
-          <div class="legend-item"><span class="legend-dot carry"></span> Sebagian transfer (kg) dari stok shift/tanggal sebelumnya</div>
+          <div class="legend-item"><span class="legend-dot carry"></span> Sebagian transfer (kg) dari stok shift/tanggal
+            sebelumnya</div>
           <div class="legend-item"><span class="legend-dot warn"></span> Saldo kg atau unit minus</div>
         </div>
 
@@ -704,7 +895,9 @@
               </tr>
             </thead>
             <tbody id="hd-body">
-              <tr class="empty-row"><td colspan="12">Memuat data...</td></tr>
+              <tr class="empty-row">
+                <td colspan="12">Memuat data...</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -720,7 +913,8 @@
 
         <div class="legend">
           <div class="legend-item"><span class="legend-dot ok"></span> Saldo SPK aman</div>
-          <div class="legend-item"><span class="legend-dot carry"></span> Sebagian transfer (kg) dari stok shift/tanggal sebelumnya</div>
+          <div class="legend-item"><span class="legend-dot carry"></span> Sebagian transfer (kg) dari stok shift/tanggal
+            sebelumnya</div>
           <div class="legend-item"><span class="legend-dot warn"></span> Saldo kg atau unit minus</div>
         </div>
 
@@ -754,7 +948,9 @@
               </tr>
             </thead>
             <tbody id="potong-body">
-              <tr class="empty-row"><td colspan="12">Memuat data...</td></tr>
+              <tr class="empty-row">
+                <td colspan="12">Memuat data...</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -1005,6 +1201,78 @@
     function autoFilterRingkasan(div) {
       clearTimeout(ringkasanState[div].timeout);
       ringkasanState[div].timeout = setTimeout(() => filterRingkasanTable(div), 150);
+    }
+
+    // ── KARANTINA STATE ─────────────────────────────────────────────────────────
+    const karState = {
+      mixing: { all: [], timeout: null },
+      hd: { all: [], timeout: null },
+      potong: { all: [], timeout: null },
+      packing: { all: [], timeout: null },
+    };
+
+    // Load saat DOMContentLoaded — tambahkan di dalam blok DOMContentLoaded yang sudah ada:
+    // loadKarantina("mixing"); loadKarantina("hd"); loadKarantina("potong"); loadKarantina("packing");
+    // dan listener: document.getElementById(`kar-${div}-search`).addEventListener(...)
+
+    // ── INIT (tambahkan ke DOMContentLoaded) ────────────────────────────────────
+    document.addEventListener("DOMContentLoaded", function () {
+      // ... kode yang sudah ada ...
+
+      ["mixing", "hd", "potong", "packing"].forEach(div => {
+        loadKarantina(div);
+        document.getElementById(`kar-${div}-search`).addEventListener("input", () => {
+          clearTimeout(karState[div].timeout);
+          karState[div].timeout = setTimeout(() => filterKarantina(div), 150);
+        });
+      });
+
+      setInterval(() => {
+        ["mixing", "hd", "potong", "packing"].forEach(div => loadKarantina(div));
+      }, 60000);
+    });
+
+    async function loadKarantina(div) {
+      const tbody = document.getElementById(`kar-${div}-body`);
+      try {
+        const res = await fetch(`/api/stok_karantina/${div}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const rows = await res.json();
+        if (!Array.isArray(rows)) throw new Error("Format tidak sesuai");
+        karState[div].all = rows;
+        filterKarantina(div);
+      } catch (e) {
+        console.error(`Karantina load error (${div}):`, e);
+        karState[div].all = [];
+        tbody.innerHTML = `<tr class="error-row"><td colspan="4">Gagal memuat data.</td></tr>`;
+        document.getElementById(`kar-${div}-meta`).textContent = "";
+      }
+    }
+
+    function filterKarantina(div) {
+      const spkEl = document.getElementById(`kar-${div}-search`);
+      const spkVal = spkEl ? spkEl.value.toLowerCase().trim() : "";
+      let filtered = karState[div].all.filter(r =>
+        !spkVal || (r.spk || "").toLowerCase().includes(spkVal)
+      );
+      renderKarantina(div, filtered);
+      document.getElementById(`kar-${div}-meta`).textContent = `${filtered.length} SPK`;
+    }
+
+    function renderKarantina(div, data) {
+      const tbody = document.getElementById(`kar-${div}-body`);
+      if (!data.length) {
+        tbody.innerHTML = `<tr class="empty-row"><td colspan="4">Tidak ada stok karantina</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map(r => `
+    <tr>
+      <td class="mono">${escapeHtml(r.spk)}</td>
+      <td>${escapeHtml(r.produk)}</td>
+      <td class="num col-sisa positive">${r.stok_count}</td>
+      <td class="num col-sisa positive">${formatNum(r.stok_qty)}</td>
+    </tr>
+  `).join("");
     }
 
     // SESSION CHECK
