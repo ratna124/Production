@@ -1079,6 +1079,11 @@ input[readonly]:focus {
 
             loadRecent();
 
+            document.getElementById("operator_amix").addEventListener("change", function () {
+              const shift = operatorShiftMap[this.value] || "";
+              document.getElementById("shift").value = shift;
+            });
+
             // SEARCH
             document.getElementById("search-date").addEventListener("input", autoFilter);
             document.getElementById("search-spk").addEventListener("input", autoFilter);
@@ -1101,28 +1106,6 @@ input[readonly]:focus {
               clearTimeout(timer);
               timer = setTimeout(() => func.apply(this, args), delay);
             };
-          }
-
-          // TIME + SHIFT
-          function updateTime() {
-            let now = new Date();
-            let hour = now.getHours();
-            let shift = (hour >= 7 && hour < 19) ? "P" : "M";
-            document.getElementById("shift").value = shift;
-            let prodDate = new Date(now);
-            // jam 00:00 - 06:59
-            if (hour < 7) {
-              prodDate.setDate(prodDate.getDate() - 1);
-            }
-
-            let formatted =
-              prodDate.getFullYear() + "-" +
-              String(prodDate.getMonth() + 1).padStart(2, '0') + "-" +
-              String(prodDate.getDate()).padStart(2, '0') + "T" +
-              String(now.getHours()).padStart(2, '0') + ":" +
-              String(now.getMinutes()).padStart(2, '0');
-
-            document.getElementById("tanggal").value = formatted;
           }
 
           // LOAD DATA
@@ -1220,17 +1203,44 @@ input[readonly]:focus {
           }
         </script>
         <script>
+          function updateTime() {
+            const now = new Date();
+
+            const prodDate = new Date(now);
+            if (now.getHours() < 7) {
+              prodDate.setDate(prodDate.getDate() - 1);
+            }
+
+            const formatted =
+              prodDate.getFullYear() + "-" +
+              String(prodDate.getMonth() + 1).padStart(2, "0") + "-" +
+              String(prodDate.getDate()).padStart(2, "0") + "T" +
+              String(now.getHours()).padStart(2, "0") + ":" +
+              String(now.getMinutes()).padStart(2, "0");
+
+            document.getElementById("tanggal").value = formatted;
+          }
+
+          let operatorShiftMap = {};
+
           async function loadOperators() {
             const divisi = document.getElementById("divisi").value;
 
             try {
-              const res = await fetch(`/api/operators/${divisi}`);
-              const operators = await res.json();
+              const res = await fetch(`/api/shift/${divisi}`);
+              const data = await res.json();
 
               const select = document.getElementById("operator_amix");
-              select.innerHTML = `<option value="">-- Pilih Operator Mixing --</option>`;
+              select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
 
-              operators.forEach(op => {
+              operatorShiftMap = {};
+
+              data.forEach(item => {
+                const op = item.operator;
+                const shift = item.shift;
+
+                operatorShiftMap[op] = shift;
+
                 select.innerHTML += `<option value="${op}">${op}</option>`;
               });
 

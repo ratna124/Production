@@ -966,12 +966,8 @@
               <input type="datetime-local" id="tanggal" readonly>
             </div>
             <div class="field">
-              <label class="field-label">Shift<span class="req">*</span></label>
-              <select id="shift" required>
-                <option value="">-- Pilih Shift --</option>
-                <option value="P">P</option>
-                <option value="M">M</option>
-              </select>
+              <label class="field-label">Shift</label>
+              <input type="text" id="shift" readonly>
             </div>
             <div class="field">
               <label class="field-label">Operator Potong <span class="req">*</span></label>
@@ -1125,6 +1121,10 @@
             setInterval(updateTime, 1000);
 
             loadRecent();
+            document.getElementById("operator_cu").addEventListener("change", function () {
+              const shift = operatorShiftMap[this.value] || "";
+              document.getElementById("shift").value = shift;
+            });
 
             // SEARCH
             document.getElementById("search-date").addEventListener("input", autoFilter);
@@ -1182,31 +1182,6 @@
             document.getElementById("customer").value = "";
             document.getElementById("product").value = "";
             document.getElementById("uk").value = "";
-          }
-
-          // TIME + SHIFT
-          function updateTime() {
-            let now = new Date();
-            let hour = now.getHours();
-            //    // SHIFT
-            //     let shift = (hour >= 7 && hour < 19) ? "P" : "M";
-            //    document.getElementById("shift").value = shift;
-            // TANGGAL PRODUKSI
-            let prodDate = new Date(now);
-            // 🔥 kalau jam 00:00 - 06:59 → mundur 1 hari
-            if (hour < 7) {
-              prodDate.setDate(prodDate.getDate() - 1);
-            }
-
-            // FORMAT datetime-local
-            let formatted =
-              prodDate.getFullYear() + "-" +
-              String(prodDate.getMonth() + 1).padStart(2, '0') + "-" +
-              String(prodDate.getDate()).padStart(2, '0') + "T" +
-              String(now.getHours()).padStart(2, '0') + ":" +
-              String(now.getMinutes()).padStart(2, '0');
-
-            document.getElementById("tanggal").value = formatted;
           }
 
           // LOAD DATA
@@ -1336,17 +1311,44 @@
           });
         </script>
         <script>
+          function updateTime() {
+            const now = new Date();
+
+            const prodDate = new Date(now);
+            if (now.getHours() < 7) {
+              prodDate.setDate(prodDate.getDate() - 1);
+            }
+
+            const formatted =
+              prodDate.getFullYear() + "-" +
+              String(prodDate.getMonth() + 1).padStart(2, "0") + "-" +
+              String(prodDate.getDate()).padStart(2, "0") + "T" +
+              String(now.getHours()).padStart(2, "0") + ":" +
+              String(now.getMinutes()).padStart(2, "0");
+
+            document.getElementById("tanggal").value = formatted;
+          }
+
+          let operatorShiftMap = {};
+
           async function loadOperators() {
-            const divisi = document.getElementById("divisi").value; // "Mixing"
+            const divisi = document.getElementById("divisi").value;
 
             try {
-              const res = await fetch(`/api/operators/${divisi}`);
-              const operators = await res.json();
+              const res = await fetch(`/api/shift/${divisi}`);
+              const data = await res.json();
 
               const select = document.getElementById("operator_cu");
               select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
 
-              operators.forEach(op => {
+              operatorShiftMap = {};
+
+              data.forEach(item => {
+                const op = item.operator;
+                const shift = item.shift;
+
+                operatorShiftMap[op] = shift;
+
                 select.innerHTML += `<option value="${op}">${op}</option>`;
               });
 

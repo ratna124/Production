@@ -2894,6 +2894,31 @@ def get_operators_team(divisi):
         print("ERROR get_operators_team:", e)
         return jsonify([])    
     
+@app.route("/api/shift/<divisi>")
+@login_required
+def get_shift(divisi):
+    try:
+        df = pd.read_csv(MAPPING_CSV, encoding="utf-8-sig")
+        df.columns = df.columns.str.strip()
+        df["divisi"] = df["divisi"].astype(str).str.strip().str.upper()
+
+        filtered = df[df["divisi"] == divisi.strip().upper()]
+
+        op_col   = df.columns[4]
+        shift_col = df.columns[6] if len(df.columns) > 6 else None
+
+        result = []
+        for _, row in filtered.iterrows():
+            result.append({
+                "operator": str(row[op_col]).strip(),
+                "shift":     str(row[shift_col]).strip() if shift_col else ""
+            })
+        return jsonify(result)
+
+    except Exception as e:
+        print("ERROR get_shift:", e)
+        return jsonify([])    
+    
 @app.route("/api/tali/<kategori>")
 @login_required
 def get_tali(kategori):

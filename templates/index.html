@@ -1099,6 +1099,11 @@
             loadRecent();
             loadOperators();
 
+            document.getElementById("operator_mix").addEventListener("change", function () {
+              const shift = operatorShiftMap[this.value] || "";
+              document.getElementById("shift").value = shift;
+            });
+
             document.getElementById("search-date").addEventListener("input", autoFilter);
             document.getElementById("search-spk").addEventListener("input", autoFilter);
 
@@ -1148,12 +1153,11 @@
           // ─── WAKTU & SHIFT ───────────────────────────────────────────────────────
           function updateTime() {
             const now = new Date();
-            const hour = now.getHours();
-            const shift = (hour >= 7 && hour < 19) ? "P" : "M";
-            document.getElementById("shift").value = shift;
 
             const prodDate = new Date(now);
-            if (hour < 7) prodDate.setDate(prodDate.getDate() - 1);
+            if (now.getHours() < 7) {
+              prodDate.setDate(prodDate.getDate() - 1);
+            }
 
             const formatted =
               prodDate.getFullYear() + "-" +
@@ -1165,17 +1169,32 @@
             document.getElementById("tanggal").value = formatted;
           }
 
+          let operatorShiftMap = {};
+
           async function loadOperators() {
             const divisi = document.getElementById("divisi").value;
+
             try {
-              const res = await fetch(`/api/operators/${divisi}`);
-              const operators = await res.json();
+              const res = await fetch(`/api/shift/${divisi}`);
+              const data = await res.json();
+
               const select = document.getElementById("operator_mix");
               select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
-              operators.forEach(op => {
+
+              operatorShiftMap = {};
+
+              data.forEach(item => {
+                const op = item.operator;
+                const shift = item.shift;
+
+                operatorShiftMap[op] = shift;
+
                 select.innerHTML += `<option value="${op}">${op}</option>`;
               });
-            } catch (e) { console.error("Gagal load operator:", e); }
+
+            } catch (e) {
+              console.error("Gagal load operator:", e);
+            }
           }
 
           async function loadRecent() {
