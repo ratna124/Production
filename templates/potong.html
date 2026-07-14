@@ -1048,6 +1048,12 @@
               <label class="field-label">Berat Bersih (kg)<span class="req">*</span></label>
               <input type="text" id="berat_bersih" readonly>
             </div>
+
+            <!-- WARNING BERAT MELEBIHI STANDAR -->
+            <div id="berat-warning"
+              style="display:none; grid-column: span 2; background: rgba(245,166,35,0.1); border:1px solid rgba(245,166,35,0.3); border-radius:6px; padding:10px 14px; font-size:12px; color:#f5a623; font-family:var(--font-mono); align-items:center; gap:8px;">
+              &#9888; <span id="berat-warning-text"></span>
+            </div>
           </div>
         </div>
 
@@ -1281,6 +1287,7 @@
           }
         </script>
         <script>
+          let standarBerat = null;
           let timeout = null;
 
           document.getElementById("spk").addEventListener("input", function () {
@@ -1289,7 +1296,11 @@
             const spk = this.value.trim();
 
             timeout = setTimeout(async () => {
-              if (!spk) return;
+              if (!spk) {
+                standarBerat = null;
+                checkBeratStandar(parseFloat(document.getElementById("berat_bersih").value) || 0);
+                return;
+              }
 
               try {
                 const res = await fetch(`/get-spk/${spk}`);
@@ -1307,7 +1318,22 @@
               } catch (err) {
                 console.error("Error SPK:", err);
               }
-            }, 70); // delay biar tidak spam request
+
+              // ── Ambil berat standar (kolom K) ──
+              try {
+                const resStd = await fetch(`/api/spk_standar/${spk}`);
+                const dataStd = await resStd.json();
+                standarBerat = (dataStd && dataStd.standar !== null && dataStd.standar !== undefined)
+                  ? parseFloat(dataStd.standar)
+                  : null;
+              } catch (err) {
+                console.error("Error standar berat:", err);
+                standarBerat = null;
+              }
+
+              checkBeratStandar(parseFloat(document.getElementById("berat_bersih").value) || 0);
+
+            }, 70);
           });
         </script>
         <script>
@@ -1486,14 +1512,14 @@
                 if (el) el.value = '';
               });
 
-            // Reset dropdown operator ke default
+            // reset standar & warning
+            standarBerat = null;
+            document.getElementById("berat-warning").style.display = "none";
+
             const opSelect = document.getElementById("operator_cu");
             if (opSelect) opSelect.selectedIndex = 0;
 
-            // Scroll ke atas
             window.scrollTo({ top: 0, behavior: 'smooth' });
-
-            // Fokus ke SPK biar langsung bisa input
             document.getElementById("operator_cu").focus();
           }
         </script>
@@ -1503,11 +1529,34 @@
             const keranjang = parseFloat(document.getElementById("keranjang").value) || 0;
 
             let hasil = berat - keranjang;
-
-            // biar tidak minus
             if (hasil < 0) hasil = 0;
 
             document.getElementById("berat_bersih").value = hasil.toFixed(2);
+
+            checkBeratStandar(hasil);
+          }
+
+          // ── CEK BERAT STANDAR (kolom K + toleransi 0.5 kg) ──────────
+          function checkBeratStandar(beratBersih) {
+            const warnEl = document.getElementById("berat-warning");
+            const warnText = document.getElementById("berat-warning-text");
+
+            if (standarBerat === null || isNaN(standarBerat) || !beratBersih) {
+              warnEl.style.display = "none";
+              return;
+            }
+
+            const batas = standarBerat + 0.5;
+
+            if (beratBersih > batas) {
+              const kelebihan = beratBersih - batas;
+              warnText.textContent =
+                `Berat bersih (${beratBersih.toFixed(2)} kg) melebihi standar produk ini. ` +
+                `Standar Toleransi : ${batas.toFixed(2)} kg — Kelebihan: ${kelebihan.toFixed(2)} kg.`;
+              warnEl.style.display = "flex";
+            } else {
+              warnEl.style.display = "none";
+            }
           }
 
           // trigger saat input berubah

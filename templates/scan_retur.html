@@ -1229,7 +1229,7 @@
         const data = await res.json();
 
         const idx = codes.findIndex(c => c.code === val);
-        if (idx === -1) return; // sudah dihapus user
+        if (idx === -1) return;
 
         if (data.found) {
           codes[idx] = {

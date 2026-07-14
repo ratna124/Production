@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hapus Scan Salah</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --black: #0a0a0a;
+      --white: #f5f4f0;
+      --accent: #e8420a;
+      --accent2: #f5a623;
+      --accent3: #3b82f6;
+      --gray1: #1a1a1a;
+      --gray2: #2c2c2c;
+      --gray3: #3e3e3e;
+      --gray4: #777;
+      --gray5: #aaa;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --border: #2e2e2e;
+      --radius: 4px;
+      --input-h: 44px;
+      --font-sans: 'IBM Plex Sans', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      grid-template-rows: 56px 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      grid-column: 1/-1;
+      background: var(--gray1);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-logo {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent3);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .topbar-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    .topbar-title {
+      font-size: 13px;
+      color: var(--gray5);
+      font-weight: 300;
+    }
+
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .clock {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--gray4);
+    }
+
+    .btn-ghost {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--gray5);
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--gray5);
+      color: var(--white);
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      background: var(--gray1);
+      border-right: 1px solid var(--border);
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow-y: auto;
+      height: calc(100vh - 56px);
+      position: sticky;
+      top: 56px;
+    }
+
+    .sidebar-section {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--gray4);
+      padding: 16px 20px 6px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-left: 2px solid transparent;
+      transition: background .12s, border-color .12s;
+      font-size: 13px;
+      color: var(--gray5);
+      user-select: none;
+      text-decoration: none;
+    }
+
+    .sidebar-item:hover {
+      background: var(--gray2);
+      color: var(--white);
+    }
+
+    .sidebar-item.active {
+      border-left-color: var(--accent3);
+      color: var(--white);
+      background: rgba(59, 130, 246, .08);
+    }
+
+    .sidebar-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gray3);
+      flex-shrink: 0;
+    }
+
+    .sidebar-item.active .sidebar-dot {
+      background: var(--accent3);
+    }
+
+    /* ── MAIN ── */
+    .main {
+      overflow-y: auto;
+      padding: 32px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .page-title {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .retur-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 12px;
+      border-radius: 20px;
+      background: rgba(239, 68, 68, .12);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, .3);
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--gray1);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--gray2);
+    }
+
+    .card-header-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: var(--danger);
+      color: white;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .card-header-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--white);
+    }
+
+    .card-header-extra {
+      margin-left: auto;
+    }
+
+    .card-body {
+      padding: 18px 20px;
+    }
+
+    /* ── FORM GRID ── */
+    .form-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .form-grid.cols-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--gray4);
+    }
+
+    .field-label .req {
+      color: var(--accent);
+      margin-left: 2px;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    select {
+      width: 100%;
+      height: var(--input-h);
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--white);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 0 14px;
+      outline: none;
+      transition: border-color .15s, background .15s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="text"]:focus,
+    input[type="date"]:focus,
+    select:focus {
+      border-color: var(--accent3);
+      background: #222;
+    }
+
+    input[type="text"]::placeholder {
+      color: var(--gray4);
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.5);
+      cursor: pointer;
+    }
+
+    /* ── SCAN INPUT ── */
+    .scan-wrap {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .scan-input-wrap {
+      flex: 1;
+    }
+
+    .btn-add {
+      height: var(--input-h);
+      padding: 0 20px;
+      background: var(--danger);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+      align-self: flex-end;
+    }
+
+    .btn-add:hover {
+      background: #dc2626;
+    }
+
+    .scan-hint {
+      font-size: 11px;
+      color: var(--gray4);
+      margin-top: 7px;
+      font-family: var(--font-mono);
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      margin-top: 8px;
+      min-height: 16px;
+      transition: opacity .3s;
+    }
+
+    .toast.success {
+      color: var(--success);
+    }
+
+    .toast.warning {
+      color: var(--warning);
+    }
+
+    .toast.error {
+      color: var(--danger);
+    }
+
+    .toast.hidden {
+      opacity: 0;
+    }
+
+    /* ── TABLE ── */
+    .col-header {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr) 60px 90px 60px minmax(0, 1.4fr) minmax(0, 1.1fr) 36px;
+      gap: 8px;
+      padding: 6px 16px;
+      background: var(--gray3);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .col-header span {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--gray4);
+    }
+
+    .code-list {
+      max-height: 340px;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .code-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .code-list::-webkit-scrollbar-track {
+      background: var(--gray1);
+    }
+
+    .code-list::-webkit-scrollbar-thumb {
+      background: var(--gray3);
+      border-radius: 3px;
+    }
+
+    .code-row {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr) 60px 90px 60px minmax(0, 1.4fr) minmax(0, 1.1fr) 36px;
+      align-items: start;
+      gap: 8px;
+      padding: 8px 16px;
+      border-bottom: 1px solid rgba(46, 46, 46, .5);
+      transition: background .1s;
+      animation: fadeRow .15s ease;
+    }
+
+    @keyframes fadeRow {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .code-row:nth-child(odd) {
+      background: rgba(255, 255, 255, .01);
+    }
+
+    .code-row:nth-child(even) {
+      background: rgba(0, 0, 0, .15);
+    }
+
+    .code-row:hover {
+      background: rgba(255, 255, 255, .03);
+    }
+
+    /* STATUS VARIANTS */
+    .code-row.status-found {
+      border-left: 3px solid var(--danger);
+      padding-left: 13px;
+    }
+
+    .code-row.status-notfound {
+      background: rgba(239, 68, 68, .06) !important;
+      border-left: 3px solid var(--gray3);
+      padding-left: 13px;
+      opacity: .6;
+    }
+
+    .code-row.status-pending {
+      border-left: 3px solid var(--warning);
+      padding-left: 13px;
+      opacity: .7;
+    }
+
+    .code-text {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--white);
+      word-break: break-all;
+      white-space: normal;
+    }
+
+    .code-idx {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--gray4);
+    }
+
+    .status-pill {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 20px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .status-pill.found {
+      background: rgba(239, 68, 68, .15);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, .3);
+    }
+
+    .status-pill.notfound {
+      background: rgba(119, 119, 119, .15);
+      color: var(--gray5);
+      border: 1px solid rgba(119, 119, 119, .3);
+    }
+
+    .status-pill.pending {
+      background: rgba(245, 158, 11, .15);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, .3);
+    }
+
+    .btn-del {
+      background: none;
+      border: none;
+      color: var(--danger);
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: var(--radius);
+      transition: background .1s;
+      font-family: var(--font-mono);
+      line-height: 1;
+    }
+
+    .btn-del:hover {
+      background: rgba(239, 68, 68, .15);
+    }
+
+    .list-empty {
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--gray4);
+      font-size: 12px;
+      font-family: var(--font-mono);
+    }
+
+    /* ── INFO BANNER ── */
+    .info-banner {
+      display: none;
+      background: rgba(239, 68, 68, .08);
+      border-top: 1px solid rgba(239, 68, 68, .25);
+      padding: 10px 18px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--danger);
+      line-height: 1.7;
+    }
+
+    .info-banner.show {
+      display: block;
+    }
+
+    .warn-banner {
+      display: none;
+      background: rgba(245, 158, 11, .08);
+      border-top: 1px solid rgba(245, 158, 11, .25);
+      padding: 10px 18px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--warning);
+      line-height: 1.7;
+    }
+
+    .warn-banner.show {
+      display: block;
+    }
+
+    /* ── ACTION ROW ── */
+    .action-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-clear {
+      height: 48px;
+      padding: 0 20px;
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      color: var(--gray5);
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .btn-clear:hover {
+      border-color: var(--gray5);
+      color: var(--white);
+      background: var(--gray3);
+    }
+
+    .btn-submit {
+      height: 48px;
+      padding: 0 28px;
+      background: var(--danger);
+      border: none;
+      color: white;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: .04em;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-submit:hover {
+      background: #dc2626;
+    }
+
+    .btn-submit:active {
+      transform: scale(.98);
+    }
+
+    .btn-submit:disabled {
+      background: var(--gray3);
+      cursor: not-allowed;
+      opacity: .6;
+    }
+
+    .action-feedback {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .action-feedback.ok {
+      color: var(--danger);
+    }
+
+    .action-feedback.err {
+      color: var(--danger);
+    }
+
+    .action-feedback.warn {
+      color: var(--warning);
+    }
+
+    /* ── SPINNER ── */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, .3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ── RESULT PANEL ── */
+    .result-panel {
+      display: none;
+      background: var(--gray1);
+      border: 1px solid var(--danger);
+      border-radius: 6px;
+      overflow: hidden;
+      animation: slideIn .3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .result-panel.show {
+      display: block;
+    }
+
+    .result-header {
+      background: rgba(239, 68, 68, .08);
+      border-bottom: 1px solid rgba(239, 68, 68, .2);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .result-body {
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .result-line {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--danger);
+    }
+
+    .btn-new {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 38px;
+      padding: 0 16px;
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      color: var(--white);
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .15s;
+      margin-top: 4px;
+      width: fit-content;
+    }
+
+    .btn-new:hover {
+      border-color: var(--gray5);
+      background: var(--gray3);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 860px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .main {
+        padding: 20px 16px;
+      }
+
+      .form-grid.cols-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="shell">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <span class="topbar-logo">&#9632; HAPUS SCAN SALAH</span>
+      <span class="topbar-sep"></span>
+      <span class="topbar-title">Hapus Scan Salah</span>
+      <div class="topbar-right">
+        <span class="clock" id="clock"></span>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray4);">
+          &#128100; {{ current_user }}
+        </span>
+        <a href="/logout" class="btn-ghost">&#x2192; Logout</a>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div style="flex:1;overflow-y:auto;min-height:0">
+      {% if session.get('role') in 'administrator' %}
+        <div class="sidebar-section">Production Input</div>
+        <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Admin Input
+        </a>
+        <a href="/mixing" class="sidebar-item {% if active_page == 'mixing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Checker Input
+        </a>
+        {% endif %}
+        {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
+        <div class="sidebar-section">Production Stock</div>
+        <a data-port="5001" data-path="/stok_produksi"
+          class="sidebar-item {% if active_page == 'stok_produksi' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Stok Produksi
+        </a>
+        <div class="sidebar-section">Production Output</div>
+        <a data-port="5001" data-path="/hasil_produksi"
+          class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Hasil Produksi
+        </a>
+        {% endif %}
+
+        {% if session.get('role') in ('administrator', 'adminwip') %}
+        <div class="sidebar-section">Summary SPK</div>
+        <a href="/summary_spk" class="sidebar-item {% if active_page == 'summary_spk' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Summary SPK
+        </a>
+        <div class="sidebar-section">Scan</div>
+        <a href="/scan_pemakaian" class="sidebar-item {% if active_page == 'scan_pemakaian' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Scan Pemakaian
+        </a>
+        <a href="/scan_salah" class="sidebar-item {% if active_page == 'scan_salah' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Scan Salah
+        </a>
+
+        <div class="sidebar-section">Hasil</div>
+        <a href="/barcode_mixing"
+          class="sidebar-item {% if active_page == 'barcode_barcode_mixing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Mixing WIP
+        </a>
+        <a href="/barcode_hd" class="sidebar-item {% if active_page == 'barcode_hd' %}active{% endif %}">
+          <span class="sidebar-dot"></span>HD WIP
+        </a>
+        <a href="/barcode_potong" class="sidebar-item {% if active_page == 'barcode_potong' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Potong WIP
+        </a>
+        <a href="/barcode_sisa_potong"
+          class="sidebar-item {% if active_page == 'barcode_sisa_potong' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Sisa Roll (Potong) WIP
+        </a>
+        <a href="/barcode_packing" class="sidebar-item {% if active_page == 'barcode_packing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Packing WIP
+        </a>
+        <a href="/barcode_sisa_pack" class="sidebar-item {% if active_page == 'barcode_sisa_pack' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Sisa Pack WIP
+        </a>
+
+        <div class="sidebar-section">Aval</div>
+        <a href="/barcode_aval_mixing"
+          class="sidebar-item {% if active_page == 'barcode_aval_mixing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Aval Mixing WIP
+        </a>
+        <a href="/barcode_aval_hd" class="sidebar-item {% if active_page == 'barcode_aval_hd' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Aval HD WIP
+        </a>
+        <a href="/barcode_aval_potong"
+          class="sidebar-item {% if active_page == 'barcode_aval_potong' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Aval Potong WIP
+        </a>
+        <a href="/barcode_aval_packing"
+          class="sidebar-item {% if active_page == 'barcode_aval_packing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Aval Packing WIP
+        </a>
+        <a href="/barcode_aval_qc" class="sidebar-item {% if active_page == 'barcode_aval_qc' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Aval QC WIP
+        </a>
+
+        <div class="sidebar-section">Mutasi SPK</div>
+        <a href="/mutasi_mixing" class="sidebar-item {% if active_page == 'mutasi_mixing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Mutasi Mixing WIP
+        </a>
+        <a href="/mutasi_hd" class="sidebar-item {% if active_page == 'mutasi_hd' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Mutasi HD WIP
+        </a>
+        <a href="/mutasi_potong" class="sidebar-item {% if active_page == 'mutasi_potong' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Mutasi Potong WIP
+        </a>
+        <a href="/mutasi_packing" class="sidebar-item {% if active_page == 'mutasi_packing' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Mutasi Packing WIP
+        </a>
+        <a href="/mutasi_sisapack" class="sidebar-item {% if active_page == 'mutasi_sisapack' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Mutasi Sisa Packing WIP
+        </a>
+        <div class="sidebar-section">Hapus Scan</div>
+        <a href="/hapus_scan_pemakaian" class="sidebar-item {% if active_page == 'hapus_scan_pemakaian' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Scan Pemakaian (Hapus)
+        </a>
+        <a href="/hapus_scan_salah" class="sidebar-item {% if active_page == 'hapus_scan_salah' %}active{% endif %}">
+          <span class="sidebar-dot"></span>Scan Salah (Hapus)
+        </a>
+        {% endif %}
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <div class="page-header">
+        <h1 class="page-title">HAPUS SCAN SALAH</h1>
+        <span class="retur-badge">Hapus Data Scan Salah</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--gray4);font-family:var(--font-mono)"
+          id="current-date"></span>
+      </div>
+
+      <!-- RESULT PANEL -->
+      <div class="result-panel" id="result-panel">
+        <div class="result-header">
+          <span style="color:var(--danger);font-size:16px">&#10003;</span>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--danger)">DATA BERHASIL DIHAPUS</span>
+          <span style="font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--white);margin-left:8px"
+            id="result-title"></span>
+        </div>
+        <div class="result-body">
+          <div class="result-line" id="result-line1"></div>
+          <div class="result-line" id="result-line2"></div>
+          <button class="btn-new" onclick="resetSession()">+ &nbsp;Hapus Data Baru</button>
+        </div>
+      </div>
+
+      <!-- CARD 1: Info -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-num">1</span>
+          <span class="card-header-title">Info Penghapusan</span>
+        </div>
+        <div class="card-body">
+          <div class="form-grid cols-2">
+            <div class="field">
+              <label class="field-label" for="tanggal">Tanggal</label>
+              <input type="date" id="tanggal">
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label class="field-label">Keterangan / Alasan Hapus<span class="req">*</span></label>
+              <input type="text" id="keterangan" placeholder="Contoh: salah input, sudah dikoreksi, dsb"
+                autocomplete="off">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: Scan Input -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-num">2</span>
+          <span class="card-header-title">Input Barcode</span>
+        </div>
+        <div class="card-body">
+          <div class="field-label">Kode Barcode / QR</div>
+          <div class="scan-wrap">
+            <div class="scan-input-wrap">
+              <input type="text" id="scan-input" placeholder="Scan atau ketik kode, lalu Enter…" autocomplete="off"
+                spellcheck="false" onkeydown="if(event.key==='Enter') addCode()">
+            </div>
+            <button class="btn-add" onclick="addCode()">&#43; Tambah</button>
+          </div>
+          <div class="scan-hint">
+            Tekan Enter setelah scan · Kode akan dicek di data scan salah · Duplikat diabaikan
+          </div>
+          <div class="toast hidden" id="toast"></div>
+        </div>
+      </div>
+
+      <!-- CARD 3: Daftar Kode -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-num">3</span>
+          <span class="card-header-title">Daftar Kode akan Dihapus</span>
+          <span class="card-header-extra" style="font-family:var(--font-mono);font-size:11px;color:var(--gray4)">
+            <span id="list-count">0</span> kode
+          </span>
+        </div>
+
+        <div class="col-header">
+          <span>#</span>
+          <span>Code</span>
+          <span>SPK</span>
+          <span>Customer</span>
+          <span>Produk</span>
+          <span>Mesin</span>
+          <span>Berat</span>
+          <span>Checker</span>
+          <span>Keterangan Asli</span>
+          <span>Status</span>
+          <span>Del</span>
+        </div>
+
+        <div class="code-list" id="code-list">
+          <div class="list-empty" id="list-empty">Belum ada kode discan…</div>
+        </div>
+
+        <div class="warn-banner" id="warn-banner"></div>
+        <div class="info-banner" id="info-banner"></div>
+
+        <div class="action-row">
+          <button class="btn-clear" onclick="clearAll()">✕ &nbsp;Hapus Semua dari List</button>
+          <button class="btn-submit" id="btn-submit" onclick="submitHapus()">
+            <span id="btn-text">⟲ &nbsp;HAPUS DATA</span>
+            <div class="spinner" id="spinner"></div>
+          </button>
+          <span class="action-feedback" id="action-feedback"></span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // ── STATE ──
+    let codes = [];
+
+    // Prefix yang punya tabel scan salah: hd, mixing, potong, packing
+    // (tidak termasuk AQC karena masuk scansalahqc, di luar scope halaman ini)
+    const PREFIX_LABEL = {
+      "HD": "HD", "AHP": "HD — Prong", "AHD": "HD — Daun", "AHS": "HD — Sapuan", "AHT": "HD — Penarik Hasil HD",
+      "MI": "Mixing", "AMS": "Aval Mixing",
+      "CU": "Potong", "CS": "Sisa_Potong",
+      "ACP": "Aval Potong — Plong", "ACM": "Aval Potong — Mesin",
+      "ACS": "Aval Potong — Silet/Sapuan", "ACH": "Aval Potong — Mutasi", "ACR": "Aval Potong — Reject",
+      "PA": "Packing", "PS": "Sisa Pack",
+      "APP": "Aval Packing — Plastik", "APR": "Aval Packing — Rafia",
+      "APB": "Aval Packing — Blongsong", "APC": "Aval Packing — Mutasi",
+    };
+
+    function getPrefixFromCode(code) {
+      const m = code.toUpperCase().match(/^([A-Z]+)/);
+      if (!m) return "";
+      const raw = m[1];
+      if (PREFIX_LABEL[raw.slice(0, 3)] !== undefined) return raw.slice(0, 3);
+      if (PREFIX_LABEL[raw.slice(0, 2)] !== undefined) return raw.slice(0, 2);
+      return "";
+    }
+
+    // ── HELPERS ──
+    function escHtml(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function isFieldMissing(val) {
+      return !val || String(val).trim() === '' || String(val).trim() === '-';
+    }
+
+    // ── INIT ──
+    document.addEventListener("DOMContentLoaded", () => {
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      const now = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      document.getElementById("tanggal").value =
+        `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      document.getElementById("scan-input").focus();
+    });
+
+    function updateClock() {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      document.getElementById("clock").textContent =
+        `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      document.getElementById("current-date").textContent =
+        now.toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    }
+
+    // ── ADD CODE ──
+    async function addCode() {
+      const input = document.getElementById("scan-input");
+      const val = input.value.trim().toUpperCase();
+      input.value = "";
+      input.focus();
+      if (!val) return;
+
+      if (codes.find(c => c.code === val)) {
+        showToast("⚠ Duplikat diabaikan: " + val, "warning");
+        return;
+      }
+
+      const localPrefix = getPrefixFromCode(val);
+      if (!localPrefix) {
+        showToast("⛔ Prefix kode tidak dikenal / tidak punya tabel scan salah: " + val, "error");
+        return;
+      }
+
+      const entry = {
+        code: val,
+        prefix: localPrefix,
+        divisi_label: PREFIX_LABEL[localPrefix] || localPrefix,
+        spk: "…", customer: "…", produk: "…",
+        mesin: "…", berat_bersih: "…", checker: "…", keterangan_asli: "…",
+        scansalah_table: null,
+        status: "pending"  // pending | found | notfound
+      };
+      codes.push(entry);
+      renderList();
+      showToast("⏳ Mencari kode di scan salah…", "success");
+
+      try {
+        const res = await fetch("/api/lookup_salah", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: val })
+        });
+        const data = await res.json();
+
+        const idx = codes.findIndex(c => c.code === val);
+        if (idx === -1) return;
+
+        if (data.found) {
+          codes[idx] = {
+            ...codes[idx],
+            spk: data.spk || "—",
+            customer: data.customer || "—",
+            produk: data.produk || "—",
+            mesin: data.mesin || "—",
+            berat_bersih: data.berat_bersih || "—",
+            checker: data.checker || "—",
+            keterangan_asli: data.keterangan || "—",
+            divisi_label: data.divisi_label || codes[idx].divisi_label,
+            scansalah_table: data.scansalah_table || null,
+            status: "found"
+          };
+          showToast(`✔ Ditemukan, siap dihapus: ${val}`, "success");
+        } else {
+          codes[idx] = {
+            ...codes[idx],
+            spk: "—", customer: "—", produk: "—",
+            mesin: "—", berat_bersih: "—", checker: "—", keterangan_asli: "—",
+            status: "notfound"
+          };
+          showToast(`⚠ Tidak ditemukan di scan salah: ${val}`, "warning");
+        }
+      } catch (e) {
+        const idx = codes.findIndex(c => c.code === val);
+        if (idx !== -1) { codes[idx].status = "notfound"; }
+        showToast("⚠ Gagal lookup: " + val, "error");
+      }
+
+      renderList();
+    }
+
+    // ── RENDER LIST ──
+    function renderList() {
+      const list = document.getElementById("code-list");
+      const empty = document.getElementById("list-empty");
+      document.getElementById("list-count").textContent = codes.length;
+      list.querySelectorAll(".code-row").forEach(r => r.remove());
+
+      if (!codes.length) {
+        empty.style.display = "";
+        hideBanners();
+        updateSubmitState();
+        return;
+      }
+      empty.style.display = "none";
+
+      codes.forEach((c, i) => {
+        const row = document.createElement("div");
+        const rowClass = {
+          found: "code-row status-found",
+          notfound: "code-row status-notfound",
+          pending: "code-row status-pending"
+        }[c.status] || "code-row";
+        row.className = rowClass;
+
+        const pillHtml = {
+          found: `<span class="status-pill found">✔ Akan dihapus</span>`,
+          notfound: `<span class="status-pill notfound">✕ Tidak ada</span>`,
+          pending: `<span class="status-pill pending">⋯ Cek</span>`
+        }[c.status] || "";
+
+        const cell = (val, color) => {
+          const missing = isFieldMissing(val) || val === "…";
+          const style = missing ? "color:var(--gray4);font-style:italic" : (color ? `color:${color}` : "color:var(--gray5)");
+          return `<span class="code-text" style="${style}">${escHtml(val)}</span>`;
+        };
+
+        row.innerHTML = `
+          <span class="code-idx">${i + 1}</span>
+          ${cell(c.code, 'var(--white)')}
+          ${cell(c.spk)}
+          ${cell(c.customer)}
+          ${cell(c.produk)}
+          ${cell(c.mesin)}
+          ${cell(c.berat_bersih, 'var(--warning)')}
+          ${cell(c.checker)}
+          ${cell(c.keterangan_asli)}
+          <span>${pillHtml}</span>
+          <button class="btn-del" onclick="deleteCode(${i})">✕</button>
+        `;
+        list.appendChild(row);
+      });
+
+      list.scrollTop = list.scrollHeight;
+      updateSubmitState();
+    }
+
+    // ── BANNER & SUBMIT STATE ──
+    function updateSubmitState() {
+      const warnBanner = document.getElementById("warn-banner");
+      const infoBanner = document.getElementById("info-banner");
+      const btn = document.getElementById("btn-submit");
+      const fb = document.getElementById("action-feedback");
+
+      hideBanners();
+
+      const pending = codes.filter(c => c.status === "pending");
+      const notfound = codes.filter(c => c.status === "notfound");
+      const found = codes.filter(c => c.status === "found");
+
+      if (!codes.length) {
+        btn.disabled = true;
+        fb.textContent = "";
+        fb.className = "action-feedback";
+        return;
+      }
+
+      if (pending.length > 0) {
+        btn.disabled = true;
+        fb.textContent = `⋯ ${pending.length} kode masih dicek…`;
+        fb.className = "action-feedback warn";
+        return;
+      }
+
+      if (notfound.length > 0) {
+        warnBanner.className = "warn-banner show";
+        const lines = notfound.map(c => `• ${escHtml(c.code)} → tidak ditemukan di scan salah`).join("<br>");
+        warnBanner.innerHTML = `
+          <strong>⚠ ${notfound.length} kode tidak ditemukan — akan diabaikan saat hapus</strong><br>
+          <span style="opacity:.75;font-size:10px;display:block;margin-top:4px">${lines}</span>
+        `;
+      }
+
+      if (found.length > 0) {
+        btn.disabled = false;
+        if (notfound.length > 0) {
+          fb.textContent = `${found.length} akan dihapus, ${notfound.length} diabaikan`;
+          fb.className = "action-feedback warn";
+        } else {
+          infoBanner.className = "info-banner show";
+          infoBanner.innerHTML = `✔ ${found.length} kode siap dihapus dari scan salah`;
+          fb.textContent = `✔ ${found.length} kode siap dihapus`;
+          fb.className = "action-feedback ok";
+        }
+      } else {
+        btn.disabled = true;
+        fb.textContent = "Tidak ada kode yang ditemukan";
+        fb.className = "action-feedback err";
+      }
+    }
+
+    function hideBanners() {
+      document.getElementById("warn-banner").className = "warn-banner";
+      document.getElementById("info-banner").className = "info-banner";
+    }
+
+    // ── DELETE / CLEAR (dari list, belum submit) ──
+    function deleteCode(idx) {
+      codes.splice(idx, 1);
+      renderList();
+    }
+
+    function clearAll() {
+      if (!codes.length) return;
+      if (!confirm("Hapus semua " + codes.length + " kode dari list ini?")) return;
+      codes = [];
+      renderList();
+    }
+
+    // ── TOAST ──
+    let toastTimer;
+    function showToast(msg, type = "success") {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.className = "toast " + type;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.className = "toast hidden", 3500);
+    }
+
+    // ── SUBMIT (HAPUS PERMANEN) ──
+    async function submitHapus() {
+      const tanggal = document.getElementById("tanggal").value;
+      const keterangan = document.getElementById("keterangan").value.trim();
+
+      if (!keterangan) {
+        alert("⚠ Keterangan / alasan hapus wajib diisi.");
+        document.getElementById("keterangan").focus();
+        return;
+      }
+
+      const foundCodes = codes.filter(c => c.status === "found");
+      if (!foundCodes.length) {
+        alert("⛔ Tidak ada kode yang ditemukan di scan salah.");
+        return;
+      }
+
+      if (!confirm(`Hapus PERMANEN ${foundCodes.length} kode dari scan salah? Aksi ini tidak bisa dibatalkan.`))
+        return;
+
+      const btn = document.getElementById("btn-submit");
+      const spinner = document.getElementById("spinner");
+      btn.disabled = true;
+      spinner.style.display = "block";
+      document.getElementById("btn-text").textContent = "Menghapus…";
+
+      try {
+        const res = await fetch("/hapus_salah", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            records: foundCodes,
+            tanggal: tanggal,
+            keterangan: keterangan,
+          })
+        });
+
+        const ct = res.headers.get("content-type") || "";
+        if (!ct.includes("application/json")) {
+          const text = await res.text();
+          throw new Error("Server error: " + text.substring(0, 120));
+        }
+
+        const result = await res.json();
+        if (!result.success) throw new Error(result.error || "Gagal hapus");
+
+        document.getElementById("result-title").textContent =
+          `${result.deleted} kode dihapus`;
+        document.getElementById("result-line1").textContent =
+          result.skipped > 0
+            ? `⚠ ${result.skipped} kode dilewati (tidak ditemukan saat proses)`
+            : `✔ Data berhasil dihapus dari scan salah`;
+        document.getElementById("result-panel").classList.add("show");
+
+        codes = [];
+        renderList();
+
+        const now = new Date();
+        const pad = n => String(n).padStart(2, "0");
+        document.getElementById("tanggal").value =
+          `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+        document.getElementById("keterangan").value = "";
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+
+      } catch (err) {
+        alert("❌ Gagal: " + err.message);
+      }
+
+      btn.disabled = false;
+      spinner.style.display = "none";
+      document.getElementById("btn-text").textContent = "⟲ \u00a0HAPUS DATA";
+    }
+
+    // ── RESET ──
+    function resetSession() {
+      document.getElementById("result-panel").classList.remove("show");
+      document.getElementById("scan-input").focus();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  </script>
+
+  <script>
+    setInterval(async () => {
+      try {
+        const res = await fetch("/check_session");
+        const data = await res.json();
+        if (!data.active) {
+          alert("Session habis, silakan login kembali");
+          window.location.href = "/login";
+        }
+      } catch (err) { console.error(err); }
+    }, 300000);
+  </script>
+</body>
+
+</html>

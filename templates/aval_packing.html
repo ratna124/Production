@@ -450,47 +450,47 @@
       margin-left: 2px;
     }
 
-input,
-select,
-textarea {
-  width: 100%;
-  height: var(--input-h);
-  background: var(--gray2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--white);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  padding: 0 12px;
-  outline: none;
-  transition: all .15s ease;
-  appearance: none;
-  -webkit-appearance: none;
-}
+    input,
+    select,
+    textarea {
+      width: 100%;
+      height: var(--input-h);
+      background: var(--gray2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      padding: 0 12px;
+      outline: none;
+      transition: all .15s ease;
+      appearance: none;
+      -webkit-appearance: none;
+    }
 
-/* FIELD AKTIF */
-input:focus,
-select:focus,
-textarea:focus {
-  border: 1px solid #e8420a !important;
-  background: #9c310d;
-  color: #fff;
-  outline: none !important;
-  box-shadow: 0 0 0 2px rgba(232, 66, 10, .22);
-}
+    /* FIELD AKTIF */
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border: 1px solid #e8420a !important;
+      background: #9c310d;
+      color: #fff;
+      outline: none !important;
+      box-shadow: 0 0 0 2px rgba(232, 66, 10, .22);
+    }
 
-/* PLACEHOLDER PAS AKTIF */
-input:focus::placeholder,
-textarea:focus::placeholder {
-  color: rgba(255,255,255,.6);
-}
+    /* PLACEHOLDER PAS AKTIF */
+    input:focus::placeholder,
+    textarea:focus::placeholder {
+      color: rgba(255, 255, 255, .6);
+    }
 
-/* READONLY JANGAN ORANGE */
-input[readonly]:focus {
-  border-color: var(--border) !important;
-  background: var(--gray2);
-  box-shadow: none;
-}
+    /* READONLY JANGAN ORANGE */
+    input[readonly]:focus {
+      border-color: var(--border) !important;
+      background: var(--gray2);
+      box-shadow: none;
+    }
 
     textarea {
       height: 72px;
@@ -837,7 +837,8 @@ input[readonly]:focus {
       {% endif %}
       {% if session.get('role') in ('administrator', 'staff' , 'adminwip') %}
       <div class="sidebar-section">Production Output</div>
-      <a data-port="5001" data-path="/hasil_produksi" class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
+      <a data-port="5001" data-path="/hasil_produksi"
+        class="sidebar-item {% if active_page == 'hasil_produksi' %}active{% endif %}">
         <span class="sidebar-dot"></span>Hasil Produksi
       </a>
       {% endif %}
@@ -1149,7 +1150,7 @@ input[readonly]:focus {
             // Set href multi-port
             const host = window.location.hostname;
             document.querySelectorAll('a[data-port]').forEach(link => {
-                link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
+              link.href = `http://${host}:${link.dataset.port}${link.dataset.path}`;
             });
           });
 
@@ -1366,11 +1367,13 @@ input[readonly]:focus {
           }
 
           let operatorShiftMap = {};
+          let operatorTeamMap = {};
 
           async function loadOperators() {
             const divisi = document.getElementById("divisi").value;
 
             try {
+              // ── SHIFT ──
               const res = await fetch(`/api/shift/${divisi}`);
               const data = await res.json();
 
@@ -1378,14 +1381,18 @@ input[readonly]:focus {
               select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
 
               operatorShiftMap = {};
-
               data.forEach(item => {
-                const op = item.operator;
-                const shift = item.shift;
+                operatorShiftMap[item.operator] = item.shift;
+                select.innerHTML += `<option value="${item.operator}">${item.operator}</option>`;
+              });
 
-                operatorShiftMap[op] = shift;
+              // ── TEAM ── (tambahan)
+              const resTeam = await fetch(`/api/operators_team/${divisi}`);
+              const dataTeam = await resTeam.json();
 
-                select.innerHTML += `<option value="${op}">${op}</option>`;
+              operatorTeamMap = {};
+              dataTeam.forEach(item => {
+                operatorTeamMap[item.operator] = item.team;
               });
 
             } catch (e) {
@@ -1398,13 +1405,11 @@ input[readonly]:focus {
             loadOperators();
 
             document.getElementById("operator_pa").addEventListener("change", function () {
-              const selected = this.options[this.selectedIndex];
-              document.getElementById("team").value = selected.dataset.team || "";
+              const shift = operatorShiftMap[this.value] || "";
+              const team = operatorTeamMap[this.value] || "";
+              document.getElementById("shift").value = shift;
+              document.getElementById("team").value = team;
             });
-          });
-
-          document.addEventListener("DOMContentLoaded", function () {
-            loadOperators();
           });
 
           async function submitForm() {
@@ -1651,4 +1656,5 @@ input[readonly]:focus {
           </div>
         </div>
 </body>
+
 </html>

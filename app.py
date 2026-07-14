@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, jsonify, redirect, send_file, session
 import qrcode
 from PIL import Image, ImageDraw, ImageFont
-import csv, os, sqlite3, json, io, base64, uuid, functools
+import csv, os, json, io, base64, uuid, functools
+from db import get_conn, release_conn, dict_cursor
 from datetime import datetime, timedelta
 import pandas as pd
 from pathlib import Path
@@ -54,7 +55,6 @@ app.permanent_session_lifetime = timedelta(minutes=5)
 
 # ─── PATHS ──────────────────────────────────────────────────
 APP_DIR    = os.path.dirname(os.path.abspath(__file__))
-DB_PATH    = os.path.join(APP_DIR, "data", "production.db")
 
 MAPPING_CSV  = r"Z:\Checker\Production\Mapping.csv"
 SPK_CSV      = r"Z:\Checker\Summary SPK.csv"
@@ -131,7 +131,7 @@ TRANSFER_MAP = {
     "PS": "scantransferpacking.csv",
 }
 
-# sqlite table untuk scan pemakaian
+# scan pemakaian
 PEMAKAIAN_TABLE_MAP = {
     "scanhd.csv":      "scanhd",
     "scanmixing.csv":  "scanmixing",
@@ -139,7 +139,7 @@ PEMAKAIAN_TABLE_MAP = {
     "scanpacking.csv": "scanpacking",
 }
 
-# sqlite table untuk scan transfer
+# scan transfer
 TRANSFER_TABLE_MAP = {
     "scantransferhd.csv":      "scantransferhd",
     "scantransfermixing.csv":  "scantransfermixing",
@@ -147,7 +147,7 @@ TRANSFER_TABLE_MAP = {
     "scantransferpacking.csv": "scantransferpacking",
 }
 
-# sqlite table untuk scan salah
+# scan salah
 SCAN_SALAH_TABLE_MAP = {
     "scansalahhd.csv":      "scansalahhd",
     "scansalahmixing.csv":  "scansalahmixing",
@@ -186,8 +186,7 @@ CSV_TSCAN_COLUMNS = ["create_at", "tanggal", "shift", "divisi", "prefix", "divis
 
 CSV_RETUR_DIR = Path(r"Z:\Checker\Production\Database\scan_retur")
 CSV_RETUR_LOG = CSV_RETUR_DIR / "scanretur.csv"
-CSV_RETUR_COLUMNS = ["create_at", "tanggal", "shift", "divisi", "prefix",  "divisi_label", "spk", "customer", "produk",
-                     "uk", "checker", "scanned_by", "code", "foreman", "berat_bersih", "keterangan"]
+CSV_RETUR_COLUMNS = ["create_at", "tanggal", "shift", "divisi", "prefix",  "divisi_label", "spk", "customer", "produk", "uk", "checker", "scanned_by", "code", "foreman", "berat_bersih", "keterangan"]
 
 import re
 
@@ -336,7 +335,7 @@ def generate_label_image(order_id, data, source_route=None):
     "barcode_aval_potong", "barcode_aval_packing", "barcode_aval_qc"}
 
     show_tiket_sementara = (source_route == "barcode")
-    CELTIC_FONT_PATH = r"Z:\Checker\Production\Production\templates\celtic-astrologer\CelticAstrologer.ttf"  # sesuaikan namanya
+    CELTIC_FONT_PATH = r"Z:\Checker\Production\Production\templates\celtic-astrologer\CelticAstrologer.ttf"
 
     try:
         celtic_font = ImageFont.truetype(CELTIC_FONT_PATH, 16 * SCALE)
@@ -430,21 +429,23 @@ def generate_label_image(order_id, data, source_route=None):
     try:
         table_name = table_map.get(divisi_raw)
         if table_name and data.get("code") and spk:
-            conn = sqlite3.connect(DB_PATH)
-            c = conn.cursor()
-
-            row = c.execute(f"""
-                SELECT COUNT(*)
-                FROM {table_name}
-                WHERE spk = ?
-                AND id <= (
-                        SELECT id
-                        FROM {table_name}
-                        WHERE code = ?
-                        LIMIT 1
-                )
-            """, (spk, data["code"])).fetchone()
-            conn.close()
+            conn = get_conn()
+            try:
+                c = conn.cursor()
+                c.execute(f"""
+                    SELECT COUNT(*)
+                    FROM {table_name}
+                    WHERE spk = %s
+                    AND id <= (
+                            SELECT id
+                            FROM {table_name}
+                            WHERE code = %s
+                            LIMIT 1
+                    )
+                """, (spk, data["code"]))
+                row = c.fetchone()
+            finally:
+                release_conn(conn)
             if row:
                 urut_label = f"#{row[0]:03d}"
 
@@ -695,286 +696,8 @@ def load_spk_data():
         cols.append("JENIS AVAL")
     return df[cols]
 
-# ─── DB INIT ────────────────────────────────────────────────
 def init_db():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    c    = conn.cursor()
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS katalogmixing (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_mix TEXT, checker TEXT, berat_kg REAL,
-        berat_bersih REAL, karung REAL, created_at TEXT, code TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS kataloghd (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_hd TEXT, checker TEXT,
-        mesin REAL, berat_kg REAL, bobin REAL, berat_bersih REAL, created_at TEXT, code TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS katalogpotong (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_cu TEXT, checker TEXT,
-        mesin REAL, berat_kg REAL, keranjang REAL, berat_bersih REAL, created_at TEXT, code TEXT
-    )""")
-    
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS katalogsisapotong (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_cu TEXT, checker TEXT,
-        mesin REAL, berat_kg REAL, bobin REAL, berat_bersih REAL, created_at TEXT, code TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS katalogpacking (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_pa TEXT, checker TEXT,
-        mesin REAL, berat_bersih REAL, created_at TEXT, code TEXT, team TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS katalogsisapack (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_sp TEXT, checker TEXT,
-        mesin REAL, berat_bersih REAL, sisa REAL, created_at TEXT, code TEXT, team TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS katalogavalmixing (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, operator_amix TEXT, checker TEXT, mesin REAL, berat_kg REAL, berat_bersih REAL, jenis REAL,
-        created_at TEXT, code TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS katalogavalHD (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_hd TEXT, checker TEXT,
-        mesin REAL, jenis_hd TEXT, kategori_hd TEXT, berat_kg REAL, berat_bersih REAL, created_at TEXT, code TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS katalogavalpotong (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_cu TEXT, checker TEXT,
-        mesin REAL, jenis_cu TEXT, kategori_cu TEXT, berat_kg REAL, berat_bersih REAL, created_at TEXT, code TEXT
-    )""")
-    
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS katalogavalpacking (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_pa TEXT, checker TEXT,
-        mesin REAL, jenis_pa TEXT, kategori_pa TEXT, berat_bersih REAL, created_at TEXT, code TEXT, team TEXT
-    )""")
-    
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS katalogavalqc (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_qc TEXT, checker TEXT,
-        mesin REAL, kategori_qc TEXT, berat_bersih REAL, created_at TEXT, code TEXT
-    )""")
-  
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS SummarySPK (
-        spk TEXT, so TEXT, tanggal TEXT, customer TEXT, product TEXT, warna TEXT, aval TEXT, uk TEXT, lembar TEXT, pack TEXT,
-        kg TEXT, berat_lembar TEXT, berat_pack TEXT, tebal TEXT, order_ball TEXT, qty TEXT, checker TEXT, satuan TEXT, blongsong TEXT, etiket TEXT, mixing TEXT
-    )""")
-    
-    # Scan Pemakaian per divisi
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scanmixing (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, tanggal TEXT, shift TEXT, divisi TEXT, prefix TEXT,
-        divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, mesin TEXT, berat_bersih TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scanhd (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, tanggal TEXT, shift TEXT, divisi TEXT, prefix TEXT,
-        divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, mesin TEXT, berat_bersih TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scanpotong (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, tanggal TEXT, shift TEXT, divisi TEXT, prefix TEXT,
-        divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, mesin TEXT, berat_bersih TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scanpacking (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, tanggal TEXT, shift TEXT, divisi TEXT, prefix TEXT,
-        divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, mesin TEXT, berat_bersih TEXT
-    )""")
-
-    # Scan Transfer per divisi
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scantransfermixing (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, tanggal TEXT, shift TEXT, divisi TEXT, prefix TEXT,
-        divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, foreman TEXT, berat_bersih TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scantransferhd (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, tanggal TEXT, shift TEXT, divisi TEXT, prefix TEXT,
-        divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, foreman TEXT, berat_bersih TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scantransferpotong (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, tanggal TEXT, shift TEXT, divisi TEXT, prefix TEXT,
-        divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, foreman TEXT, berat_bersih TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scantransferpacking (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, tanggal TEXT, shift TEXT, divisi TEXT, prefix TEXT,
-        divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, foreman TEXT, berat_bersih TEXT
-    )""")
-
-    # Scan Salah per divisi
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scansalahmixing (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, divisi TEXT, prefix TEXT, divisi_label TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, keterangan TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scansalahhd (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, divisi TEXT, prefix TEXT, divisi_label TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, keterangan TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scansalahpotong (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, divisi TEXT, prefix TEXT, divisi_label TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, keterangan TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scansalahpacking (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, divisi TEXT, prefix TEXT, divisi_label TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, keterangan TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scansalahqc (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, divisi TEXT, prefix TEXT, divisi_label TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, keterangan TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scan_retur (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, tanggal TEXT, shift TEXT, divisi TEXT, prefix TEXT,
-        divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, foreman TEXT,
-        berat_bersih TEXT, keterangan TEXT
-    )""")
-    
-    #tabel gabungan
-    # Tabel gabungan scan salah
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scan_salah (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, divisi TEXT, prefix TEXT, divisi_label TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, keterangan TEXT
-    )""")
-
-    # Tabel gabungan scan pemakaian
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scan_pemakaian (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, tanggal TEXT, shift TEXT, divisi TEXT, prefix TEXT,
-        divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, mesin TEXT, berat_bersih TEXT
-    )""")
-
-    # Tabel gabungan scan transfer
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS scan_transfer (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, create_at TEXT, tanggal TEXT, shift TEXT, divisi TEXT, prefix TEXT,
-        divisi_label TEXT, spk TEXT, customer TEXT, produk TEXT, uk TEXT, checker TEXT, scanned_by TEXT, code TEXT, foreman TEXT, berat_bersih TEXT
-    )""")
-    
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS mutasimixing (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        create_at TEXT, tanggal TEXT, shift TEXT,
-        code_scan TEXT, code_baru TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT,
-        berat_awal REAL, berat_bersih REAL,
-        operator TEXT, checker TEXT, keterangan TEXT
-    )""")
-    
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS mutasihd (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        create_at TEXT, tanggal TEXT, shift TEXT,
-        code_scan TEXT, code_baru TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT,
-        berat_awal REAL, berat_bersih REAL,
-        operator TEXT, checker TEXT, keterangan TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS mutasipotong (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        create_at TEXT, tanggal TEXT, shift TEXT,
-        code_scan TEXT, code_baru TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT,
-        berat_awal REAL, berat_bersih REAL,
-        operator TEXT, checker TEXT, keterangan TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS mutasipacking (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        create_at TEXT, tanggal TEXT, shift TEXT,
-        code_scan TEXT, code_baru TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT,
-        berat_awal REAL, berat_bersih REAL,
-        operator TEXT, checker TEXT, keterangan TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS mutasisisapack (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        create_at TEXT, tanggal TEXT, shift TEXT,
-        code_scan TEXT, code_baru TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT,
-        berat_awal REAL, berat_bersih REAL,
-        operator TEXT, checker TEXT, keterangan TEXT
-    )""")
-    
-    #karantina
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS karantinamixing (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_mix TEXT, checker TEXT, berat_kg REAL,
-        berat_bersih REAL, karung REAL, created_at TEXT, code TEXT
-    )""")
-    
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS karantinahd (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_hd TEXT, checker TEXT,
-        mesin REAL, berat_kg REAL, bobin REAL, berat_bersih REAL, created_at TEXT, code TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS karantinapotong (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_cu TEXT, checker TEXT,
-        mesin REAL, berat_kg REAL, keranjang REAL, berat_bersih REAL, created_at TEXT, code TEXT
-    )""")
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS karantinapacking (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, tanggal TEXT, shift TEXT, divisi TEXT,
-        spk TEXT, customer TEXT, produk TEXT, uk TEXT, operator_pa TEXT, checker TEXT,
-        mesin REAL, berat_bersih REAL, created_at TEXT, code TEXT, team TEXT
-    )""")
-
-    conn.commit()
-    conn.close()
+    pass
 
 # ─── CSV INIT ───────────────────────────────────────────────
 CSV_HEADERS = ["tanggal","shift","divisi","spk","customer","produk","uk","operator_mix","checker","berat_bersih","karung","created_at","code"]
@@ -995,202 +718,185 @@ def ensure_csv_scan(path):
 
 # ─── SAVE RECORD ────────────────────────────────────────────
 def save_record(data):
+    conn = get_conn()
+    try:
+        c    = conn.cursor()
+        div  = (data.get("divisi") or "").strip().upper()
+
+        if div == "HD":
+            c.execute("""
+            INSERT INTO kataloghd (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_hd, checker, mesin, berat_kg, bobin, berat_bersih, created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_hd)s, %(checker)s, %(mesin)s, %(berat_kg)s, %(bobin)s, %(berat_bersih)s, %(created_at)s, %(code)s
+            )""", data)
+            csv_path = CSV_HD
+            headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_hd","checker","mesin","berat_kg","bobin","berat_bersih","created_at","code"]
+
+        elif div == "POTONG":
+            c.execute("""
+            INSERT INTO katalogpotong (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_cu, checker, mesin, berat_kg, keranjang, berat_bersih, created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_cu)s, %(checker)s, %(mesin)s, %(berat_kg)s, %(keranjang)s, %(berat_bersih)s, %(created_at)s, %(code)s
+            )""", data)
+            csv_path = CSV_POTONG
+            headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_cu","checker","mesin","berat_kg","keranjang","berat_bersih","created_at","code"]
+
+        elif div == "SISA_POTONG":
+            c.execute("""
+            INSERT INTO katalogsisapotong (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_cu, checker, mesin, berat_kg, bobin, berat_bersih, created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_cu)s, %(checker)s, %(mesin)s, %(berat_kg)s, %(bobin)s, %(berat_bersih)s, %(created_at)s, %(code)s
+            )""", data)
+            csv_path = CSV_SISA_POTONG
+            headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_cu","checker","mesin","berat_kg","bobin","berat_bersih","created_at","code"]
+            
+        elif div == "PACKING":
+            c.execute("""
+            INSERT INTO katalogpacking (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_pa, checker, mesin, berat_bersih, created_at, code, team
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_pa)s, %(checker)s, %(mesin)s, %(berat_bersih)s, %(created_at)s, %(code)s, %(team)s
+            )""", data)
+            csv_path = CSV_PACKING
+            headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_pa","checker","mesin","berat_bersih","created_at","code","team"]
+
+        elif div == "SISA_PACK":
+            c.execute("""
+            INSERT INTO katalogsisapack (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_sp, checker, mesin, berat_bersih, sisa, created_at, code, team
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_sp)s, %(checker)s, %(mesin)s, %(berat_bersih)s, %(sisa)s, %(created_at)s, %(code)s, %(team)s
+            )""", data)
+            csv_path = CSV_SISA_PACK
+            headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_sp","checker","mesin","berat_bersih","sisa","created_at","code","team"]
+
+        elif div == "AVAL_MIXING":
+            c.execute("""
+            INSERT INTO katalogavalmixing (
+                tanggal, shift, divisi, spk, operator_amix, checker, mesin, karung, berat_kg, berat_bersih, jenis, created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s,
+                %(operator_amix)s, %(checker)s, %(mesin)s, %(karung)s, %(berat_kg)s, %(berat_bersih)s, %(jenis)s, %(created_at)s, %(code)s
+            )""", data)
+            csv_path = CSV_AVAL_MIXING
+            headers  = ["tanggal","shift","divisi","spk", "operator_amix","checker","mesin","karung","berat_kg","berat_bersih","jenis","created_at","code"]
+
+        elif div == "AVAL_HD":
+            c.execute("""
+            INSERT INTO katalogavalhd (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_hd, checker, mesin, jenis_hd, kategori_hd, karung, berat_kg, berat_bersih,  created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_hd)s, %(checker)s, %(mesin)s, %(jenis_hd)s, %(kategori_hd)s, %(karung)s, %(berat_kg)s, %(berat_bersih)s, %(created_at)s, %(code)s
+            )""", data)
+            csv_path = CSV_AVAL_HD
+            headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_hd","checker","mesin","jenis_hd","kategori_hd","karung","berat_kg","berat_bersih","created_at","code"]
+
+        elif div == "AVAL_POTONG":
+            c.execute("""
+            INSERT INTO katalogavalpotong (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_cu, checker, mesin, jenis_cu, kategori_cu, karung, berat_kg, berat_bersih,  created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_cu)s, %(checker)s, %(mesin)s, %(jenis_cu)s, %(kategori_cu)s, %(karung)s, %(berat_kg)s, %(berat_bersih)s, %(created_at)s, %(code)s
+            )""", data)
+            csv_path = CSV_AVAL_POTONG
+            headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_cu","checker","mesin","jenis_cu","kategori_cu","karung","berat_kg","berat_bersih","created_at","code"]
     
-    conn = sqlite3.connect(DB_PATH)
-    c    = conn.cursor()
-    div  = (data.get("divisi") or "").strip().upper()
+        elif div == "AVAL_PACKING":
+            c.execute("""
+            INSERT INTO katalogavalpacking (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_pa, checker, mesin, jenis_pa, kategori_pa, berat_bersih, created_at, code, team
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_pa)s, %(checker)s, %(mesin)s, %(jenis_pa)s, %(kategori_pa)s, %(berat_bersih)s, %(created_at)s, %(code)s, %(team)s
+            )""", data)
+            csv_path = CSV_AVAL_PACKING
+            headers  = ["tanggal","shift","divisi","spk", "customer","produk","uk", "operator_pa","checker","mesin","jenis_pa","kategori_pa","berat_bersih","created_at","code","team"]
 
-    if div == "HD":
-        c.execute("""
-        INSERT INTO kataloghd (
-            tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_hd, checker, mesin, berat_kg, bobin, berat_bersih, created_at, code
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_hd, :checker, :mesin, :berat_kg, :bobin, :berat_bersih, :created_at, :code
-        )""", data)
-        csv_path = CSV_HD
-        headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_hd","checker","mesin","berat_kg","bobin","berat_bersih","created_at","code"]
+        elif div == "AVAL_QC":
+            c.execute("""
+            INSERT INTO katalogavalqc (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_qc, checker, mesin, kategori_qc, berat_bersih, created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_qc)s, %(checker)s, %(mesin)s, %(kategori_qc)s, %(berat_bersih)s, %(created_at)s, %(code)s
+            )""", data)
+            csv_path = CSV_AVAL_QC
+            headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_qc","checker","mesin","kategori_qc","berat_bersih","created_at","code"]
 
-    elif div == "POTONG":
-        c.execute("""
-        INSERT INTO katalogpotong (
-            tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_cu, checker, mesin, berat_kg, keranjang, berat_bersih, created_at, code
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_cu, :checker, :mesin, :berat_kg, :keranjang, :berat_bersih, :created_at, :code
-        )""", data)
-        csv_path = CSV_POTONG
-        headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_cu","checker","mesin","berat_kg","keranjang","berat_bersih","created_at","code"]
-
-    elif div == "SISA_POTONG":
-        c.execute("""
-        INSERT INTO katalogsisapotong (
-            tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_cu, checker, mesin, berat_kg, bobin, berat_bersih, created_at, code
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_cu, :checker, :mesin, :berat_kg, :bobin, :berat_bersih, :created_at, :code
-        )""", data)
-        csv_path = CSV_SISA_POTONG
-        headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_cu","checker","mesin","berat_kg","bobin","berat_bersih","created_at","code"]
+        elif div == "MIXING":
+            c.execute("""
+            INSERT INTO katalogmixing (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_mix, checker, berat_kg, berat_bersih, karung, created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_mix)s, %(checker)s, %(berat_kg)s, %(berat_bersih)s, %(karung)s, %(created_at)s, %(code)s
+            )""", data)
+            csv_path = CSV_MIXING
+            headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_mix","checker","berat_kg","berat_bersih","karung","created_at","code"]
+            
+        elif div == "SUMMARY_SPK":
+            c.execute("""
+            INSERT INTO SummarySPK (
+                spk, so, tanggal, customer, product, warna, aval, uk, lembar, pack, kg, berat_lembar, berat_pack, tebal, order_ball, qty, checker, satuan, blongsong, etiket, mixing
+            ) VALUES (
+                %(spk)s, %(so)s, %(tanggal)s, %(customer)s, %(product)s, %(warna)s, %(aval)s, %(uk)s, %(lembar)s, %(pack)s, %(kg)s, %(berat_lembar)s,
+                %(berat_pack)s, %(tebal)s, %(order_ball)s, %(qty)s, %(checker)s, %(satuan)s, %(blongsong)s, %(etiket)s, %(mixing)s
+            )""", data)
+            csv_path = SPK_CSV
+            headers  = ["spk", "so", "tanggal", "customer", "product", "warna", "aval", "uk", "lembar", "pack", "kg", "berat_lembar", "berat_pack", "tebal", "order_ball", "qty", "checker", "satuan", "blongsong", "etiket", "mixing"]
         
-    elif div == "PACKING":
-        c.execute("""
-        INSERT INTO katalogpacking (
-            tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_pa, checker, mesin, berat_bersih, created_at, code, team
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_pa, :checker, :mesin, :berat_bersih, :created_at, :code, :team
-        )""", data)
-        csv_path = CSV_PACKING
-        headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_pa","checker","mesin","berat_bersih","created_at","code","team"]
+        elif div == "KARANTINA_MIXING":
+            c.execute("""
+            INSERT INTO karantinamixing (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_mix, checker, berat_kg, berat_bersih, karung, created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_mix)s, %(checker)s, %(berat_kg)s, %(berat_bersih)s, %(karung)s, %(created_at)s, %(code)s
+            )""", data)
+            
+        elif div == "KARANTINA_HD":
+            c.execute("""
+            INSERT INTO karantinahd (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_hd, checker, mesin, berat_kg, bobin, berat_bersih, created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_hd)s, %(checker)s, %(mesin)s, %(berat_kg)s, %(bobin)s, %(berat_bersih)s, %(created_at)s, %(code)s
+            )""", data)
 
-    elif div == "SISA_PACK":
-        c.execute("""
-        INSERT INTO katalogsisapack (
-            tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_sp, checker, mesin, berat_bersih, sisa, created_at, code, team
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_sp, :checker, :mesin, :berat_bersih, :sisa, :created_at, :code, :team
-        )""", data)
-        csv_path = CSV_SISA_PACK
-        headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_sp","checker","mesin","berat_bersih","sisa","created_at","code","team"]
+        elif div == "KARANTINA_POTONG":
+            c.execute("""
+            INSERT INTO karantinapotong (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_cu, checker, mesin, berat_kg, keranjang, berat_bersih, created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_cu)s, %(checker)s, %(mesin)s, %(berat_kg)s, %(keranjang)s, %(berat_bersih)s, %(created_at)s, %(code)s
+            )""", data)
 
-    elif div == "AVAL_MIXING":
-        c.execute("""
-        INSERT INTO katalogavalmixing (
-            tanggal, shift, divisi, spk,
-            operator_amix, checker, mesin, karung, berat_kg, berat_bersih, jenis, created_at, code
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk,
-            :operator_amix, :checker, :mesin, :karung, :berat_kg, :berat_bersih, :jenis, :created_at, :code
-        )""", data)
-        csv_path = CSV_AVAL_MIXING
-        headers  = ["tanggal","shift","divisi","spk", "operator_amix","checker","mesin","karung","berat_kg","berat_bersih","jenis","created_at","code"]
+        elif div == "KARANTINA_PACKING":
+            c.execute("""
+            INSERT INTO karantinapacking (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_pa, checker, mesin, berat_bersih, created_at, code, team
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_pa)s, %(checker)s, %(mesin)s, %(berat_bersih)s, %(created_at)s, %(code)s, %(team)s
+            )""", data)
 
-    elif div == "AVAL_HD":
-        c.execute("""
-        INSERT INTO katalogavalhd (
-            tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_hd, checker, mesin, jenis_hd, kategori_hd, karung, berat_kg, berat_bersih,  created_at, code
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_hd, :checker, :mesin, :jenis_hd, :kategori_hd, :karung, :berat_kg, :berat_bersih, :created_at, :code
-        )""", data)
-        csv_path = CSV_AVAL_HD
-        headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_hd","checker","mesin","jenis_hd","kategori_hd","karung","berat_kg","berat_bersih","created_at","code"]
+        else:
+            raise ValueError(f"Divisi tidak dikenali: {div}")
 
-    elif div == "AVAL_POTONG":
-        c.execute("""
-        INSERT INTO katalogavalpotong (
-            tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_cu, checker, mesin, jenis_cu, kategori_cu, karung, berat_kg, berat_bersih,  created_at, code
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_cu, :checker, :mesin, :jenis_cu, :kategori_cu, :karung, :berat_kg, :berat_bersih, :created_at, :code
-        )""", data)
-        csv_path = CSV_AVAL_POTONG
-        headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_cu","checker","mesin","jenis_cu","kategori_cu","karung","berat_kg","berat_bersih","created_at","code"]
-  
-    elif div == "AVAL_PACKING":
-        c.execute("""
-        INSERT INTO katalogavalpacking (
-            tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_pa, checker, mesin, jenis_pa, kategori_pa, berat_bersih, created_at, code, team
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_pa, :checker, :mesin, :jenis_pa, :kategori_pa, :berat_bersih, :created_at, :code, :team
-        )""", data)
-        csv_path = CSV_AVAL_PACKING
-        headers  = ["tanggal","shift","divisi","spk", "customer","produk","uk", "operator_pa","checker","mesin","jenis_pa","kategori_pa","berat_bersih","created_at","code","team"]
-
-    elif div == "AVAL_QC":
-        c.execute("""
-        INSERT INTO katalogavalqc (
-            tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_qc, checker, mesin, kategori_qc, berat_bersih, created_at, code
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_qc, :checker, :mesin, :kategori_qc, :berat_bersih, :created_at, :code
-        )""", data)
-        csv_path = CSV_AVAL_QC
-        headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_qc","checker","mesin","kategori_qc","berat_bersih","created_at","code"]
-
-    elif div == "MIXING":
-        c.execute("""
-        INSERT INTO katalogmixing (
-            tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_mix, checker, berat_kg, berat_bersih, karung, created_at, code
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_mix, :checker, :berat_kg, :berat_bersih, :karung, :created_at, :code
-        )""", data)
-        csv_path = CSV_MIXING
-        headers  = ["tanggal","shift","divisi","spk","customer","produk","uk", "operator_mix","checker","berat_kg","berat_bersih","karung","created_at","code"]
-        
-    elif div == "SUMMARY_SPK":
-        c.execute("""
-        INSERT INTO SummarySPK (
-            spk, so, tanggal, customer, product, warna, aval, uk, lembar, pack, kg, berat_lembar,
-            berat_pack, tebal, order_ball, qty, checker, satuan, blongsong, etiket, mixing
-        ) VALUES (
-            :spk, :so, :tanggal, :customer, :product, :warna, :aval, :uk, :lembar, :pack, :kg, :berat_lembar,
-            :berat_pack, :tebal, :order_ball, :qty, :checker, :satuan, :blongsong, :etiket, :mixing
-        )""", data)
-        csv_path = SPK_CSV
-        headers  = ["spk", "so", "tanggal", "customer", "product", "warna", "aval", "uk", "lembar", "pack", "kg",
-                    "berat_lembar", "berat_pack", "tebal", "order_ball", "qty", "checker", "satuan", "blongsong", "etiket", "mixing"]
-    
-    elif div == "KARANTINA_MIXING":
-        c.execute("""
-        INSERT INTO karantinamixing (
-            tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_mix, checker, berat_kg, berat_bersih, karung, created_at, code
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_mix, :checker, :berat_kg, :berat_bersih, :karung, :created_at, :code
-        )""", data)
-        
-    elif div == "KARANTINA_HD":
-        c.execute("""
-        INSERT INTO karantinahd (
-            tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_hd, checker, mesin, berat_kg, bobin, berat_bersih, created_at, code
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_hd, :checker, :mesin, :berat_kg, :bobin, :berat_bersih, :created_at, :code
-        )""", data)
-
-    elif div == "KARANTINA_POTONG":
-        c.execute("""
-        INSERT INTO karantinapotong (
-            tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_cu, checker, mesin, berat_kg, keranjang, berat_bersih, created_at, code
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_cu, :checker, :mesin, :berat_kg, :keranjang, :berat_bersih, :created_at, :code
-        )""", data)
-
-    elif div == "KARANTINA_PACKING":
-        c.execute("""
-        INSERT INTO karantinapacking (
-            tanggal, shift, divisi, spk, customer, produk, uk,
-            operator_pa, checker, mesin, berat_bersih, created_at, code, team
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_pa, :checker, :mesin, :berat_bersih, :created_at, :code, :team
-        )""", data)
-
-    else:
-        conn.close()
-        raise ValueError(f"Divisi tidak dikenali: {div}")
-
-    conn.commit()
-    conn.close()
+        conn.commit()
+    finally:
+        release_conn(conn)
         
 import math
 
@@ -1379,6 +1085,16 @@ def scan_salah():
 def scan_pemakaian():
     return render_template("scan_pemakaian.html", active_page="scan_pemakaian", current_user=session.get("name"))
 
+@app.route("/hapus_scan_pemakaian")
+@adminwip_required
+def hapus_scan_pemakaian():
+    return render_template("hapus_scan_pemakaian.html", active_page="hapus_scan_pemakaian", current_user=session.get("name"))
+
+@app.route("/hapus_scan_salah")
+@adminwip_required
+def hapus_scan_salah():
+    return render_template("hapus_scan_salah.html", active_page="hapus_scan_salah", current_user=session.get("name"))
+
 @app.route("/scan_transfer")
 @checker_required
 def scan_transfer():
@@ -1499,6 +1215,32 @@ def stok_produksi():
 def hasil_produksi():
     return render_template("hasil_produksi.html", active_page="hasil_produksi", current_user=session.get("name"))
 
+@app.route("/api/debug_db_info")
+@login_required
+def debug_db_info():
+    conn = get_conn()
+    try:
+        c = conn.cursor()
+        c.execute("SELECT current_database(), current_schema(), inet_server_addr(), inet_server_port()")
+        info = c.fetchone()
+        c.execute("SELECT COUNT(*) FROM kataloghd")
+        total_hd = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM scansalahhd")
+        total_salah = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM scantransferhd")
+        total_transfer = c.fetchone()[0]
+        return jsonify(
+            database=info[0],
+            schema=info[1],
+            server_addr=str(info[2]),
+            server_port=info[3],
+            total_kataloghd=total_hd,
+            total_scansalahhd=total_salah,
+            total_scantransferhd=total_transfer,
+        )
+    finally:
+        conn.close()   # ✅ pakai conn.close(), bukan release_conn(conn)
+
 CSV_MUTASI_MIXING = r"Z:\Checker\Production\Database\mutasi\katalogmutasimixing.csv"
 CSV_MUTASI_MIXING_COLUMNS = ["create_at", "tanggal", "shift", "code_scan", "code_baru", "spk", "customer", "produk", "uk", "berat_awal", "berat_bersih", "operator", "checker", "keterangan"]
 
@@ -1516,7 +1258,6 @@ def api_mutasi_mixing():
         admin         = session.get("name", "")
         keterangan    = (data.get("keterangan") or "").strip()
 
-        # VALIDASI
         if not code_awal:
             return jsonify(success=False, error="Kode awal wajib diisi")
         if not tanggal_raw:
@@ -1531,19 +1272,21 @@ def api_mutasi_mixing():
         tanggal = format_tanggal(tanggal_raw)
 
         # LOOKUP DATA KATALOG MIXING
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-
-        row = conn.execute("""
-            SELECT *
-            FROM katalogmixing
-            WHERE UPPER(TRIM(code)) = ?
-            ORDER BY id DESC
-            LIMIT 1
-        """, (code_awal,)).fetchone()
-
-        conn.close()
-
+        conn = get_conn()
+        try:
+            c = dict_cursor(conn)
+            c.execute("""
+                SELECT *
+                FROM katalogmixing
+                WHERE UPPER(TRIM(code)) = %s
+                ORDER BY id DESC
+                LIMIT 1
+            """, (code_awal,))
+            row = c.fetchone()
+            
+        finally:
+            release_conn(conn)
+        
         if not row:
             return jsonify(success=False, error="Kode awal tidak ditemukan")
 
@@ -1564,7 +1307,6 @@ def api_mutasi_mixing():
         except:
             berat_awal = 0
 
-        # VALIDASI BERAT
         if hasil_timbang > berat_awal:
             return jsonify(success=False, error="Hasil timbang melebihi berat awal")
 
@@ -1618,7 +1360,7 @@ def api_mutasi_mixing():
         code_sisa = generate_code(spk_awal, shift, hasil_timbang)
         code_mutasi = generate_code(spk_baru, shift, terpakai)
 
-        # ── SIAPKAN ROW LOG MUTASI (untuk CSV & SQLite) ──
+        # ── ROW LOG MUTASI ──
         row_sisa_log = {
             "create_at": created_at,
             "tanggal": tanggal,
@@ -1651,9 +1393,7 @@ def api_mutasi_mixing():
             "checker": admin,
             "keterangan": keterangan
         }
-
         # SIMPAN CSV MUTASI
-
         # DATA BARU UNTUK KATALOG MIXING
         data_sisa = {
             "tanggal": tanggal,
@@ -1687,41 +1427,39 @@ def api_mutasi_mixing():
             "created_at": created_at,
             "code": code_mutasi
         }
-
         # SIMPAN KE CSV MIXING
-
         # ── SIMPAN SQLITE ──
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
+        conn = get_conn()
+        try:
+            c = conn.cursor()
 
-        sql_katalog = """
-        INSERT INTO katalogmixing (
-            tanggal, shift, divisi, spk, customer, produk, uk, operator_mix, checker, berat_kg, berat_bersih, karung, created_at, code
-        ) VALUES (
-            :tanggal, :shift, :divisi, :spk, :customer, :produk, :uk,
-            :operator_mix, :checker, :berat_kg, :berat_bersih, :karung, :created_at, :code
-        )
-        """
-        c.execute(sql_katalog, data_sisa)
-        c.execute(sql_katalog, data_mutasi)
+            sql_katalog = """
+            INSERT INTO katalogmixing (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_mix, checker, berat_kg, berat_bersih, karung, created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_mix)s, %(checker)s, %(berat_kg)s, %(berat_bersih)s, %(karung)s, %(created_at)s, %(code)s
+            )
+            """
+            c.execute(sql_katalog, data_sisa)
+            c.execute(sql_katalog, data_mutasi)
 
-        # log mutasi ke tabel mutasimixing
-        sql_log = """
-        INSERT INTO mutasimixing (
-            create_at, tanggal, shift, code_scan, code_baru,
-            spk, customer, produk, uk, berat_awal, berat_bersih,
-            operator, checker, keterangan
-        ) VALUES (
-            :create_at, :tanggal, :shift, :code_scan, :code_baru,
-            :spk, :customer, :produk, :uk, :berat_awal, :berat_bersih,
-            :operator, :checker, :keterangan
-        )
-        """
-        c.execute(sql_log, row_sisa_log)
-        c.execute(sql_log, row_mutasi_log)
+            # log mutasi ke tabel mutasimixing
+            sql_log = """
+            INSERT INTO mutasimixing (
+                create_at, tanggal, shift, code_scan, code_baru, spk, customer, produk, uk,
+                berat_awal, berat_bersih, operator, checker, keterangan
+            ) VALUES (
+                %(create_at)s, %(tanggal)s, %(shift)s, %(code_scan)s, %(code_baru)s, %(spk)s, %(customer)s,
+                %(produk)s, %(uk)s, %(berat_awal)s, %(berat_bersih)s, %(operator)s, %(checker)s, %(keterangan)s
+            )
+            """
+            c.execute(sql_log, row_sisa_log)
+            c.execute(sql_log, row_mutasi_log)
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            release_conn(conn)
 
         # CACHE UNTUK LABEL
         for rec_data, rec_code in [(data_sisa, code_sisa), (data_mutasi, code_mutasi)]:
@@ -1774,7 +1512,6 @@ def api_mutasi_hd():
         admin         = session.get("name", "")
         keterangan    = (data.get("keterangan") or "").strip()
 
-        # VALIDASI
         if not code_awal:
             return jsonify(success=False, error="Kode awal wajib diisi")
         if not tanggal_raw:
@@ -1789,18 +1526,20 @@ def api_mutasi_hd():
         tanggal = format_tanggal(tanggal_raw)
 
         # LOOKUP DATA KATALOG
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_conn()
+        try:
+            c = dict_cursor(conn)
+            c.execute("""
+                SELECT *
+                FROM kataloghd
+                WHERE UPPER(TRIM(code)) = %s
+                ORDER BY id DESC
+                LIMIT 1
+            """, (code_awal,))
+            row = c.fetchone()
 
-        row = conn.execute("""
-            SELECT *
-            FROM kataloghd
-            WHERE UPPER(TRIM(code)) = ?
-            ORDER BY id DESC
-            LIMIT 1
-        """, (code_awal,)).fetchone()
-
-        conn.close()
+        finally:
+            release_conn(conn)
 
         if not row:
             return jsonify(success=False, error="Kode awal tidak ditemukan")
@@ -1822,7 +1561,6 @@ def api_mutasi_hd():
         except:
             berat_awal = 0
 
-        # VALIDASI BERAT
         if hasil_timbang > berat_awal:
             return jsonify(success=False, error="Hasil timbang melebihi berat awal")
 
@@ -1909,9 +1647,7 @@ def api_mutasi_hd():
             "checker": admin,
             "keterangan": keterangan
         }
-
         # SIMPAN CSV MUTASI HD
-
         # DATA BARU UNTUK KATALOG
         data_sisa = {
             "tanggal": tanggal,
@@ -1947,53 +1683,39 @@ def api_mutasi_hd():
             "created_at": created_at,
             "code": code_mutasi
         }
-
         # SIMPAN KE CSV_HD
-
         # SQLITE
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        sql = """
-        INSERT INTO kataloghd (
-            tanggal, shift, divisi, spk, customer, produk, uk, operator_hd, checker, mesin, berat_kg, berat_bersih, bobin, created_at, code
-        ) VALUES (
-            :tanggal,
-            :shift,
-            :divisi,
-            :spk,
-            :customer,
-            :produk,
-            :uk,
-            :operator_hd,
-            :checker,
-            :mesin,
-            :berat_kg,
-            :berat_bersih,
-            :bobin,
-            :created_at,
-            :code
-        )
-        """
-        c.execute(sql,data_sisa)
-        c.execute(sql,data_mutasi)
+        conn = get_conn()
+        try:
+            c = conn.cursor()
+            sql = """
+            INSERT INTO kataloghd (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_hd, checker, mesin, berat_kg, berat_bersih, bobin, created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s, %(operator_hd)s,
+                %(checker)s, %(mesin)s, %(berat_kg)s, %(berat_bersih)s, %(bobin)s, %(created_at)s, %(code)s
+            )
+            """
+            c.execute(sql,data_sisa)
+            c.execute(sql,data_mutasi)
 
-        # log mutasi ke tabel mutasihd
-        sql_log = """
-        INSERT INTO mutasihd (
-            create_at, tanggal, shift, code_scan, code_baru,
-            spk, customer, produk, uk, berat_awal, berat_bersih,
-            operator, checker, keterangan
-        ) VALUES (
-            :create_at, :tanggal, :shift, :code_scan, :code_baru,
-            :spk, :customer, :produk, :uk, :berat_awal, :berat_bersih,
-            :operator, :checker, :keterangan
-        )
-        """
-        c.execute(sql_log, row_sisa_log)
-        c.execute(sql_log, row_mutasi_log)
+            # log mutasi ke tabel mutasihd
+            sql_log = """
+            INSERT INTO mutasihd (
+                create_at, tanggal, shift, code_scan, code_baru,
+                spk, customer, produk, uk, berat_awal, berat_bersih,
+                operator, checker, keterangan
+            ) VALUES (
+                %(create_at)s, %(tanggal)s, %(shift)s, %(code_scan)s, %(code_baru)s, %(spk)s, %(customer)s,
+                %(produk)s, %(uk)s, %(berat_awal)s, %(berat_bersih)s, %(operator)s, %(checker)s, %(keterangan)s
+            )
+            """
+            c.execute(sql_log, row_sisa_log)
+            c.execute(sql_log, row_mutasi_log)
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            release_conn(conn)
         
         # Simpan ke record_cache agar /label/print/<code>
         for rec_data, rec_code in [(data_sisa, code_sisa), (data_mutasi, code_mutasi)]:
@@ -2048,7 +1770,6 @@ def api_mutasi_potong():
         admin         = session.get("name", "")
         keterangan    = (data.get("keterangan") or "").strip()
 
-        # VALIDASI
         if not code_awal:
             return jsonify(success=False, error="Kode awal wajib diisi")
         if not tanggal_raw:
@@ -2063,18 +1784,20 @@ def api_mutasi_potong():
         tanggal = format_tanggal(tanggal_raw)
 
         # LOOKUP DATA KATALOG
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_conn()
+        try:
+            c = dict_cursor(conn)
+            c.execute("""
+                SELECT *
+                FROM katalogpotong
+                WHERE UPPER(TRIM(code)) = %s
+                ORDER BY id DESC
+                LIMIT 1
+            """, (code_awal,))
+            row = c.fetchone()
 
-        row = conn.execute("""
-            SELECT *
-            FROM katalogpotong
-            WHERE UPPER(TRIM(code)) = ?
-            ORDER BY id DESC
-            LIMIT 1
-        """, (code_awal,)).fetchone()
-
-        conn.close()
+        finally:
+            release_conn(conn)
 
         if not row:
             return jsonify(success=False, error="Kode awal tidak ditemukan")
@@ -2096,7 +1819,6 @@ def api_mutasi_potong():
         except:
             berat_awal = 0
 
-        # VALIDASI BERAT
         if hasil_timbang > berat_awal:
             return jsonify(success=False, error="Hasil timbang melebihi berat awal")
 
@@ -2185,9 +1907,7 @@ def api_mutasi_potong():
             "checker": admin,
             "keterangan": keterangan
         }
-
         # SIMPAN CSV MUTASI POTONG
-
         # DATA BARU UNTUK KATALOG
         data_sisa = {
             "tanggal": tanggal,
@@ -2223,54 +1943,38 @@ def api_mutasi_potong():
             "created_at": created_at,
             "code": code_mutasi
         }
-
         # SIMPAN KE CSV_POTONG
-
         # SQLITE
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        sql = """
-        INSERT INTO katalogpotong (
-            tanggal, shift, divisi, spk, customer, produk, uk, operator_cu, checker, mesin, berat_kg, berat_bersih, keranjang, created_at, code
-        ) VALUES (
-            :tanggal,
-            :shift,
-            :divisi,
-            :spk,
-            :customer,
-            :produk,
-            :uk,
-            :operator_cu,
-            :checker,
-            :mesin,
-            :berat_kg,
-            :berat_bersih,
-            :keranjang,
-            :created_at,
-            :code
-        )
-        """
+        conn = get_conn()
+        try:
+            c = conn.cursor()
+            sql = """
+            INSERT INTO katalogpotong (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_cu, checker, mesin, berat_kg, berat_bersih, keranjang, created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s, %(operator_cu)s,
+                %(checker)s, %(mesin)s, %(berat_kg)s, %(berat_bersih)s, %(keranjang)s, %(created_at)s, %(code)s
+            )
+            """
+            c.execute(sql,data_sisa)
+            c.execute(sql,data_mutasi)
 
-        c.execute(sql,data_sisa)
-        c.execute(sql,data_mutasi)
+            # log mutasi ke tabel mutasipotong
+            sql_log = """
+            INSERT INTO mutasipotong (
+                create_at, tanggal, shift, code_scan, code_baru, spk, customer, produk, uk,
+                berat_awal, berat_bersih, operator, checker, keterangan
+            ) VALUES (
+                %(create_at)s, %(tanggal)s, %(shift)s, %(code_scan)s, %(code_baru)s, %(spk)s, %(customer)s,
+                %(produk)s, %(uk)s, %(berat_awal)s, %(berat_bersih)s, %(operator)s, %(checker)s, %(keterangan)s
+            )
+            """
+            c.execute(sql_log, row_sisa_log)
+            c.execute(sql_log, row_mutasi_log)
 
-        # log mutasi ke tabel mutasipotong
-        sql_log = """
-        INSERT INTO mutasipotong (
-            create_at, tanggal, shift, code_scan, code_baru,
-            spk, customer, produk, uk, berat_awal, berat_bersih,
-            operator, checker, keterangan
-        ) VALUES (
-            :create_at, :tanggal, :shift, :code_scan, :code_baru,
-            :spk, :customer, :produk, :uk, :berat_awal, :berat_bersih,
-            :operator, :checker, :keterangan
-        )
-        """
-        c.execute(sql_log, row_sisa_log)
-        c.execute(sql_log, row_mutasi_log)
-
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            release_conn(conn)
         
         # Simpan ke record_cache agar /label/print/<code>
         for rec_data, rec_code in [(data_sisa, code_sisa), (data_mutasi, code_mutasi)]:
@@ -2326,7 +2030,6 @@ def api_mutasi_packing():
         admin         = session.get("name", "")
         keterangan    = (data.get("keterangan") or "").strip()
 
-        # VALIDASI
         if not code_awal:
             return jsonify(success=False, error="Kode awal wajib diisi")
         if not tanggal_raw:
@@ -2340,18 +2043,20 @@ def api_mutasi_packing():
         tanggal = format_tanggal(tanggal_raw)
 
         # LOOKUP DATA KATALOG
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_conn()
+        try:
+            c = dict_cursor(conn)
+            c.execute("""
+                SELECT *
+                FROM katalogpacking
+                WHERE UPPER(TRIM(code)) = %s
+                ORDER BY id DESC
+                LIMIT 1
+            """, (code_awal,))
+            row = c.fetchone()
 
-        row = conn.execute("""
-            SELECT *
-            FROM katalogpacking
-            WHERE UPPER(TRIM(code)) = ?
-            ORDER BY id DESC
-            LIMIT 1
-        """, (code_awal,)).fetchone()
-
-        conn.close()
+        finally:
+            release_conn(conn)
 
         if not row:
             return jsonify(success=False, error="Kode awal tidak ditemukan")
@@ -2374,7 +2079,6 @@ def api_mutasi_packing():
         except:
             berat_awal = 0
 
-        # VALIDASI BERAT
         if hasil_timbang > berat_awal:
             return jsonify(success=False,error="Hasil timbang melebihi berat awal")
         terpakai = round(berat_awal - hasil_timbang,2)
@@ -2462,9 +2166,7 @@ def api_mutasi_packing():
             "checker": admin,
             "keterangan": keterangan
         }
-
         # SIMPAN CSV MUTASI PACKING
-
         # DATA BARU UNTUK KATALOG
         data_sisa = {
             "tanggal": tanggal,
@@ -2496,52 +2198,38 @@ def api_mutasi_packing():
             "created_at": created_at,
             "code": code_mutasi
         }
-
         # SIMPAN KE CSV_PACKING
-
         # SQLITE
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        sql = """
-        INSERT INTO katalogpacking (
-            tanggal, shift, divisi, spk, customer, produk, uk, operator_pa, checker, mesin, berat_bersih, created_at, code
-        ) VALUES (
-            :tanggal,
-            :shift,
-            :divisi,
-            :spk,
-            :customer,
-            :produk,
-            :uk,
-            :operator_pa,
-            :checker,
-            :mesin,
-            :berat_bersih,
-            :created_at,
-            :code
-        )
-        """
+        conn = get_conn()
+        try:
+            c = conn.cursor()
+            sql = """
+            INSERT INTO katalogpacking (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_pa, checker, mesin, berat_bersih, created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s, %(operator_pa)s,
+                %(checker)s, %(mesin)s, %(berat_bersih)s, %(created_at)s, %(code)s
+            )
+            """
+            c.execute(sql,data_sisa)
+            c.execute(sql,data_mutasi)
 
-        c.execute(sql,data_sisa)
-        c.execute(sql,data_mutasi)
+            # log mutasi ke tabel mutasipacking
+            sql_log = """
+            INSERT INTO mutasipacking (
+                create_at, tanggal, shift, code_scan, code_baru, spk, customer, produk, uk, berat_awal,
+                berat_bersih, operator, checker, keterangan
+            ) VALUES (
+                %(create_at)s, %(tanggal)s, %(shift)s, %(code_scan)s, %(code_baru)s, %(spk)s, %(customer)s,
+                %(produk)s, %(uk)s, %(berat_awal)s, %(berat_bersih)s, %(operator)s, %(checker)s, %(keterangan)s
+            )
+            """
+            c.execute(sql_log, row_sisa_log)
+            c.execute(sql_log, row_mutasi_log)
 
-        # log mutasi ke tabel mutasipacking
-        sql_log = """
-        INSERT INTO mutasipacking (
-            create_at, tanggal, shift, code_scan, code_baru,
-            spk, customer, produk, uk, berat_awal, berat_bersih,
-            operator, checker, keterangan
-        ) VALUES (
-            :create_at, :tanggal, :shift, :code_scan, :code_baru,
-            :spk, :customer, :produk, :uk, :berat_awal, :berat_bersih,
-            :operator, :checker, :keterangan
-        )
-        """
-        c.execute(sql_log, row_sisa_log)
-        c.execute(sql_log, row_mutasi_log)
-
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            release_conn(conn)
         
         # Simpan ke record_cache agar /label/print/<code>
         for rec_data, rec_code in [(data_sisa, code_sisa), (data_mutasi, code_mutasi)]:
@@ -2594,7 +2282,6 @@ def api_mutasi_sisapack():
         keterangan    = (data.get("keterangan") or "").strip()
         hasil_sisa    = float(data.get("hasil_sisa") or 0)
 
-        # VALIDASI
         if not code_awal:
             return jsonify(success=False, error="Kode awal wajib diisi")
         if not tanggal_raw:
@@ -2608,18 +2295,20 @@ def api_mutasi_sisapack():
 
         tanggal = format_tanggal(tanggal_raw)
         # LOOKUP DATA KATALOG
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_conn()
+        try:
+            c = dict_cursor(conn)
+            c.execute("""
+                SELECT *
+                FROM katalogsisapack
+                WHERE UPPER(TRIM(code)) = %s
+                ORDER BY id DESC
+                LIMIT 1
+            """, (code_awal,))
+            row = c.fetchone()
 
-        row = conn.execute("""
-            SELECT *
-            FROM katalogsisapack
-            WHERE UPPER(TRIM(code)) = ?
-            ORDER BY id DESC
-            LIMIT 1
-        """, (code_awal,)).fetchone()
-
-        conn.close()
+        finally:
+            release_conn(conn)
 
         if not row:
             return jsonify(success=False, error="Kode awal tidak ditemukan")
@@ -2649,7 +2338,6 @@ def api_mutasi_sisapack():
         except:
             sisa_awal = 0
 
-        # VALIDASI BERAT
         if hasil_timbang > berat_awal:
             return jsonify(success=False, error="Hasil timbang melebihi berat awal")
 
@@ -2738,9 +2426,7 @@ def api_mutasi_sisapack():
             "checker": admin,
             "keterangan": keterangan
         }
-
         # SIMPAN CSV MUTASI SISAPACK
-
         # DATA BARU UNTUK KATALOG
         data_sisa = {
             "tanggal": tanggal,
@@ -2774,52 +2460,38 @@ def api_mutasi_sisapack():
             "created_at": created_at,
             "code": code_mutasi
         }
-
         # SIMPAN KE CSV_SISA_PACK
-
         # SQLITE
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        sql = """
-        INSERT INTO katalogsisapack (
-            tanggal, shift, divisi, spk, customer, produk, uk, operator_sp, checker, mesin, berat_bersih, sisa, created_at, code
-        ) VALUES (
-            :tanggal,
-            :shift,
-            :divisi,
-            :spk,
-            :customer,
-            :produk,
-            :uk,
-            :operator_sp,
-            :checker,
-            :mesin,
-            :berat_bersih,
-            :sisa,
-            :created_at,
-            :code
-        )
-        """
-        c.execute(sql,data_sisa)
-        c.execute(sql,data_mutasi)
+        conn = get_conn()
+        try:
+            c = conn.cursor()
+            sql = """
+            INSERT INTO katalogsisapack (
+                tanggal, shift, divisi, spk, customer, produk, uk, operator_sp, checker, mesin, berat_bersih, sisa, created_at, code
+            ) VALUES (
+                %(tanggal)s, %(shift)s, %(divisi)s, %(spk)s, %(customer)s, %(produk)s, %(uk)s,
+                %(operator_sp)s, %(checker)s, %(mesin)s, %(berat_bersih)s, %(sisa)s, %(created_at)s, %(code)s
+            )
+            """
+            c.execute(sql,data_sisa)
+            c.execute(sql,data_mutasi)
 
-        # log mutasi ke tabel mutasisisapack
-        sql_log = """
-        INSERT INTO mutasisisapack (
-            create_at, tanggal, shift, code_scan, code_baru,
-            spk, customer, produk, uk, berat_awal, berat_bersih,
-            operator, checker, keterangan
-        ) VALUES (
-            :create_at, :tanggal, :shift, :code_scan, :code_baru,
-            :spk, :customer, :produk, :uk, :berat_awal, :berat_bersih,
-            :operator, :checker, :keterangan
-        )
-        """
-        c.execute(sql_log, row_sisa_log)
-        c.execute(sql_log, row_mutasi_log)
+            # log mutasi ke tabel mutasisisapack
+            sql_log = """
+            INSERT INTO mutasisisapack (
+                create_at, tanggal, shift, code_scan, code_baru, spk, customer, produk, uk,
+                berat_awal, berat_bersih, operator, checker, keterangan
+            ) VALUES (
+                %(create_at)s, %(tanggal)s, %(shift)s, %(code_scan)s, %(code_baru)s, %(spk)s, %(customer)s,
+                %(produk)s, %(uk)s, %(berat_awal)s, %(berat_bersih)s, %(operator)s, %(checker)s, %(keterangan)s
+            )
+            """
+            c.execute(sql_log, row_sisa_log)
+            c.execute(sql_log, row_mutasi_log)
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            release_conn(conn)
         
         # Simpan ke record_cache agar /label/print/<code>
         for rec_data, rec_code in [(data_sisa, code_sisa), (data_mutasi, code_mutasi)]:
@@ -2964,6 +2636,7 @@ CATALOG_TABLE_MAP = {
     "AVAL_QC":      "katalogavalqc",
 }
 
+#TRANSFER
 @app.route("/api/lookup_code", methods=["POST"])
 @login_required
 def lookup_code():
@@ -2982,13 +2655,14 @@ def lookup_code():
 
         table = CATALOG_TABLE_MAP[catalog_key]
 
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        c.execute(f"SELECT * FROM {table} WHERE TRIM(UPPER(code)) = ? LIMIT 1",
-                  (code.strip().upper(),))
-        row = c.fetchone()
-        conn.close()
+        conn = get_conn()
+        try:
+            c = dict_cursor(conn)
+            c.execute(f"SELECT * FROM {table} WHERE TRIM(UPPER(code)) = %s LIMIT 1",
+                    (code.strip().upper(),))
+            row = c.fetchone()
+        finally:
+            release_conn(conn)
 
         if row is None:
             return jsonify(found=False, prefix=prefix, divisi_label=divisi_label, csv_file=csv_file)
@@ -3031,55 +2705,34 @@ def lookup_codep():
         if not code:
             return jsonify(found=False, error="Kode kosong")
 
-        # normalisasi code (biar tidak gagal karena spasi/format aneh)
         clean_code = "".join(code.strip().upper().split())
-
         prefix, csv_file, catalog_key, divisi_label = get_prefix_from_code(clean_code)
-
         catalog_key = (catalog_key or "").strip().upper()
 
         if not prefix:
             return jsonify(found=False, error="Prefix kosong")
 
         if catalog_key not in TRANSFER_TABLE:
-            return jsonify(
-                found=False,
-                error=f"Prefix tidak dikenal: {catalog_key}",
-                prefix=prefix,
-                divisi_label="Unknown",
-                csv_file=None,
-                debug_keys=list(TRANSFER_TABLE.keys())
-            )
+            return jsonify(found=False, error=f"Prefix tidak dikenal: {catalog_key}", prefix=prefix, divisi_label="Unknown", csv_file=None, debug_keys=list(TRANSFER_TABLE.keys()))
 
         table = TRANSFER_TABLE[catalog_key]
 
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
+        conn = get_conn()
+        try:
+            c = dict_cursor(conn)
 
-        # DEBUG OPTIONAL (aktifkan kalau perlu)
-        # print("TABLE:", table)
-        # print("LOOKUP CODE:", clean_code)
+            c.execute(f"""
+                SELECT * FROM {table}
+                WHERE REPLACE(UPPER(code), ' ', '') = %s
+                LIMIT 1
+            """, (clean_code,))
 
-        c.execute(f"""
-            SELECT * FROM {table}
-            WHERE REPLACE(UPPER(code), ' ', '') = ?
-            LIMIT 1
-        """, (clean_code,))
-
-        row = c.fetchone()
-        conn.close()
+            row = c.fetchone()
+        finally:
+            release_conn(conn)
 
         if row is None:
-            return jsonify(
-                found=False,
-                prefix=prefix,
-                divisi_label=divisi_label,
-                csv_file=csv_file,
-                error="Data transfer tidak ditemukan",
-                debug_code=clean_code,
-                debug_table=table
-            )
+            return jsonify(found=False, prefix=prefix, divisi_label=divisi_label, csv_file=csv_file, error="Data transfer tidak ditemukan", debug_code=clean_code, debug_table=table )
 
         r = dict(row)
 
@@ -3118,69 +2771,66 @@ def save_csv():
         from collections import defaultdict
         groups = defaultdict(list)
 
-        # ── GROUPING (tetap sama) ─────────────────────────────
+        # ── GROUPING─────────────────────────────
         for rec in records:
             csv_file = rec.get("csv_file")
 
             if not csv_file or csv_file not in CSV_SCAN_FILES:
                 _, csv_file, _, _ = get_prefix_from_code(rec.get("code", ""))
-
             if not csv_file or csv_file not in CSV_SCAN_FILES:
-                return jsonify(
-                    success=False,
-                    error=f"Kode '{rec.get('code')}' tidak bisa ditentukan CSV tujuannya")
+                return jsonify(success=False, error=f"Kode '{rec.get('code')}' tidak bisa ditentukan CSV tujuannya")
 
             groups[csv_file].append(rec)
 
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         scanned_by = session.get("name", "")
 
-        # ── CSV SECTION DIHAPUS TOTAL ─────────────────────────
+        # ── INSERT KE SQLITE ─────────────────────
+        conn = get_conn()
+        try:
+            c = conn.cursor()
 
-        # ── INSERT KE SQLITE (tetap sama) ─────────────────────
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
+            for csv_filename, recs in groups.items():
+                table_divisi = SCAN_SALAH_TABLE_MAP.get(csv_filename)
 
-        for csv_filename, recs in groups.items():
-            table_divisi = SCAN_SALAH_TABLE_MAP.get(csv_filename)
+                for rec in recs:
+                    row_vals = (
+                        now_str,
+                        rec.get("prefix", ""),
+                        rec.get("prefix", ""),
+                        rec.get("divisi_label", ""),
+                        rec.get("spk", ""),
+                        rec.get("customer", ""),
+                        rec.get("produk", ""),
+                        rec.get("uk", ""),
+                        rec.get("checker", ""),
+                        scanned_by,
+                        rec.get("code", ""),
+                        keterangan,
+                    )
 
-            for rec in recs:
-                row_vals = (
-                    now_str,
-                    rec.get("prefix", ""),
-                    rec.get("prefix", ""),
-                    rec.get("divisi_label", ""),
-                    rec.get("spk", ""),
-                    rec.get("customer", ""),
-                    rec.get("produk", ""),
-                    rec.get("uk", ""),
-                    rec.get("checker", ""),
-                    scanned_by,
-                    rec.get("code", ""),
-                    keterangan,
-                )
-
-                # tabel gabungan
-                c.execute("""
-                    INSERT INTO scan_salah
-                    (create_at, divisi, prefix, divisi_label,
-                     spk, customer, produk, uk,
-                     checker, scanned_by, code, keterangan)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-                """, row_vals)
-
-                # tabel per divisi
-                if table_divisi:
-                    c.execute(f"""
-                        INSERT INTO {table_divisi}
+                    # tabel gabungan
+                    c.execute("""
+                        INSERT INTO scan_salah
                         (create_at, divisi, prefix, divisi_label,
-                         spk, customer, produk, uk,
-                         checker, scanned_by, code, keterangan)
-                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                        spk, customer, produk, uk,
+                        checker, scanned_by, code, keterangan)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     """, row_vals)
 
-        conn.commit()
-        conn.close()
+                    # tabel per divisi
+                    if table_divisi:
+                        c.execute(f"""
+                            INSERT INTO {table_divisi}
+                            (create_at, divisi, prefix, divisi_label,
+                            spk, customer, produk, uk,
+                            checker, scanned_by, code, keterangan)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                        """, row_vals)
+
+            conn.commit()
+        finally:
+            release_conn(conn)
 
         return jsonify(success=True, saved=len(records))
 
@@ -3226,51 +2876,53 @@ def save_pemakaian():
             groups[csv_file].append(rec)
 
         # INSERT KE SQLITE 
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        scanned_by = session.get("name", "")
+        conn = get_conn()
+        try:
+            c = conn.cursor()
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            scanned_by = session.get("name", "")
 
-        for csv_filename, recs in groups.items():
-            table_divisi = PEMAKAIAN_TABLE_MAP.get(csv_filename)
-            for rec in recs:
-                row_vals = (
-                    now_str,
-                    tanggal_clean,
-                    shift,
-                    rec.get("prefix", ""),
-                    rec.get("prefix", ""),
-                    rec.get("divisi_label", ""),
-                    rec.get("spk", ""),
-                    rec.get("customer", ""),
-                    rec.get("produk", ""),
-                    rec.get("uk", ""),
-                    rec.get("checker", ""),
-                    scanned_by,
-                    rec.get("code", ""),
-                    mesin,
-                    rec.get("berat_bersih", ""),
-                )
-                # tabel gabungan
-                c.execute("""
-                    INSERT INTO scan_pemakaian
-                    (create_at, tanggal, shift, divisi, prefix, divisi_label,
-                    spk, customer, produk, uk, checker, scanned_by,
-                    code, mesin, berat_bersih)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                """, row_vals)
-                # tabel per-divisi
-                if table_divisi:
-                    c.execute(f"""
-                        INSERT INTO {table_divisi}
+            for csv_filename, recs in groups.items():
+                table_divisi = PEMAKAIAN_TABLE_MAP.get(csv_filename)
+                for rec in recs:
+                    row_vals = (
+                        now_str,
+                        tanggal_clean,
+                        shift,
+                        rec.get("prefix", ""),
+                        rec.get("prefix", ""),
+                        rec.get("divisi_label", ""),
+                        rec.get("spk", ""),
+                        rec.get("customer", ""),
+                        rec.get("produk", ""),
+                        rec.get("uk", ""),
+                        rec.get("checker", ""),
+                        scanned_by,
+                        rec.get("code", ""),
+                        mesin,
+                        rec.get("berat_bersih", ""),
+                    )
+                    # tabel gabungan
+                    c.execute("""
+                        INSERT INTO scan_pemakaian
                         (create_at, tanggal, shift, divisi, prefix, divisi_label,
                         spk, customer, produk, uk, checker, scanned_by,
                         code, mesin, berat_bersih)
-                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     """, row_vals)
+                    # tabel per-divisi
+                    if table_divisi:
+                        c.execute(f"""
+                            INSERT INTO {table_divisi}
+                            (create_at, tanggal, shift, divisi, prefix, divisi_label,
+                            spk, customer, produk, uk, checker, scanned_by,
+                            code, mesin, berat_bersih)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                        """, row_vals)
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            release_conn(conn)
 
         return jsonify(success=True, saved=len(records))
 
@@ -3320,51 +2972,53 @@ def save_transfer():
             groups[csv_file].append(rec)
 
         # INSERT KE SQLITE
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        now_str    = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        scanned_by = session.get("name", "")
+        conn = get_conn()
+        try:
+            c = conn.cursor()
+            now_str    = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            scanned_by = session.get("name", "")
 
-        for csv_filename, recs in groups.items():
-            table_divisi = TRANSFER_TABLE_MAP.get(csv_filename)
-            for rec in recs:
-                row_vals = (
-                    now_str,
-                    tanggal_clean,
-                    shift,
-                    rec.get("prefix", ""),
-                    rec.get("prefix", ""),
-                    rec.get("divisi_label", ""),
-                    rec.get("spk", ""),
-                    rec.get("customer", ""),
-                    rec.get("produk", ""),
-                    rec.get("uk", ""),
-                    rec.get("checker", ""),
-                    scanned_by,
-                    rec.get("code", ""),
-                    foreman,
-                    rec.get("berat_bersih", ""),
-                )
-                # tabel gabungan
-                c.execute("""
-                    INSERT INTO scan_transfer
-                    (create_at, tanggal, shift, divisi, prefix, divisi_label,
-                    spk, customer, produk, uk, checker, scanned_by,
-                    code, foreman, berat_bersih)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                """, row_vals)
-                # tabel per-divisi
-                if table_divisi:
-                    c.execute(f"""
-                        INSERT INTO {table_divisi}
+            for csv_filename, recs in groups.items():
+                table_divisi = TRANSFER_TABLE_MAP.get(csv_filename)
+                for rec in recs:
+                    row_vals = (
+                        now_str,
+                        tanggal_clean,
+                        shift,
+                        rec.get("prefix", ""),
+                        rec.get("prefix", ""),
+                        rec.get("divisi_label", ""),
+                        rec.get("spk", ""),
+                        rec.get("customer", ""),
+                        rec.get("produk", ""),
+                        rec.get("uk", ""),
+                        rec.get("checker", ""),
+                        scanned_by,
+                        rec.get("code", ""),
+                        foreman,
+                        rec.get("berat_bersih", ""),
+                    )
+                    # tabel gabungan
+                    c.execute("""
+                        INSERT INTO scan_transfer
                         (create_at, tanggal, shift, divisi, prefix, divisi_label,
                         spk, customer, produk, uk, checker, scanned_by,
                         code, foreman, berat_bersih)
-                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     """, row_vals)
+                    # tabel per-divisi
+                    if table_divisi:
+                        c.execute(f"""
+                            INSERT INTO {table_divisi}
+                            (create_at, tanggal, shift, divisi, prefix, divisi_label,
+                            spk, customer, produk, uk, checker, scanned_by,
+                            code, foreman, berat_bersih)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                        """, row_vals)
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            release_conn(conn)
 
         return jsonify(success=True, saved=len(records))
 
@@ -3381,45 +3035,48 @@ def lookup_transfer():
 
         if not code:
             return jsonify(found=False, error="Kode kosong")
-
-        prefix, csv_file, _, divisi_label = get_prefix_from_code(code)
-
+        prefix, _, _, divisi_label = get_prefix_from_code(code)
         if not prefix:
             return jsonify(found=False, error="Prefix tidak dikenal", prefix="")
 
-        # Tentukan file transfer yang relevan berdasarkan prefix
         transfer_file = TRANSFER_MAP.get(prefix)
-        if not transfer_file or transfer_file not in CSV_SCAN_TFILES:
-            return jsonify(found=False, error=f"Prefix '{prefix}' tidak punya file transfer", prefix=prefix,)
+        if not transfer_file:
+            return jsonify(found=False, error=f"Prefix '{prefix}' tidak punya tabel transfer", prefix=prefix)
+        table = TRANSFER_TABLE_MAP.get(transfer_file)
+        if not table:
+            return jsonify(found=False, error=f"Tabel transfer tidak ditemukan untuk {transfer_file}")
 
-        path = CSV_SCAN_TFILES[transfer_file]
-        if not path.exists():
-            return jsonify(found=False, prefix=prefix, divisi_label=divisi_label, transfer_file=transfer_file, error="File scan_transfer tidak ditemukan", )
+        conn = get_conn()
+        try:
+            c = dict_cursor(conn)
+            c.execute(f"""
+                SELECT *
+                FROM {table}
+                WHERE TRIM(UPPER(code)) = %s
+                ORDER BY id DESC
+                LIMIT 1
+            """, (code,))
+            row = c.fetchone()
 
-        df = pd.read_csv(path, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
-        df.columns = df.columns.str.strip()
+        finally:
+            release_conn(conn)
 
-        if "code" not in df.columns:
-            return jsonify(found=False, error="Kolom 'code' tidak ada di file transfer")
+        if row is None:
+            return jsonify(found=False, prefix=prefix, divisi_label=divisi_label, transfer_file=transfer_file)
 
-        df["code"] = df["code"].astype(str).str.strip().str.upper()
-        match = df[df["code"] == code]
+        r = dict(row)
 
-        if match.empty:
-            return jsonify(found=False, prefix=prefix, divisi_label=divisi_label, transfer_file=transfer_file,)
-
-        r = match.iloc[0]
         return jsonify(
-            found        = True,
-            prefix       = prefix,
-            divisi_label = divisi_label,
-            transfer_file= transfer_file,
-            spk          = str(r.get("spk", "")),
-            customer     = str(r.get("customer", "")),
-            produk       = str(r.get("produk", "")),
-            uk           = str(r.get("uk", "")),
-            berat_bersih = str(r.get("berat_bersih", "")),
-            checker      = str(r.get("checker", "")),
+            found=True,
+            prefix=prefix,
+            divisi_label=divisi_label,
+            transfer_file=transfer_file,
+            spk=str(r.get("spk", "")),
+            customer=str(r.get("customer", "")),
+            produk=str(r.get("produk", "")),
+            uk=str(r.get("uk", "")),
+            berat_bersih=str(r.get("berat_bersih", "")),
+            checker=str(r.get("checker", ""))
         )
 
     except Exception as e:
@@ -3472,25 +3129,196 @@ def save_retur():
         log_rows = []
 
         # ── 2. Proses tiap tabel SQLite ─────────────────────────────────────
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
+        conn = get_conn()
+        try:
+            c = dict_cursor(conn)
 
-        for tf, recs in groups.items():
-            table = TRANSFER_TABLE_MAP.get(tf)
-            if not table:
-                skipped += len(recs)
-                continue
+            for tf, recs in groups.items():
+                table = TRANSFER_TABLE_MAP.get(tf)
+                if not table:
+                    skipped += len(recs)
+                    continue
 
-            codes_to_delete = {
-                (rec.get("code") or "").strip().upper()
-                for rec in recs
-            }
+                codes_to_delete = {
+                    (rec.get("code") or "").strip().upper()
+                    for rec in recs
+                }
 
-            for code_val in codes_to_delete:
-                # Ambil data dulu untuk log
+                for code_val in codes_to_delete:
+                    c.execute(
+                        f"SELECT * FROM {table} WHERE TRIM(UPPER(code)) = %s LIMIT 1",
+                        (code_val,)
+                    )
+                    row = c.fetchone()
+
+                    if row is None:
+                        skipped += 1
+                        continue
+
+                    r = dict(row)
+                    rec_match = next(
+                        (rec for rec in recs if (rec.get("code") or "").upper() == code_val),
+                        {}
+                    )
+
+                    log_rows.append({
+                        "create_at":    now_str,
+                        "tanggal":      tanggal_clean,
+                        "shift":        shift,
+                        "divisi":       rec_match.get("prefix", str(r.get("prefix", ""))),
+                        "prefix":       rec_match.get("prefix", str(r.get("prefix", ""))),
+                        "divisi_label": rec_match.get("divisi_label", str(r.get("divisi_label", ""))),
+                        "spk":          str(r.get("spk", "")),
+                        "customer":     str(r.get("customer", "")),
+                        "produk":       str(r.get("produk", "")),
+                        "uk":           str(r.get("uk", "")),
+                        "checker":      str(r.get("checker", "")),
+                        "scanned_by":   scanned_by,
+                        "code":         code_val,
+                        "foreman":      foreman,
+                        "berat_bersih": str(r.get("berat_bersih", "")),
+                        "keterangan":   keterangan,
+                    })
+
+                    # Hapus dari SQLite
+                    c.execute(
+                        f"DELETE FROM {table} WHERE TRIM(UPPER(code)) = %s",
+                        (code_val,)
+                    )
+                    deleted += c.rowcount
+
+            # ── 3. Insert log ke scan_retur SQLite ──────────────────────────────
+            for row in log_rows:
+                c.execute("""
+                    INSERT INTO scan_retur
+                    (create_at, tanggal, shift, divisi, prefix, divisi_label, spk, customer, produk, uk,
+                    checker, scanned_by, code, foreman, berat_bersih, keterangan)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                """, (
+                    row["create_at"], row["tanggal"], row["shift"],
+                    row["divisi"], row["prefix"], row["divisi_label"],
+                    row["spk"], row["customer"], row["produk"], row["uk"],
+                    row["checker"], row["scanned_by"], row["code"],
+                    row["foreman"], row["berat_bersih"], row["keterangan"],
+                ))
+
+            conn.commit()
+        finally:
+            release_conn(conn)
+
+        # ── 5. Tulis log retur ke CSV ────────────────────────────────────────
+        return jsonify(success=True, deleted=deleted, skipped=skipped)
+
+    except Exception as e:
+        import traceback
+        return jsonify(success=False, error=str(e), detail=traceback.format_exc())
+
+#HAPUS DATA SCAN PEMAKAIAN
+@app.route("/api/lookup_pemakaian", methods=["POST"])
+@login_required
+def lookup_pemakaian():
+    try:
+        data = request.get_json()
+        code = (data.get("code") or "").strip().upper()
+
+        if not code:
+            return jsonify(found=False, error="Kode kosong")
+        prefix, _, _, divisi_label = get_prefix_from_code(code)
+        if not prefix:
+            return jsonify(found=False, error="Prefix tidak dikenal", prefix="")
+
+        csv_file = PEMAKAIAN_MAP.get(prefix)
+        if not csv_file:
+            return jsonify(found=False, error=f"Prefix '{prefix}' tidak punya tabel scan pemakaian", prefix=prefix)
+        table = PEMAKAIAN_TABLE_MAP.get(csv_file)
+        if not table:
+            return jsonify(found=False, error=f"Tabel tidak ditemukan untuk {csv_file}")
+
+        conn = get_conn()
+        try:
+            c = dict_cursor(conn)
+            c.execute(f"""
+                SELECT * FROM {table}
+                WHERE TRIM(UPPER(code)) = %s
+                ORDER BY id DESC
+                LIMIT 1
+            """, (code,))
+            row = c.fetchone()
+        finally:
+            release_conn(conn)
+
+        if row is None:
+            return jsonify(found=False, prefix=prefix, divisi_label=divisi_label, pemakaian_table=table)
+
+        r = dict(row)
+        return jsonify(
+            found          = True,
+            prefix         = prefix,
+            divisi_label   = divisi_label,
+            pemakaian_table= table,
+            create_at      = str(r.get("create_at", "")),
+            tanggal        = str(r.get("tanggal", "")),
+            shift          = str(r.get("shift", "")),
+            spk            = str(r.get("spk", "")),
+            customer       = str(r.get("customer", "")),
+            produk         = str(r.get("produk", "")),
+            uk             = str(r.get("uk", "")),
+            checker        = str(r.get("checker", "")),
+            scanned_by     = str(r.get("scanned_by", "")),
+            mesin          = str(r.get("mesin", "")),
+            berat_bersih   = str(r.get("berat_bersih", "")),
+        )
+
+    except Exception as e:
+        return jsonify(found=False, error=str(e))
+
+# ─── API: HAPUS PERMANEN DARI TABEL SCAN PEMAKAIAN ──────────
+@app.route("/hapus_pemakaian", methods=["POST"])
+@login_required
+@adminwip_required
+def hapus_pemakaian():
+    try:
+        data       = request.get_json()
+        records    = data.get("records", [])
+        tanggal    = data.get("tanggal", "")
+        shift      = data.get("shift", "")
+        keterangan = (data.get("keterangan") or "").strip()
+
+        if not records:
+            return jsonify(success=False, error="Tidak ada data")
+        if not keterangan:
+            return jsonify(success=False, error="Keterangan wajib diisi")
+
+        tanggal_clean = format_tanggal(tanggal) if tanggal else ""
+        now_str       = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        admin_name    = session.get("name", "")
+        deleted = 0
+        skipped = 0
+
+        conn = get_conn()
+        try:
+            c = dict_cursor(conn)
+
+            seen = set()
+
+            for rec in records:
+                code_val = (rec.get("code") or "").strip().upper()
+                if not code_val or code_val in seen:
+                    continue
+                seen.add(code_val)
+
+                table = rec.get("pemakaian_table")
+                if not table or table not in PEMAKAIAN_TABLE_MAP.values():
+                    prefix, _, _, _ = get_prefix_from_code(code_val)
+                    csv_file = PEMAKAIAN_MAP.get(prefix)
+                    table    = PEMAKAIAN_TABLE_MAP.get(csv_file)
+
+                if not table:
+                    skipped += 1
+                    continue
+
                 c.execute(
-                    f"SELECT * FROM {table} WHERE TRIM(UPPER(code)) = ? LIMIT 1",
+                    f"SELECT * FROM {table} WHERE TRIM(UPPER(code)) = %s LIMIT 1",
                     (code_val,)
                 )
                 row = c.fetchone()
@@ -3500,63 +3328,233 @@ def save_retur():
                     continue
 
                 r = dict(row)
-                rec_match = next(
-                    (rec for rec in recs if (rec.get("code") or "").upper() == code_val),
-                    {}
-                )
 
-                log_rows.append({
-                    "create_at":    now_str,
-                    "tanggal":      tanggal_clean,
-                    "shift":        shift,
-                    "divisi":       rec_match.get("prefix", str(r.get("prefix", ""))),
-                    "prefix":       rec_match.get("prefix", str(r.get("prefix", ""))),
-                    "divisi_label": rec_match.get("divisi_label", str(r.get("divisi_label", ""))),
-                    "spk":          str(r.get("spk", "")),
-                    "customer":     str(r.get("customer", "")),
-                    "produk":       str(r.get("produk", "")),
-                    "uk":           str(r.get("uk", "")),
-                    "checker":      str(r.get("checker", "")),
-                    "scanned_by":   scanned_by,
-                    "code":         code_val,
-                    "foreman":      foreman,
-                    "berat_bersih": str(r.get("berat_bersih", "")),
-                    "keterangan":   keterangan,
-                })
+                # ── Log dulu sebelum dihapus (audit trail) ──
+                c.execute("""
+                    INSERT INTO log_hapus_pemakaian
+                    (create_at, tanggal, shift, divisi, prefix, divisi_label, spk, customer,
+                     produk, uk, checker, scanned_by, code, mesin, berat_bersih, deleted_by, keterangan, deleted_at)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                """, (
+                    str(r.get("create_at", "")),
+                    tanggal_clean or str(r.get("tanggal", "")),
+                    shift or str(r.get("shift", "")),
+                    str(r.get("divisi", "")),
+                    str(r.get("prefix", "")),
+                    str(r.get("divisi_label", "")),
+                    str(r.get("spk", "")),
+                    str(r.get("customer", "")),
+                    str(r.get("produk", "")),
+                    str(r.get("uk", "")),
+                    str(r.get("checker", "")),
+                    str(r.get("scanned_by", "")),
+                    code_val,
+                    str(r.get("mesin", "")),
+                    str(r.get("berat_bersih", "")),
+                    admin_name,
+                    keterangan,
+                    now_str,
+                ))
 
-                # Hapus dari SQLite
-                c.execute(
-                    f"DELETE FROM {table} WHERE TRIM(UPPER(code)) = ?",
-                    (code_val,)
-                )
+                # ── Hapus dari tabel scan pemakaian ──
+                c.execute(f"DELETE FROM {table} WHERE TRIM(UPPER(code)) = %s", (code_val,))
                 deleted += c.rowcount
 
-        # ── 3. Insert log ke scan_retur SQLite ──────────────────────────────
-        for row in log_rows:
-            c.execute("""
-                INSERT INTO scan_retur
-                (create_at, tanggal, shift, divisi, prefix, divisi_label,
-                 spk, customer, produk, uk, checker, scanned_by,
-                 code, foreman, berat_bersih, keterangan)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            """, (
-                row["create_at"], row["tanggal"], row["shift"],
-                row["divisi"], row["prefix"], row["divisi_label"],
-                row["spk"], row["customer"], row["produk"], row["uk"],
-                row["checker"], row["scanned_by"], row["code"],
-                row["foreman"], row["berat_bersih"], row["keterangan"],
-            ))
+            conn.commit()
+        finally:
+            release_conn(conn)
 
-        conn.commit()
-        conn.close()
-
-        # ── 4. Hapus dari CSV transfer ───────────────────────────────────────
-        # ── 5. Tulis log retur ke CSV ────────────────────────────────────────
         return jsonify(success=True, deleted=deleted, skipped=skipped)
 
     except Exception as e:
         import traceback
         return jsonify(success=False, error=str(e), detail=traceback.format_exc())
+
+SCAN_SALAH_PREFIX_TABLE = {
+    "HD":  "scansalahhd",
+    "AHP": "scansalahhd",
+    "AHD": "scansalahhd",
+    "AHS": "scansalahhd",
+    "AHT": "scansalahhd",
+
+    "MI":  "scansalahmixing",
+    "AMS": "scansalahmixing",
+
+    "CU":  "scansalahpotong",
+    "CS":  "scansalahpotong",
+    "ACP": "scansalahpotong",
+    "ACM": "scansalahpotong",
+    "ACS": "scansalahpotong",
+    "ACH": "scansalahpotong",
+    "ACR": "scansalahpotong",
+
+    "PA":  "scansalahpacking",
+    "PS":  "scansalahpacking",
+    "APP": "scansalahpacking",
+    "APR": "scansalahpacking",
+    "APB": "scansalahpacking",
+    "APC": "scansalahpacking",
+}  
+@app.route("/api/lookup_salah", methods=["POST"])
+@login_required
+def lookup_salah():
+    try:
+        data = request.get_json()
+        code = (data.get("code") or "").strip().upper()
+
+        if not code:
+            return jsonify(found=False, error="Kode kosong")
+
+        # get_prefix_from_code cuma dipakai untuk ambil prefix & divisi_label,
+        # nama tabel PostgreSQL ditentukan sendiri lewat SCAN_SALAH_PREFIX_TABLE
+        prefix, _, _, divisi_label = get_prefix_from_code(code)
+
+        if not prefix:
+            return jsonify(found=False, error="Prefix tidak dikenal", prefix="")
+
+        table = SCAN_SALAH_PREFIX_TABLE.get(prefix)
+        if not table:
+            return jsonify(found=False, error=f"Prefix '{prefix}' tidak termasuk scope halaman ini (mixing/hd/potong/packing)", prefix=prefix)
+
+        conn = get_conn()
+        try:
+            c = dict_cursor(conn)
+            c.execute(f"""
+                SELECT * FROM {table}
+                WHERE TRIM(UPPER(code)) = %s
+                ORDER BY id DESC
+                LIMIT 1
+            """, (code,))
+            row = c.fetchone()
+        finally:
+            release_conn(conn)
+
+        if row is None:
+            return jsonify(found=False, prefix=prefix, divisi_label=divisi_label, scansalah_table=table)
+
+        r = dict(row)
+        return jsonify(
+            found          = True,
+            prefix         = prefix,
+            divisi_label   = divisi_label,
+            scansalah_table= table,
+            create_at      = str(r.get("create_at", "")),
+            tanggal        = str(r.get("tanggal", "")),        # mungkin kosong, lihat catatan di atas
+            shift          = str(r.get("shift", "")),          # mungkin kosong, lihat catatan di atas
+            spk            = str(r.get("spk", "")),
+            customer       = str(r.get("customer", "")),
+            produk         = str(r.get("produk", "")),
+            uk             = str(r.get("uk", "")),
+            checker        = str(r.get("checker", "")),
+            scanned_by     = str(r.get("scanned_by", "")),
+            mesin          = str(r.get("mesin", "")),          # mungkin kosong, lihat catatan di atas
+            berat_bersih   = str(r.get("berat_bersih", "")),   # mungkin kosong, lihat catatan di atas
+            keterangan     = str(r.get("keterangan", "")),
+        )
+
+    except Exception as e:
+        return jsonify(found=False, error=str(e))
+
+
+# ─── API: HAPUS PERMANEN DARI TABEL SCAN SALAH ──────────────
+@app.route("/hapus_salah", methods=["POST"])
+@login_required
+@adminwip_required
+def hapus_salah():
+    try:
+        data       = request.get_json()
+        records    = data.get("records", [])
+        tanggal    = data.get("tanggal", "")
+        keterangan = (data.get("keterangan") or "").strip()
+
+        if not records:
+            return jsonify(success=False, error="Tidak ada data")
+        if not keterangan:
+            return jsonify(success=False, error="Keterangan wajib diisi")
+
+        tanggal_clean = format_tanggal(tanggal) if tanggal else ""
+        now_str       = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        admin_name    = session.get("name", "")
+
+        deleted = 0
+        skipped = 0
+
+        conn = get_conn()
+        try:
+            c = dict_cursor(conn)
+
+            seen = set()
+
+            for rec in records:
+                code_val = (rec.get("code") or "").strip().upper()
+                if not code_val or code_val in seen:
+                    continue
+                seen.add(code_val)
+
+                table = rec.get("scansalah_table")
+                if not table or table not in SCAN_SALAH_PREFIX_TABLE.values():
+                    prefix, _, _, _ = get_prefix_from_code(code_val)
+                    table = SCAN_SALAH_PREFIX_TABLE.get(prefix)
+
+                if not table:
+                    skipped += 1
+                    continue
+
+                c.execute(
+                    f"SELECT * FROM {table} WHERE TRIM(UPPER(code)) = %s LIMIT 1",
+                    (code_val,)
+                )
+                row = c.fetchone()
+
+                if row is None:
+                    skipped += 1
+                    continue
+
+                r = dict(row)
+
+                # ── Log dulu sebelum dihapus (audit trail) ──
+                c.execute("""
+                    INSERT INTO log_hapus_salah
+                    (create_at, tanggal, shift, divisi, prefix, divisi_label, spk, customer,
+                     produk, uk, checker, scanned_by, code, mesin, berat_bersih,
+                     keterangan_asli, deleted_by, keterangan_hapus, deleted_at)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                """, (
+                    str(r.get("create_at", "")),
+                    tanggal_clean or str(r.get("tanggal", "")),
+                    str(r.get("shift", "")),
+                    str(r.get("divisi", "")),
+                    str(r.get("prefix", "")),
+                    str(r.get("divisi_label", "")),
+                    str(r.get("spk", "")),
+                    str(r.get("customer", "")),
+                    str(r.get("produk", "")),
+                    str(r.get("uk", "")),
+                    str(r.get("checker", "")),
+                    str(r.get("scanned_by", "")),
+                    code_val,
+                    str(r.get("mesin", "")),
+                    str(r.get("berat_bersih", "")),
+                    str(r.get("keterangan", "")),
+                    admin_name,
+                    keterangan,
+                    now_str,
+                ))
+
+                # ── Hapus dari tabel scan salah ──
+                c.execute(f"DELETE FROM {table} WHERE TRIM(UPPER(code)) = %s", (code_val,))
+                deleted += c.rowcount
+
+            conn.commit()
+        finally:
+            release_conn(conn)
+
+        return jsonify(success=True, deleted=deleted, skipped=skipped)
+
+    except Exception as e:
+        import traceback
+        return jsonify(success=False, error=str(e), detail=traceback.format_exc())
+
     
 # ─── API: SUBMIT PRODUKSI ───────────────────────────────────
 @app.route("/api/submit", methods=["POST"])
@@ -3867,19 +3865,21 @@ def check_spk_berat(spk):
         # ── Ambil bad codes dari SQLite scansalahmixing ───────
         bad_codes = set()
         try:
-            conn = sqlite3.connect(DB_PATH)
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT code
-                FROM scansalahmixing
-                WHERE code IS NOT NULL
-            """)
-            bad_codes = {
-                str(row[0]).strip()
-                for row in cur.fetchall()
-                if row[0]
-            }
-            conn.close()
+            conn = get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT code
+                    FROM scansalahmixing
+                    WHERE code IS NOT NULL
+                """)
+                bad_codes = {
+                    str(row[0]).strip()
+                    for row in cur.fetchall()
+                    if row[0]
+                }
+            finally:
+                release_conn(conn)
 
         except Exception as e:
             print(f"Gagal baca scansalahmixing: {e}")
@@ -3887,27 +3887,28 @@ def check_spk_berat(spk):
         # ── Hitung used dari SQLite katalogmixing ─────────────
         used = 0.0
         try:
-            conn = sqlite3.connect(DB_PATH)
-            conn.row_factory = sqlite3.Row
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT code, berat_bersih
-                FROM katalogmixing
-                WHERE TRIM(spk) = ?
-            """, (spk,))
+            conn = get_conn()
+            try:
+                cur = dict_cursor(conn)
+                cur.execute("""
+                    SELECT code, berat_bersih
+                    FROM katalogmixing
+                    WHERE TRIM(spk) = %s
+                """, (spk,))
 
-            rows = cur.fetchall()
-            for row in rows:
-                code = str(row["code"]).strip() if row["code"] else ""
+                rows = cur.fetchall()
+                for row in rows:
+                    code = str(row["code"]).strip() if row["code"] else ""
 
-                # skip jika masuk scan salah
-                if code in bad_codes:
-                    continue
-                try:
-                    used += float(row["berat_bersih"] or 0)
-                except:
-                    pass
-            conn.close()
+                    # skip jika masuk scan salah
+                    if code in bad_codes:
+                        continue
+                    try:
+                        used += float(row["berat_bersih"] or 0)
+                    except:
+                        pass
+            finally:
+                release_conn(conn)
 
         except Exception as e:
             print(f"Gagal baca katalogmixing: {e}")
@@ -3937,7 +3938,7 @@ def check_spk_berat_hd(spk):
     try:
         spk = str(spk).strip()
 
-        # ── Limit dari Summary SPK (CSV tetap) ────────────────
+        # ── Limit dari Summary SPK ────────────────
         limit = None
         try:
             df_spk = pd.read_csv(SPK_CSV, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
@@ -3968,19 +3969,21 @@ def check_spk_berat_hd(spk):
         bad_codes = set()
 
         try:
-            conn = sqlite3.connect(DB_PATH)
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT code
-                FROM scansalahhd
-                WHERE code IS NOT NULL
-            """)
-            bad_codes = {
-                str(row[0]).strip()
-                for row in cur.fetchall()
-                if row[0]
-            }
-            conn.close()
+            conn = get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT code
+                    FROM scansalahhd
+                    WHERE code IS NOT NULL
+                """)
+                bad_codes = {
+                    str(row[0]).strip()
+                    for row in cur.fetchall()
+                    if row[0]
+                }
+            finally:
+                release_conn(conn)
 
         except Exception as e:
             print(f"Gagal baca scansalahhd: {e}")
@@ -3989,36 +3992,35 @@ def check_spk_berat_hd(spk):
         used = 0.0
 
         try:
-            conn = sqlite3.connect(DB_PATH)
-            cur = conn.cursor()
+            conn = get_conn()
+            try:
+                cur = conn.cursor()
 
-            if bad_codes:
-                placeholders = ",".join(["?"] * len(bad_codes))
+                if bad_codes:
+                    placeholders = ",".join(["%s"] * len(bad_codes))
 
-                sql = f"""
-                    SELECT COALESCE(SUM(berat_bersih), 0)
-                    FROM kataloghd
-                    WHERE TRIM(spk)=?
-                    AND code NOT IN ({placeholders})
-                """
+                    sql = f"""
+                        SELECT COALESCE(SUM(berat_bersih), 0)
+                        FROM kataloghd
+                        WHERE TRIM(spk)=%s
+                        AND code NOT IN ({placeholders})
+                    """
+                    params = [spk] + list(bad_codes)
 
-                params = [spk] + list(bad_codes)
+                else:
+                    sql = """
+                        SELECT COALESCE(SUM(berat_bersih), 0)
+                        FROM kataloghd
+                        WHERE TRIM(spk)=%s
+                    """
+                    params = [spk]
 
-            else:
-                sql = """
-                    SELECT COALESCE(SUM(berat_bersih), 0)
-                    FROM kataloghd
-                    WHERE TRIM(spk)=?
-                """
+                cur.execute(sql, params)
+                result = cur.fetchone()
+                used = float(result[0] or 0)
 
-                params = [spk]
-
-            cur.execute(sql, params)
-
-            result = cur.fetchone()
-            used = float(result[0] or 0)
-
-            conn.close()
+            finally:
+                release_conn(conn)
 
         except Exception as e:
             print(f"Gagal baca kataloghd: {e}")
@@ -4042,7 +4044,45 @@ def check_spk_berat_hd(spk):
 
         return jsonify(success=False, error=str(e), detail=traceback.format_exc())
     
-# Helper sorting kronologis untuk stok opname
+#BERAT LEBIH STD
+@app.route("/api/spk_standar/<spk>")
+@login_required
+def api_spk_standar(spk):
+    try:
+        spk = str(spk).strip()
+        if not os.path.exists(SPK_CSV):
+            return jsonify(standar=None)
+
+        df_spk = pd.read_csv(SPK_CSV, encoding="utf-8-sig", dtype=str, on_bad_lines="skip", engine="python")
+        df_spk.columns = df_spk.columns.str.strip()
+
+        if df_spk.empty or len(df_spk.columns) < 11:
+            return jsonify(standar=None)
+
+        # Kolom A = No. SPK (index 0)
+        spk_col = df_spk.columns[0]
+        df_spk[spk_col] = df_spk[spk_col].astype(str).str.strip()
+        row = df_spk[df_spk[spk_col] == spk]
+
+        if row.empty:
+            return jsonify(standar=None)
+
+        # Kolom K = index 10 (A=0, B=1, ..., K=10)
+        k_col = df_spk.columns[10]
+        raw_val = str(row.iloc[0][k_col]).replace(",", ".").strip()
+
+        try:
+            standar = float(raw_val)
+        except (ValueError, TypeError):
+            standar = None
+
+        return jsonify(spk=spk, standar=standar)
+
+    except Exception as e:
+        import traceback
+        return jsonify(standar=None, error=str(e), detail=traceback.format_exc())
+    
+# Helper sorting untuk stok opname
 def _tanggal_sort_key(tanggal_str):
     """DD-MM-YYYY -> YYYY-MM-DD biar bisa diurutkan. Gagal parse -> dianggap paling lama."""
     try:
@@ -4061,6 +4101,11 @@ def _shift_sort_key(shift_str):
 def _build_stok_opname(divisi_key):
 
     config = {
+        "mixing": {
+            "katalog_table": "katalogmixing",
+            "scansalah_table": "scansalahmixing",
+            "transfer_table": "scantransfermixing",
+        },
         "hd": {
             "katalog_table": "kataloghd",
             "scansalah_table": "scansalahhd",
@@ -4080,26 +4125,29 @@ def _build_stok_opname(divisi_key):
     scansalah_table = config["scansalah_table"]
     transfer_table  = config["transfer_table"]
 
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
+    conn = get_conn()
+    try:
+        c = dict_cursor(conn)
 
-    c.execute(f"SELECT code FROM {scansalah_table} WHERE code IS NOT NULL")
-    bad_codes = {str(r[0]).strip().upper() for r in c.fetchall() if r[0]}
+        c.execute(f"SELECT code FROM {scansalah_table} WHERE code IS NOT NULL")
+        bad_codes = {str(r["code"]).strip().upper() for r in c.fetchall() if r["code"]}
 
-    c.execute(f"""
-        SELECT tanggal, shift, spk, customer, produk, uk, code, berat_bersih
-        FROM {katalog_table}
-    """)
-    katalog_rows = c.fetchall()
+        c.execute(f"""
+            SELECT tanggal, shift, spk, customer, produk, uk, code, berat_bersih
+            FROM {katalog_table}
+        """)
+        katalog_rows = c.fetchall()
 
-    c.execute(f"""
-        SELECT tanggal, shift, spk, customer, produk, uk, code, berat_bersih
-        FROM {transfer_table}
-    """)
-    transfer_rows = c.fetchall()
+        c.execute(f"""
+            SELECT DISTINCT ON (TRIM(UPPER(code)))
+                tanggal, shift, spk, customer, produk, uk, code, berat_bersih
+            FROM {transfer_table}
+            ORDER BY TRIM(UPPER(code)), id DESC
+        """)
+        transfer_rows = c.fetchall()
 
-    conn.close()
+    finally:
+        release_conn(conn)
 
     buckets = {}
 
@@ -4145,6 +4193,10 @@ def _build_stok_opname(divisi_key):
 
     for row in transfer_rows:
         r = dict(row)
+        code = str(r.get("code", "") or "").strip().upper()
+        if code in bad_codes:
+            continue
+
         bucket = get_bucket(
             r.get("tanggal"), r.get("shift"), r.get("spk"),
             r.get("customer"), r.get("produk"), r.get("uk")
@@ -4212,33 +4264,109 @@ def _build_stok_opname(divisi_key):
     result.sort(key=sort_key, reverse=True)
     return result
 
-
 def _build_stok_ringkasan(divisi_key):
 
-    rows = _build_stok_opname(divisi_key)
+    config = {
+        "mixing": {
+            "katalog_table":  "katalogmixing",
+            "scansalah_table": "scansalahmixing",
+            "transfer_table":  "scantransfermixing",
+        },
+        "hd": {
+            "katalog_table":  "kataloghd",
+            "scansalah_table": "scansalahhd",
+            "transfer_table":  "scantransferhd",
+        },
+        "potong": {
+            "katalog_table":  "katalogpotong",
+            "scansalah_table": "scansalahpotong",
+            "transfer_table":  "scantransferpotong",
+        },
+    }.get(divisi_key)
 
-    latest_per_spk = {}
-    for r in rows:
-        spk = r["spk"]
-        if spk not in latest_per_spk:
-            latest_per_spk[spk] = r
+    if not config:
+        return []
+
+    conn = get_conn()
+    try:
+        c = dict_cursor(conn)
+
+        c.execute(f"SELECT code FROM {config['scansalah_table']} WHERE code IS NOT NULL")
+        bad_codes = {str(r["code"]).strip().upper() for r in c.fetchall() if r["code"]}
+
+        c.execute(f"SELECT code FROM {config['transfer_table']} WHERE code IS NOT NULL")
+        used_codes = {str(r["code"]).strip().upper() for r in c.fetchall() if r["code"]}
+
+        exclude = bad_codes | used_codes
+
+        c.execute(f"""
+            SELECT spk, customer, produk, uk, code, berat_bersih
+            FROM {config['katalog_table']}
+        """)
+        rows = c.fetchall()
+    finally:
+        release_conn(conn)
+
+    agg = {}
+    for row in rows:
+        r = dict(row)
+        code = str(r.get("code", "") or "").strip().upper()
+        if code in exclude:
+            continue
+
+        spk = str(r.get("spk", "") or "").strip()
+        if not spk:
+            continue
+
+        a = agg.setdefault(spk, {"customer": "", "produk": "", "uk": "", "count": 0, "berat": 0.0})
+        if not a["customer"] and r.get("customer"):
+            a["customer"] = r.get("customer")
+        if not a["produk"] and r.get("produk"):
+            a["produk"] = r.get("produk")
+        if not a["uk"] and r.get("uk"):
+            a["uk"] = r.get("uk")
+
+        a["count"] += 1
+        try:
+            a["berat"] += float(r.get("berat_bersih") or 0)
+        except (TypeError, ValueError):
+            pass
 
     result = []
-    for spk, r in latest_per_spk.items():
-        stok_qty = r["saldo_akhir"]
-        if stok_qty is None or stok_qty <= 0:
-            continue  # sembunyikan yg sudah habis/minus
+    for spk, a in agg.items():
+        if a["count"] <= 0:
+            continue
         result.append({
-            "spk":        r["spk"],
-            "customer":   r["customer"],
-            "produk":     r["produk"],
-            "uk":         r["uk"],
-            "stok_count": r["saldo_count_akhir"],
-            "stok_qty":   stok_qty,
+            "spk":        spk,
+            "customer":   a["customer"],
+            "produk":     a["produk"],
+            "uk":         a["uk"],
+            "stok_count": a["count"],
+            "stok_qty":   round(a["berat"], 2),
         })
 
     result.sort(key=lambda r: r["stok_qty"], reverse=True)
     return result
+
+@app.route("/api/stok_opname/mixing")
+@login_required
+def api_stok_opname_mixing():
+    try:
+        data = _build_stok_opname("mixing")
+        return jsonify(data)
+    except Exception as e:
+        print("ERROR api_stok_opname_mixing:", e)
+        return jsonify([])
+
+@app.route("/api/stok_ringkasan/mixing")
+@login_required
+def api_stok_ringkasan_mixing():
+    try:
+        data = _build_stok_ringkasan("mixing")
+        return jsonify(data)
+    except Exception as e:
+        print("ERROR api_stok_ringkasan_mixing:", e)
+        return jsonify([])
 
 @app.route("/api/stok_opname/hd")
 @login_required
@@ -4250,7 +4378,6 @@ def api_stok_opname_hd():
         print("ERROR api_stok_opname_hd:", e)
         return jsonify([])
 
-
 @app.route("/api/stok_opname/potong")
 @login_required
 def api_stok_opname_potong():
@@ -4261,7 +4388,6 @@ def api_stok_opname_potong():
         print("ERROR api_stok_opname_potong:", e)
         return jsonify([])
 
-
 @app.route("/api/stok_ringkasan/hd")
 @login_required
 def api_stok_ringkasan_hd():
@@ -4271,7 +4397,6 @@ def api_stok_ringkasan_hd():
     except Exception as e:
         print("ERROR api_stok_ringkasan_hd:", e)
         return jsonify([])
-
 
 @app.route("/api/stok_ringkasan/potong")
 @login_required
@@ -4284,10 +4409,6 @@ def api_stok_ringkasan_potong():
         return jsonify([])
     
 def _build_stok_karantina(divisi_key):
-    """
-    Hitung total stok karantina per SPK untuk masing-masing divisi.
-    divisi_key: 'mixing' | 'hd' | 'potong' | 'packing'
-    """
     table_map = {
         "mixing":  ("karantinamixing",  "berat_bersih"),
         "hd":      ("karantinahd",      "berat_bersih"),
@@ -4299,22 +4420,23 @@ def _build_stok_karantina(divisi_key):
 
     table, qty_col = table_map[divisi_key]
 
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
+    conn = get_conn()
+    try:
+        c = dict_cursor(conn)
 
-    c.execute(f"""
-        SELECT spk, customer, produk, uk,
-               COUNT(*)        AS stok_count,
-               SUM({qty_col})  AS stok_qty
-        FROM {table}
-        WHERE spk IS NOT NULL
-        GROUP BY spk, customer, produk, uk
-        HAVING stok_qty > 0
-        ORDER BY stok_qty DESC
-    """)
-    rows = [dict(r) for r in c.fetchall()]
-    conn.close()
+        c.execute(f"""
+            SELECT spk, customer, produk, uk,
+                COUNT(*) AS stok_count,
+                SUM({qty_col}) AS stok_qty
+            FROM {table}
+            WHERE spk IS NOT NULL
+            GROUP BY spk, customer, produk, uk
+            HAVING SUM({qty_col}) > 0
+            ORDER BY stok_qty DESC
+        """)
+        rows = [dict(r) for r in c.fetchall()]
+    finally:
+        release_conn(conn)
 
     for r in rows:
         r["stok_count"] = int(r["stok_count"] or 0)
@@ -4322,9 +4444,7 @@ def _build_stok_karantina(divisi_key):
 
     return rows
 
-
 # ── Routes ──────────────────────────────────────────────────────────────────
-
 @app.route("/api/stok_karantina/mixing")
 @login_required
 def api_stok_karantina_mixing():
@@ -4388,17 +4508,17 @@ def recent(divisi):
         if not table:
             return jsonify([])
 
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        c.execute(f"SELECT * FROM {table} ORDER BY id DESC LIMIT 500")
-        rows = c.fetchall()
-        conn.close()
+        conn = get_conn()
+        try:
+            c = dict_cursor(conn)
+            c.execute(f"SELECT * FROM {table} ORDER BY id DESC LIMIT 500")
+            rows = c.fetchall()
+        finally:
+            release_conn(conn)
 
         result = []
         for row in rows:
             d = dict(row)
-            # konversi None ke ""
             result.append({k: ("" if v is None else v) for k, v in d.items()})
 
         return jsonify(result)
@@ -4409,19 +4529,26 @@ def recent(divisi):
 
 # ─── RUN ────────────────────────────────────────────────────
 if __name__ == "__main__":
+    import logging
+    from logging.handlers import RotatingFileHandler
+
+    os.makedirs(os.path.join(APP_DIR, "logs"), exist_ok=True)
+    file_handler = RotatingFileHandler(
+        os.path.join(APP_DIR, "logs", "app.log"),
+        maxBytes=5 * 1024 * 1024,  # 5MB per file
+        backupCount=10,             # simpan 10 file lama (±50MB total)
+        encoding="utf-8",
+    )
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+    app.logger.addHandler(file_handler)
+    logging.getLogger("werkzeug").addHandler(file_handler)
+
     init_db()
-    init_csv(CSV_MIXING)
-    init_csv(CSV_HD)
-    init_csv(CSV_POTONG)
-    init_csv(CSV_SISA_POTONG)
-    init_csv(CSV_PACKING)
-    init_csv(CSV_SISA_PACK)
-    init_csv(CSV_AVAL_MIXING)
-    init_csv(CSV_AVAL_HD)
-    init_csv(CSV_AVAL_POTONG)
-    init_csv(CSV_AVAL_PACKING)
-    init_csv(CSV_AVAL_QC)
     print("=" * 55)
-    print("  Factory Label System running at http://localhost:5000")
+    print("  Factory Label System running at http://0.0.0.0:5000")
+    print("  Log tersimpan di: logs/app.log")
+    print("  JANGAN TUTUP JENDELA INI SELAMA JAM OPERASIONAL")
     print("=" * 55)
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    from waitress import serve
+    serve(app, host="0.0.0.0", port=5000, threads=24)

@@ -981,7 +981,7 @@
             </div>
             <div class="field">
               <label class="field-label">Team Packing <span class="req">*</span></label>
-              <input type="text" id="team" value="Team" readonly>
+              <input type="text" id="team" readonly>
             </div>
             <div class="field">
               <label class="field-label">Checker<span class="req"></span></label>
@@ -1130,9 +1130,15 @@
 
             loadRecent();
 
-            document.getElementById("operator_sp").addEventListener("change", function () {
-              const shift = operatorShiftMap[this.value] || "";
-              document.getElementById("shift").value = shift;
+            document.addEventListener("DOMContentLoaded", function () {
+              loadOperators();
+
+              document.getElementById("operator_sp").addEventListener("change", function () {
+                const shift = operatorShiftMap[this.value] || "";
+                const team = operatorTeamMap[this.value] || "";
+                document.getElementById("shift").value = shift;
+                document.getElementById("team").value = team;
+              });
             });
 
             // SEARCH
@@ -1340,11 +1346,13 @@
           }
 
           let operatorShiftMap = {};
+          let operatorTeamMap = {};
 
           async function loadOperators() {
             const divisi = document.getElementById("divisi").value;
 
             try {
+              // ── SHIFT ──
               const res = await fetch(`/api/shift/${divisi}`);
               const data = await res.json();
 
@@ -1352,14 +1360,18 @@
               select.innerHTML = `<option value="">-- Pilih Operator ${divisi} --</option>`;
 
               operatorShiftMap = {};
-
               data.forEach(item => {
-                const op = item.operator;
-                const shift = item.shift;
+                operatorShiftMap[item.operator] = item.shift;
+                select.innerHTML += `<option value="${item.operator}">${item.operator}</option>`;
+              });
 
-                operatorShiftMap[op] = shift;
+              // ── TEAM ── (tambahan)
+              const resTeam = await fetch(`/api/operators_team/${divisi}`);
+              const dataTeam = await resTeam.json();
 
-                select.innerHTML += `<option value="${op}">${op}</option>`;
+              operatorTeamMap = {};
+              dataTeam.forEach(item => {
+                operatorTeamMap[item.operator] = item.team;
               });
 
             } catch (e) {
@@ -1367,10 +1379,16 @@
             }
           }
 
-          // Panggil saat halaman siap
+          // Auto-fill team saat operator dipilih
           document.addEventListener("DOMContentLoaded", function () {
             loadOperators();
-            // ... kode DOMContentLoaded lainnya yang sudah ada
+
+            document.getElementById("operator_sp").addEventListener("change", function () {
+              const shift = operatorShiftMap[this.value] || "";
+              const team = operatorTeamMap[this.value] || "";
+              document.getElementById("shift").value = shift;
+              document.getElementById("team").value = team;
+            });
           });
 
           let isSubmitting = false;
